@@ -1,6 +1,0 @@
-apiVersion: v2
-name: user-mongodb
-description: user-mongodb microservice in SocialNetwork 
-type: application
-version: 0.1.0
-appVersion: 4.4.6

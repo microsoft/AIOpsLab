@@ -1,6 +1,0 @@
-apiVersion: v2
-name: compose-post-service
-description: compose-post-service microservice in SocialNetwork 
-type: application
-version: 0.1.0
-appVersion: 0.1.0

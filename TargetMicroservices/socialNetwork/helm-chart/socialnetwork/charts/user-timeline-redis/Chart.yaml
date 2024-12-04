@@ -1,6 +1,0 @@
-apiVersion: v2
-name: user-timeline-redis
-description: user-timeline-redis microservice in SocialNetwork 
-type: application
-version: 0.1.0
-appVersion: 6.2.4

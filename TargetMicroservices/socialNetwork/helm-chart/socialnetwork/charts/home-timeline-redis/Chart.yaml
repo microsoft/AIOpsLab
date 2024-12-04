@@ -1,6 +1,0 @@
-apiVersion: v2
-name: home-timeline-redis
-description: home-timeline-redis microservice in SocialNetwork 
-type: application
-version: 0.1.0
-appVersion: 6.2.4
