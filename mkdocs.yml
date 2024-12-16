@@ -11,7 +11,7 @@ extra:
   generator: false
   social:
     - icon: fontawesome/brands/github
-      link: https://fosstodon.org/@squidfunkf #URL of code in github
+      link: https://github.com/microsoft/AIOpsLab #URL of code in github
 
 extra_css:
   - assets/css/style.css
@@ -20,5 +20,5 @@ extra_css:
 extra_javascript:
   - assets/js/leaderboard.js
 
-copyright: Copyright &copy; 2024 AIOPSLAB #setting up versioning
+copyright: Copyright &copy; 2024 AIOpsLab #setting up versioning
 
