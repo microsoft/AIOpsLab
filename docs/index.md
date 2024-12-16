@@ -7,7 +7,7 @@ hide:
 <div class=textdiv>
     <!-- title -->
     <div class=title>
-        <div class="title-aiopslab"><img src="imgs/logo.png"/ width="100" height="100">&nbspAIOpsLab</div><!-- URL of logo -->
+        <div class="title-aiopslab">AIOpsLab</div>
         <div class=title-author>A Holistic Framework for Evaluating AI Agents for Enabling Autonomous Cloud</div>
     </div>
     <div style="text-align:center"><a href="https://aka.ms/m365research-org" class=textM365 target="_blank">M365 Research - AIOps Team</a></div>
@@ -25,7 +25,7 @@ hide:
                 </a>
             </span>
             <span class="nav-block">
-                <a href=""class="link-btn" target="_blank">
+                <a href="https://github.com/microsoft/AIOpsLab" class="link-btn" target="_blank">
                     <span class="link-text"><i class="fa-brands fa-github"></i>&nbspCode</span><!-- URL of code -->
                 </a>
             </span>

@@ -7,7 +7,7 @@ hide:
 <div class=textdiv>
   <!-- title -->
   <div class=title>
-      <div class="title-aiopslab"><img src="/imgs/logo.png"/ width="100" height="100">&nbspAIOPSLAB</div>
+      <div class="title-aiopslab">AIOPSLAB</div>
       <div class=title-author>A HOLISTIC FRAMEWORK TO EVALUATE AI AGENTS FOR ENABLING AUTONOMOUS CLOUDS</div>
   </div>
 
@@ -27,7 +27,7 @@ hide:
               </a>
           </span>
           <span class="nav-block">
-              <a href=""class="link-btn" target="_blank">
+              <a href="https://github.com/microsoft/AIOpsLab" class="link-btn" target="_blank">
                   <span class="link-text"><i class="fa-brands fa-github"></i>&nbspCode</span><!-- URL of code -->
               </a>
           </span>
