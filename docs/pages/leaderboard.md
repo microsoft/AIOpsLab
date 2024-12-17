@@ -8,7 +8,7 @@ hide:
   <!-- title -->
   <div class=title>
       <div class="title-aiopslab">AIOpsLab</div>
-      <div class=title-author>A Holistic Framework to Design, Benchmark, and Evaluate AI agents for Automating Service Operations at Scale</div>
+      <div class=title-author>A Holistic Framework to Design, Develop, and Evaluate AI agents for Automating Service Operations at Scale</div>
   </div>
 
   <div style="text-align:center"><a href="https://aka.ms/m365research-org" class=textM365 target="_blank">M365 Research - AIOps Team</a></div>
@@ -59,50 +59,50 @@ hide:
     <th >Link</th>
   </tr>
   <tr>
-    <td>🥇😄FLASH</td>
+    <td>🥇FLASH</td>
     <td><b>59.27</b></td>
     <td><b>100</b></td>
     <td>46.15</td>
     <td>36.36</td>
     <td><b>54.55</b></td>
     <td>216.41</td>
-    <td>AIOPSLAB authors</td>
+    <td>AIOpsLab</td>
     <td>GPT 4</td>
     <td><a href="">🔗</a></td>
   </tr>
   <tr>
-    <td>🥈😄REACT</td>
+    <td>🥈REACT</td>
     <td>53.15</td>
     <td>76.92</td>
     <td>53.85</td>
     <td><b>45.45</b></td>
     <td>36.36</td>
     <td>67.18</td>
-    <td>AIOPSLAB authors</td>
+    <td>AIOpsLab</td>
     <td>GPT 4</td>
     <td><a href="">🔗</a></td>
   </tr>
   <tr>
-    <td>🥉😄GPT-4-W-SHELL</td>
+    <td>🥉GPT-4</td>
     <td>49.74</td>
     <td>69.23</td>
     <td><b>61.54<b></td>
     <td>40.9</td>
     <td>27.27</td>
     <td>99.47</td>
-    <td>AIOPSLAB authors</td>
+    <td>AIOpsLab</td>
     <td>GPT 4</td>
     <td><a href="">🔗</a></td>
   </tr>
   <tr>
-    <td>😄GPT-3.5-W-SHELL</td>
+    <td>GPT-3.5</td>
     <td>15.73</td>
     <td>23.07</td>
     <td>30.77</td>
     <td>9.09</td>
     <td>0</td>
     <td>23.78</td>
-    <td>AIOPSLAB authors</td>
+    <td>AIOpsLab</td>
     <td>GPT 3.5</td>
     <td><a href="">🔗</a></td>
   </tr>
