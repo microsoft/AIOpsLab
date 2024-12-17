@@ -14,7 +14,7 @@
 
   .title-aiopslab {
     text-align: center;
-    font-size:90px;
+    font-size:80px;
     color:#4A90E2;
     font-family:'Noto Sans', sans-serif;
     width: 100%;
@@ -34,7 +34,7 @@
 
 .nav {
   display: flex;
-  flex-wrap: nowrap; 
+  flex-wrap: wrap; 
   justify-content: center; 
   gap: 15px; 
   margin-top: 10px; 
@@ -87,7 +87,7 @@
 }
 
 .textM365 {
-  font-size:30px;
+  font-size:20px;
   font-family: 'Noto Sans', sans-serif;
   text-decoration: underline;
 }
