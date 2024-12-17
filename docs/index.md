@@ -6,10 +6,10 @@ hide:
 
 <div class=textdiv>
     <!-- title -->
-    <div class=title>
-        <div class="title-aiopslab">AIOpsLab</div>
-        <div class=title-author>A Holistic Framework to Design, Benchmark, and Evaluate AI agents for Automating Service Operations at Scale</div>
-    </div>
+  <div class=title>
+      <div class="title-aiopslab">AIOpsLab</div>
+      <div class=title-author>A Holistic Framework to Design, Develop, and Evaluate AI agents for Automating Service Operations at Scale</div>
+  </div>
     <div style="text-align:center"><a href="https://aka.ms/m365research-org" class=textM365 target="_blank">M365 Research - AIOps Team</a></div>
     <!-- navigation -->
     <div style="margin-top: 6px; margin-bottom: 20px;" class="column has-text-centered">
@@ -36,6 +36,8 @@ hide:
 <!-- news -->
 <div class=textdiv>
     <h1 style="color: #4A90E2;">News</h1>
+    <p>🆕 [12/2024] Our code is now live on GitHub! 🚀
+        <a href="https://github.com/microsoft/AIOpsLab" target="_blank">[Link]</a> </p>
     <p>🆕 [11/2024] Checkout our arxiv paper "AIOpsLab: A Holistic Framework for Evaluating AI Agents for Enabling Autonomous Cloud" 👀
         <a href="https://www.microsoft.com/en-us/research/publication/aiopslab-a-holistic-framework-for-evaluating-ai-agents-for-enabling-autonomous-cloud" target="_blank">[Link]</a> </p>
     <p>🆕  [10/2024] Our vision paper "Building AI Agents for Autonomous Clouds: Challenges and Design Principles" was accepted by SoCC'24 👀
