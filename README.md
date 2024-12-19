@@ -33,27 +33,28 @@ This project offers flexible setup options to accommodate different user environ
 
    You can clone the repository using the following command. We recommend `poetry` for managing dependencies. You can also use a standard `pip install -e .` to install the package.
     
-```bash
-$ git clone <CLONE_PATH_TO_THE_REPO>
-$ cd AIOpsLab
-$ pip install poetry
-$ poetry install -vvv
-$ poetry shell
-```
+    ```bash
+    $ git clone <CLONE_PATH_TO_THE_REPO>
+    $ cd AIOpsLab
+    $ pip install poetry
+    $ poetry install -vvv
+    $ poetry shell
+    ```
 
-2) Setting Up Kubernetes on Existing VMs
+    After entering the poetry virtual environment, setting Up AIOpsLab:
 
-You should also have a Kubernetes (k8s) cluster running as prerequisites. You can refer to [our k8s installation](/scripts/kube_install.sh), which installs k8s directly on the server (note that this is an installation example instead of an executable script; you may need to modify some parts to suit your case, e.g., node name and cert hash in the script). After that, run:
+    ```bash
+    $ cd scripts
+    $ ./setup.sh $(hostname) # or <YOUR_NODE_NAME>
+    ```
 
-```bash
-$ cd scripts
-$ ./setup.sh $(hostname) # or <YOUR_NODE_NAME>
-```
+2) Provisioning VMs and Kubernetes on cloud
 
-3) Provisioning VMs and Kubernetes on cloud
+    Users can follow the instructions [here](/scripts/terraform/README.md), to create a two-node Kubernetes cluster on Azure. It can also be used as a starting point for creating more complex deployments, or deployments on other cloud. Then go to step 1 to set up the AIOpsLab's dependencies. 
 
-Users can follow the instructions [here](/scripts/terraform/README.md), to create a two-node Kubernetes cluster on Azure. It can also be used as a starting point for creating more complex deployments, or deployments on other cloud.
+3) Self-managed Kubernetes cluster
 
+    You can also have a self-managed Kubernetes (k8s) cluster running as prerequisites. You can refer to [our k8s installation](/scripts/kube_install.sh), which installs k8s directly on the server (note that this is an installation example instead of an executable script; you may need to modify some parts to suit your case, e.g., node name and cert hash in the script). Then go to step 1 to set up the AIOpsLab's dependencies. 
 
 
 <h2 id="🚀quickstart">🚀 Quick Start </h2>
