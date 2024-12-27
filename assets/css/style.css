@@ -11,6 +11,7 @@
   margin-bottom: 20px;
   flex-direction: row;
   position: relative;
+}
 
   .title-aiopslab {
     text-align: center;
@@ -30,7 +31,7 @@
     margin: auto;
     width:50%;
   }
-}
+
 
 .nav {
   display: flex;
