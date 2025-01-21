@@ -356,67 +356,99 @@
 
 <div class=table-container style="text-align:center">
   <table id="sortableTable">
-  <tr>
-    <th >Agent Name</th>
-    <th onclick="sortTable(1)" >Avg &#x21C5;</th>
-    <th onclick="sortTable(2)" >Detection &#x21C5;</th>
-    <th onclick="sortTable(3)" >Localization &#x21C5;</th>
-    <th onclick="sortTable(4)" >Diagnosis &#x21C5;</th>
-    <th onclick="sortTable(5)" >Mitigation &#x21C5;</th>
-    <th onclick="sortTable(6)" >Time &#x21C5;</th>
-    <th >Org.</th>
-    <th >Model</th>
-    <th >Link</th>
-  </tr>
-  <tr>
-    <td>🥇FLASH</td>
-    <td><b>59.27</b></td>
-    <td><b>100</b></td>
-    <td>46.15</td>
-    <td>36.36</td>
-    <td><b>54.55</b></td>
-    <td>102.57</td>
-    <td>AIOpsLab</td>
-    <td>GPT 4</td>
-    <td><a href="">🔗</a></td>
-  </tr>
-  <tr>
-    <td>🥈REACT</td>
-    <td>53.15</td>
-    <td>76.92</td>
-    <td>53.85</td>
-    <td><b>45.45</b></td>
-    <td>36.36</td>
-    <td>44.25</td>
-    <td>AIOpsLab</td>
-    <td>GPT 4</td>
-    <td><a href="">🔗</a></td>
-  </tr>
-  <tr>
-    <td>🥉GPT 4 w Shell</td>
-    <td>49.74</td>
-    <td>69.23</td>
-    <td><b>61.54<b></td>
-    <td>40.9</td>
-    <td>27.27</td>
-    <td>30.57</td>
-    <td>AIOpsLab</td>
-    <td>GPT 4</td>
-    <td><a href="">🔗</a></td>
-  </tr>
-  <tr>
-    <td>GPT 3.5 w Shell</td>
-    <td>15.73</td>
-    <td>23.07</td>
-    <td>30.77</td>
-    <td>9.09</td>
-    <td>0</td>
-    <td>12.79</td>
-    <td>AIOpsLab</td>
-    <td>GPT 3.5</td>
-    <td><a href="">🔗</a></td>
-  </tr>
-  </table>
+  <thead>
+    <tr>
+      <th>Agent Name</th>
+      <th>Avg</th>
+      <th>Detection</th>
+      <th>Localization</th>
+      <th>Diagnosis</th>
+      <th>Mitigation</th>
+      <th>Time</th>
+      <th>Organization</th>
+      <th>Link</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>🥇FLASH (GPT-4)</td>
+      <td><b>59.27</b></td>
+      <td><b>100</b></td>
+      <td>46.15</td>
+      <td>36.36</td>
+      <td><b>54.55</b></td>
+      <td>102.57</td>
+      <td>AIOpsLab</td>
+      <td>🔗</td>
+    </tr>
+    <tr>
+      <td>🥈REACT (GPT-4)</td>
+      <td>53.15</td>
+      <td>76.92</td>
+      <td>53.85</td>
+      <td><b>45.45</b></td>
+      <td>36.36</td>
+      <td>44.25</td>
+      <td>AIOpsLab</td>
+      <td>🔗</td>
+    </tr>
+    <tr>
+      <td>🥉GPT-4 w Shell</td>
+      <td>49.74</td>
+      <td>69.23</td>
+      <td>61.54</td>
+      <td>40.9</td>
+      <td>27.27</td>
+      <td>30.57</td>
+      <td>AIOpsLab</td>
+      <td>🔗</td>
+    </tr>
+    <tr>
+      <td>FLASH (Llama3-8b)</td>
+      <td>33.34</td>
+      <td>80</td>
+      <td>20</td>
+      <td>0</td>
+      <td>33.34</td>
+      <td>63.16</td>
+      <td>AIOpsLab</td>
+      <td>🔗</td>
+    </tr>
+    <tr>
+      <td>GPT-3.5 w Shell</td>
+      <td>15.73</td>
+      <td>23.07</td>
+      <td>30.77</td>
+      <td>9.09</td>
+      <td>0</td>
+      <td>12.79</td>
+      <td>AIOpsLab</td>
+      <td>🔗</td>
+    </tr>
+    <tr>
+      <td>REACT (Llama3-8b)</td>
+      <td>15</td>
+      <td>60</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>230.74</td>
+      <td>AIOpsLab</td>
+      <td>🔗</td>
+    </tr>
+    <tr>
+      <td>LocaleXpert (Llama3-8b)</td>
+      <td>-</td>
+      <td>-</td>
+      <td><b>80</b></td>
+      <td>-</td>
+      <td>-</td>
+      <td>102.08</td>
+      <td>AIOpsLab</td>
+      <td>🔗</td>
+    </tr>
+  </tbody>
+</table>
 </div>
 
 
