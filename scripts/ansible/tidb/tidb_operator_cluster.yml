@@ -1,0 +1,107 @@
+---
+- name: Setup TiDB Cluster and Operator
+  hosts: control_node
+  become: true
+  vars:
+    kubeconfig_path: "/users/{{ k8s_user }}/.kube/config"
+  tasks:
+    - name: Check if CRDs already exist
+      shell: kubectl get crd backups.pingcap.com
+      register: crd_exists
+      failed_when: false
+      changed_when: false
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: Delete existing CRDs if they exist
+      shell: kubectl delete -f https://raw.githubusercontent.com/pingcap/tidb-operator/v1.6.0/manifests/crd.yaml
+      when: crd_exists.rc == 0
+      ignore_errors: true
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: Create CRDs for TiDB Operator
+      shell: kubectl create -f https://raw.githubusercontent.com/pingcap/tidb-operator/v1.6.0/manifests/crd.yaml
+      register: crd_create
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: Check CRDs creation result
+      fail:
+        msg: "CRDs creation failed. Ensure Kubernetes is configured properly."
+      when: crd_create.failed
+
+    - name: Create namespace for TiDB Operator
+      shell: kubectl create namespace tidb-admin
+      register: tidb_admin_ns
+      ignore_errors: true
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: Create namespace for TiDB Cluster
+      shell: kubectl create namespace tidb-cluster
+      register: tidb_cluster_ns
+      ignore_errors: true
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: Install TiDB Operator with Helm
+      shell: |
+        helm repo add pingcap https://charts.pingcap.org
+        helm repo update
+        helm upgrade --install tidb-operator pingcap/tidb-operator \
+          --namespace=tidb-admin --version=v1.6.0 -f {{ playbook_dir }}/tidb-operator.yaml
+      register: helm_install
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: Check Helm installation result
+      fail:
+        msg: "Helm installation of TiDB Operator failed."
+      when: helm_install.failed
+
+    - name: Wait for TiDB Operator pods to be ready
+      shell: kubectl wait --namespace tidb-admin \
+        --for=condition=Ready pod \
+        --selector=app.kubernetes.io/name=tidb-operator --timeout=300s
+      register: wait_tidb_operator
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: Check if TiDB Operator pods are ready
+      fail:
+        msg: "TiDB Operator pods are not ready."
+      when: wait_tidb_operator.failed
+
+    - name: Apply TidbCluster configuration
+      shell: kubectl -n tidb-cluster apply -f {{ playbook_dir }}/tidb-cluster.yaml
+      register: tidb_cluster_apply
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: Check TidbCluster configuration apply result
+      fail:
+        msg: "Failed to apply TidbCluster configuration."
+      when: tidb_cluster_apply.failed
+
+    - name: Apply TidbDashboard configuration
+      shell: kubectl -n tidb-cluster apply -f {{ playbook_dir }}/tidb-dashboard.yaml
+      register: tidb_dashboard_apply
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: Check TidbDashboard configuration apply result
+      fail:
+        msg: "Failed to apply TidbDashboard configuration."
+      when: tidb_dashboard_apply.failed
+
+    - name: Apply TidbMonitor configuration
+      shell: kubectl -n tidb-cluster apply -f {{ playbook_dir }}/tidb-monitor.yaml
+      register: tidb_monitor_apply
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    - name: Check TidbMonitor configuration apply result
+      fail:
+        msg: "Failed to apply TidbMonitor configuration."
+      when: tidb_monitor_apply.failed

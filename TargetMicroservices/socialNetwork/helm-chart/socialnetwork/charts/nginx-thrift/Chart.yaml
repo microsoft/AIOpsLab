@@ -1,6 +1,0 @@
-apiVersion: v2
-name: nginx-thrift
-description: nginx-thrift microservice in SocialNetwork 
-type: application
-version: 0.1.0
-appVersion: 1.15.8.1rc1

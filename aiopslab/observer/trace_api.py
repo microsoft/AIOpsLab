@@ -22,8 +22,8 @@ class TraceAPI:
         self.namespace = namespace
         self.stop_event = threading.Event()
 
-        # NOTE: it may not be jaefer-out for other apps
-        node_port = self.get_nodeport("jaeger-out", namespace)
+        # NOTE: it may not be jaeger-out for other apps
+        node_port = self.get_nodeport("jaeger", namespace)
         if node_port:
             self.base_url = f"http://localhost:{node_port}"
         else:
@@ -211,9 +211,9 @@ class TraceAPI:
             )
             for trace in traces:
                 for span in trace["spans"]:
-                    span["serviceName"] = (
-                        service  # Directly associate service name with each span
-                    )
+                    span[
+                        "serviceName"
+                    ] = service  # Directly associate service name with each span
                 all_traces.append(trace)  # Collect the trace with service name included
         self.cleanup()
         print("Cleanup completed.")
@@ -263,6 +263,7 @@ class TraceAPI:
         os.makedirs(path, exist_ok=True)
         file_path = os.path.join(path, f"traces_{int(time.time())}.csv")
         df.to_csv(file_path, index=False)
+        self.cleanup() # Stop port-forwarding after traces are exported
         return f"Traces data exported to: {file_path}"
 
 

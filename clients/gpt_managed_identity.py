@@ -18,7 +18,7 @@ from clients.utils.templates import DOCS_SHELL_ONLY
 class Agent:
     def __init__(self, azure_config_file: str):
         self.history = []
-        self.llm = GPT4Turbo(auth_type = "managed", azure_config_file = azure_config_file)
+        self.llm = GPT4Turbo(auth_type="managed", azure_config_file=azure_config_file)
 
     def init_context(self, problem_desc: str, instructions: str, apis: str):
         """Initialize the context for the agent."""
@@ -60,8 +60,10 @@ class Agent:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        raise Exception("Please provide a filename as argument. Usage: python gpt_managed_identity.py <azure_config_file>")
-    
+        raise Exception(
+            "Please provide a filename as argument. Usage: python gpt_managed_identity.py <azure_config_file>"
+        )
+
     agent = Agent(azure_config_file=sys.argv[1])
 
     orchestrator = Orchestrator()

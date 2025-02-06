@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: wrk2-job
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: wrk2
+          image: deathstarbench/wrk2-client:latest
+          args: []
+          volumeMounts:
+            - name: wrk2-scripts
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: wrk2-scripts
+          configMap:
+            name: wrk2-payload-script

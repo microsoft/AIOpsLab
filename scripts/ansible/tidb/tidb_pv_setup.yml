@@ -1,0 +1,171 @@
+---
+- name: Configure Local Persistent Volumes for TiDB
+  hosts: all
+  become: true
+  tasks:
+
+  # Step 1: Install necessary tools
+  - name: Ensure necessary packages are installed
+    apt:
+      name: 
+        - e2fsprogs  # For mkfs.ext4
+        - util-linux # For losetup
+      state: present
+      update_cache: true
+
+  # Step 2: Create a single loopback device for SSD
+  - name: Create a loopback device for SSD
+    shell: |
+      dd if=/dev/zero of=/tmp/ssd.img bs=1M count=2048
+      losetup -fP /tmp/ssd.img
+    # when: inventory_hostname in groups['worker_nodes']  # Apply only to worker nodes
+
+  - name: Get loopback device for SSD
+    shell: losetup -a | grep /tmp/ssd.img
+    register: ssd_loop_device
+    # when: inventory_hostname in groups['worker_nodes']
+
+  - name: Format SSD loopback device as ext4
+    shell: mkfs.ext4 {{ ssd_loop_device.stdout.split(":")[0] }}
+    # when: inventory_hostname in groups['worker_nodes']
+
+  - name: Mount SSD device
+    mount:
+      path: /users/{{ k8s_user }}/agent-ops/tidb/ssd
+      src: "{{ ssd_loop_device.stdout.split(':')[0] }}"
+      fstype: ext4
+      opts: defaults
+      state: mounted
+    # when: inventory_hostname in groups['worker_nodes']
+
+  # Step 3: Create subdirectories and bind-mount them
+  - name: Create subdirectories for sharedssd, monitoring, and backup
+    shell: mkdir -p /users/{{ k8s_user }}/agent-ops/tidb/ssd/{{ item }}
+    loop:
+      - sharedssd_vol1
+      - sharedssd_vol2
+      - sharedssd_vol3
+      - sharedssd_vol4
+      - sharedssd_vol5
+      - sharedssd_vol6
+      - sharedssd_vol7
+      - sharedssd_vol8
+      - sharedssd_vol9
+      - sharedssd_vol10
+      - monitoring_vol1
+      - monitoring_vol2
+      - monitoring_vol3
+      - monitoring_vol4
+      - monitoring_vol5
+      - monitoring_vol6
+      - monitoring_vol7
+      - monitoring_vol8
+      - monitoring_vol9
+      - monitoring_vol10
+      - backup_vol1
+      - backup_vol2
+      - backup_vol3
+      - backup_vol4
+      - backup_vol5
+      - backup_vol6
+      - backup_vol7
+      - backup_vol8
+      - backup_vol9
+      - backup_vol10
+    # when: inventory_hostname in groups['worker_nodes']
+
+  - name: Create target directories for bind mounts
+    file:
+      path: /users/{{ k8s_user }}/agent-ops/tidb/{{ item.split('_')[0] }}/{{ item }}
+      state: directory
+      mode: '0755'
+    loop:
+      - sharedssd_vol1
+      - sharedssd_vol2
+      - sharedssd_vol3
+      - sharedssd_vol4
+      - sharedssd_vol5
+      - sharedssd_vol6
+      - sharedssd_vol7
+      - sharedssd_vol8
+      - sharedssd_vol9
+      - sharedssd_vol10
+      - monitoring_vol1
+      - monitoring_vol2
+      - monitoring_vol3
+      - monitoring_vol4
+      - monitoring_vol5
+      - monitoring_vol6
+      - monitoring_vol7
+      - monitoring_vol8
+      - monitoring_vol9
+      - monitoring_vol10
+      - backup_vol1
+      - backup_vol2
+      - backup_vol3
+      - backup_vol4
+      - backup_vol5
+      - backup_vol6
+      - backup_vol7
+      - backup_vol8
+      - backup_vol9
+      - backup_vol10
+
+  - name: Bind-mount subdirectories
+    shell: mount --bind /users/{{ k8s_user }}/agent-ops/tidb/ssd/{{ item }} /users/{{ k8s_user }}/agent-ops/tidb/{{ item.split('_')[0] }}/{{ item }}
+    loop:
+      - sharedssd_vol1
+      - sharedssd_vol2
+      - sharedssd_vol3
+      - sharedssd_vol4
+      - sharedssd_vol5
+      - sharedssd_vol6
+      - sharedssd_vol7
+      - sharedssd_vol8
+      - sharedssd_vol9
+      - sharedssd_vol10
+      - monitoring_vol1
+      - monitoring_vol2
+      - monitoring_vol3
+      - monitoring_vol4
+      - monitoring_vol5
+      - monitoring_vol6
+      - monitoring_vol7
+      - monitoring_vol8
+      - monitoring_vol9
+      - monitoring_vol10
+      - backup_vol1
+      - backup_vol2
+      - backup_vol3
+      - backup_vol4
+      - backup_vol5
+      - backup_vol6
+      - backup_vol7
+      - backup_vol8
+      - backup_vol9
+      - backup_vol10
+    # when: inventory_hostname in groups['worker_nodes']
+
+####################################################### 
+- name: Apply Kubernetes Configuration for Provisioner
+  hosts: control_nodes
+  become: true
+  vars:
+    kubeconfig_path: "/users/{{ k8s_user }}/.kube/config"
+  tasks:
+
+  # Step 5: Deploy the local-volume-provisioner
+  - name: Apply the local-volume-provisioner YAML configuration
+    shell: kubectl apply -f local-volume-provisioner.yaml
+    environment:
+      KUBECONFIG: "{{ kubeconfig_path }}"
+    args:
+      chdir: "{{ playbook_dir }}"
+
+  # Step 6: Verify the setup
+  - name: Verify Persistent Volumes
+    shell: kubectl get pv
+    register: pv_output
+
+  - debug:
+      var: pv_output.stdout

@@ -341,3 +341,17 @@ dataset/functional/**/groundtruth/
 dataset/functional/**/log/
 dataset/functional/**/metric/
 dataset/functional/**/trace/
+
+# Ignore Prometheus setup file
+.DS_Store
+aiopslab/observer/prometheus/prometheus/charts/prometheus-pushgateway-2.4.2.tgz
+aiopslab/observer/prometheus/prometheus/charts/prometheus-node-exporter-4.23.2.tgz
+aiopslab/observer/prometheus/prometheus/charts/kube-state-metrics-5.15.3.tgz
+aiopslab/observer/prometheus/prometheus/Chart.lock
+aiopslab/observer/prometheus/prometheus/charts/alertmanager-1.7.0.tgz
+aiopslab/observer/prometheus/prometheus/Chart.lock
+aiopslab/observer/prometheus/prometheus/Chart.lock
+
+# Ignore customized config files
+aiopslab/config.yml
+scripts/ansible/inventory.yml

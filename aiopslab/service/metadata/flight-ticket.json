@@ -1,0 +1,13 @@
+{
+    "Name": "Flight Ticket",
+    "Namespace": "openwhisk",
+    "Desc": "FlightTicket is a serverless application benchmark running on top of OpenWhisk on Kubernetes. The application is architectured based on the AirplaneTicket benchmark. Different from AirplaneTicket, FlightTicket is implemented in Python and runs as a serverless application on OpenWhisk. One key feature of FlightTicket is that, instead of using a synthetic input generator, FlightTicket uses the US-airlines dataset from the US Department of transport.",
+    "Supported Operations": [
+        "Serves transportation data from redis."
+    ],
+    "Helm Config": {
+        "release_name": "flight-ticket",
+        "chart_path": "flight-ticket",
+        "namespace": "openwhisk"
+    }
+}

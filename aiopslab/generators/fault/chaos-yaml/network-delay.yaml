@@ -1,0 +1,17 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: delay
+spec:
+  action: delay
+  mode: one
+  duration: '30s'
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      'io.kompose.service': 'search'
+  delay:
+    latency: '10s'
+    correlation: '100'
+    jitter: '0ms'

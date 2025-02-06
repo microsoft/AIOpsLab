@@ -68,7 +68,7 @@ class HotelReservation(Application):
         """Deploy the Kubernetes configurations."""
         print(f"Deploying Kubernetes configurations in namespace: {self.namespace}")
         self.kubectl.apply_configs(self.namespace, self.k8s_deploy_path)
-        time.sleep(40)
+        time.sleep(100)
 
     def delete(self):
         """Delete the configmap."""
@@ -78,22 +78,23 @@ class HotelReservation(Application):
         """Delete the entire namespace for the hotel reservation application."""
         self.kubectl.delete_namespace(self.namespace)
         time.sleep(10)
-        pvs = self.kubectl.exec_command("kubectl get pv --no-headers | grep 'test-hotel-reservation' | awk '{print $1}'").splitlines()
-        
+        pvs = self.kubectl.exec_command(
+            "kubectl get pv --no-headers | grep 'test-hotel-reservation' | awk '{print $1}'"
+        ).splitlines()
+
         for pv in pvs:
             # Check if the PV is in a 'Terminating' state and remove the finalizers if necessary
-            self._remove_pv_finalizers(pv)            
+            self._remove_pv_finalizers(pv)
             delete_command = f"kubectl delete pv {pv}"
             delete_result = self.kubectl.exec_command(delete_command)
-            print(f"Deleted PersistentVolume {pv}: {delete_result.strip()}")        
+            print(f"Deleted PersistentVolume {pv}: {delete_result.strip()}")
         time.sleep(5)
-    
 
     def _remove_pv_finalizers(self, pv_name: str):
         """Remove finalizers from the PersistentVolume to prevent it from being stuck in a 'Terminating' state."""
         # Patch the PersistentVolume to remove finalizers if it is stuck
         patch_command = (
-            f"kubectl patch pv {pv_name} -p '{{\"metadata\":{{\"finalizers\":null}}}}'"
+            f'kubectl patch pv {pv_name} -p \'{{"metadata":{{"finalizers":null}}}}\''
         )
         _ = self.kubectl.exec_command(patch_command)
 

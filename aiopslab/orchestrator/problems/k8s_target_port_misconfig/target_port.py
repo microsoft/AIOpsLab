@@ -43,7 +43,7 @@ class K8STargetPortMisconfigBaseTask:
         injector = VirtualizationFaultInjector(namespace=self.namespace)
         injector._inject(
             fault_type="misconfig_k8s",
-            microservices=[self.faulty_service], 
+            microservices=[self.faulty_service],
         )
         print(f"Service: {self.faulty_service} | Namespace: {self.namespace}\n")
 
@@ -52,7 +52,7 @@ class K8STargetPortMisconfigBaseTask:
         injector = VirtualizationFaultInjector(namespace=self.namespace)
         injector._recover(
             fault_type="misconfig_k8s",
-            microservices=[self.faulty_service], 
+            microservices=[self.faulty_service],
         )
         print(f"Service: {self.faulty_service} | Namespace: {self.namespace}\n")
 

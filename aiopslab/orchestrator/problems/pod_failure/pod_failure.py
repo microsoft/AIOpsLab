@@ -40,11 +40,11 @@ class PodFailureBaseTask:
         )
 
     def inject_fault(self):
-        print("== Fault Injection ==")      
+        print("== Fault Injection ==")
         self.injector._inject(
             fault_type="pod_failure",
             microservices=[self.faulty_service],
-            duration="100s"
+            duration="100s",
         )
         print(f"Service: {self.faulty_service} | Namespace: {self.namespace}\n")
 
@@ -53,6 +53,7 @@ class PodFailureBaseTask:
         self.injector._recover(
             fault_type="pod_failure",
         )
+
 
 ################## Detection Problem ##################
 class PodFailureDetection(PodFailureBaseTask, DetectionTask):
@@ -79,9 +80,7 @@ class PodFailureDetection(PodFailureBaseTask, DetectionTask):
 
 
 ################## Localization Problem ##################
-class PodFailureLocalization(
-    PodFailureBaseTask, LocalizationTask
-):
+class PodFailureLocalization(PodFailureBaseTask, LocalizationTask):
     def __init__(self):
         PodFailureBaseTask.__init__(self)
         LocalizationTask.__init__(self, self.app)
@@ -119,4 +118,3 @@ class PodFailureLocalization(
         self.results["is_subset"] = is_sub
 
         return self.results
-

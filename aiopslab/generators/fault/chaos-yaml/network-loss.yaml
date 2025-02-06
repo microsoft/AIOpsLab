@@ -1,0 +1,16 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: loss
+spec:
+  action: loss
+  mode: one
+  duration: '30s'
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      'io.kompose.service': 'geo'
+  loss:
+    loss: '99'
+    correlation: '100'

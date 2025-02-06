@@ -1,0 +1,21 @@
+{
+    "Name": "OpenTelemetry Demo Astronomy Shop",
+    "Namespace": "astronomy-shop",
+    "Desc": "An online shopping platform built with a microservices architecture, showcasing OpenTelemetry instrumentation for distributed tracing across services.",
+    "Supported Operations": [
+        "Add item to cart",
+        "View product catalog",
+        "Checkout with selected items",
+        "Generate shipping quotes",
+        "Receive product recommendations",
+        "Process payment",
+        "Register/Login using user credentials",
+        "Send order confirmation emails",
+        "Calculate order totals and apply discounts"
+    ],
+    "Helm Config": {
+        "release_name": "astronomy-shop",
+        "chart_path": "opentelemetry-helm-charts/charts/opentelemetry-demo",
+        "namespace": "astronomy-shop"
+    }
+}

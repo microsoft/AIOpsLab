@@ -1,0 +1,20 @@
+{
+    "Name": "TiDB Cluster with Operator",
+    "Namespace": "tidb-cluster",
+    "OperatorNamespace": "tidb-admin",
+    "Desc": "A TiDB cluster with operator managing.",
+    "Supported Operations": [
+        "TiDB related operation"
+    ],
+    "K8S Config": {
+        "config_url": "https://raw.githubusercontent.com/pingcap/tidb-operator/v1.6.0/examples/basic/tidb-cluster.yaml",
+        "namespace": "tidb-cluster"
+    },
+    "Helm Operator Config": {
+        "CRD": "https://raw.githubusercontent.com/pingcap/tidb-operator/v1.6.0/manifests/crd.yaml",
+        "release_name": "tidb-operator",
+        "chart_path": "pingcap/tidb-operator",
+        "namespace": "tidb-admin",
+        "version": "v1.6.0"
+    }
+}

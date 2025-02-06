@@ -10,7 +10,6 @@ from aiopslab.utils.status import ResponseParsingError
 
 
 class ResponseParser:
-
     def __init__(self):
         pass
 
@@ -108,7 +107,6 @@ class ResponseParser:
 
             # case: single quoted string argument
             if is_shell_command:
-                
                 # remove keyword
                 if args_str.startswith("command="):
                     args_str = args_str.replace("command=", "").strip()
@@ -118,8 +116,10 @@ class ResponseParser:
                 elif args_str.startswith("'") and args_str.endswith("'"):
                     arg_str = args_str.strip("'")
                 else:
-                    raise ResponseParsingError("Error when parsing response: commands must be quoted strings")
-                
+                    raise ResponseParsingError(
+                        "Error when parsing response: commands must be quoted strings"
+                    )
+
                 arg_str = arg_str.replace('\\"', '"').replace("\\'", "'")
                 return [arg_str], {}
 

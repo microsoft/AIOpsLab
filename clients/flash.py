@@ -110,19 +110,20 @@ class HindsightBuilder:
 
 if __name__ == "__main__":
     pids = [
-        "k8s_target_port-misconfig-detection-2", 
+        "k8s_target_port-misconfig-detection-2",
         "k8s_target_port-misconfig-detection-3",
-        "user_unregistered_mongodb-detection-2", 
-        "k8s_target_port-misconfig-localization-2", 
-        "k8s_target_port-misconfig-localization-3", 
-        "user_unregistered_mongodb-localization-2", 
-        "k8s_target_port-misconfig-analysis-2", 
-        "k8s_target_port-misconfig-analysis-3", 
-        "user_unregistered_mongodb-analysis-2", 
-        "k8s_target_port-misconfig-mitigation-2", "k8s_target_port-misconfig-mitigation-3", 
-        "user_unregistered_mongodb-mitigation-2", 
-        ]
-    
+        "user_unregistered_mongodb-detection-2",
+        "k8s_target_port-misconfig-localization-2",
+        "k8s_target_port-misconfig-localization-3",
+        "user_unregistered_mongodb-localization-2",
+        "k8s_target_port-misconfig-analysis-2",
+        "k8s_target_port-misconfig-analysis-3",
+        "user_unregistered_mongodb-analysis-2",
+        "k8s_target_port-misconfig-mitigation-2",
+        "k8s_target_port-misconfig-mitigation-3",
+        "user_unregistered_mongodb-mitigation-2",
+    ]
+
     for pid in pids:
         flash_agent = FlashAgent()
         orchestrator = Orchestrator()

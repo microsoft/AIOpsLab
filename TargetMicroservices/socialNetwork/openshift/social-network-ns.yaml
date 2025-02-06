@@ -1,7 +1,0 @@
----
-apiVersion: v1
-kind: Namespace
-metadata:
-   name: social-network
-   labels:
-     death-star-project: social-network

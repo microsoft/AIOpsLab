@@ -1,0 +1,103 @@
+---
+# Control Node Setup
+- hosts: control_node  # Control plane tasks
+  become: true
+  vars:
+    kubeconfig_path: "/users/{{ k8s_user }}/.kube/config"
+  tasks:
+    - name: Resolve control node hostname to IP
+      command: getent ahosts "{{ hostvars['control_node'].ansible_host }}"
+      register: resolved_ip_output
+    - name: Parse resolved IP from output
+      set_fact:
+        resolved_control_plane_ip: "{{ resolved_ip_output.stdout_lines[0].split(' ')[0] }}"
+    - name: Set resolved_control_plane_ip globally
+      add_host:
+        name: "global"
+        resolved_control_plane_ip: "{{ resolved_control_plane_ip }}"
+    - name: Initialize Kubernetes control plane
+      shell: |
+        kubeadm init --pod-network-cidr=10.244.0.0/16 --cri-socket /var/run/cri-dockerd.sock --apiserver-advertise-address={{ resolved_control_plane_ip }}
+      args:
+        creates: /etc/kubernetes/admin.conf
+    - name: Ensure .kube directory exists
+      file:
+        path: "/users/{{ k8s_user }}/.kube"
+        state: directory
+        mode: '0755'
+        owner: "{{ k8s_user }}"
+        # group: "{{ k8s_user }}"
+      become: true
+    - name: Temporarily set permissions to read admin.conf
+      file:
+        path: /etc/kubernetes/admin.conf
+        mode: '0644'
+      become: true
+    
+    - name: Set up kube config for kubectl on control plane
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: "/users/{{ k8s_user }}/.kube/config"
+        mode: '0644'
+        remote_src: true
+      become: true
+      become_method: sudo
+    - name: Ensure ownership of kube config for kubectl
+      file:
+        path: "/users/{{ k8s_user }}/.kube/config"
+        owner: "{{ k8s_user }}"
+        # group: "{{ k8s_user }}"
+        mode: '0644'
+      become: true
+    - name: Display ansible_user_id
+      debug:
+        msg: "ansible_user_id is {{ ansible_user_id }}"
+    
+    - name: Fetch admin.conf to localhost for kubeconfig
+      fetch:
+        src: /etc/kubernetes/admin.conf
+        dest: ~/.kube/config
+        flat: yes
+      become: true
+    - name: Generate kubeadm join command
+      shell: kubeadm token create --print-join-command
+      register: kubeadm_join_command
+    - name: Extract kube_token and cert_hash from join command
+      set_fact:
+        kube_token: "{{ (kubeadm_join_command.stdout | regex_search('--token\\s+([\\w.]+)', '\\1')).0 }}"
+        cert_hash: "{{ (kubeadm_join_command.stdout | regex_search('--discovery-token-ca-cert-hash\\s+sha256:([\\w]+)', '\\1')).0 }}"
+  
+    - name: Display kube_token
+      debug:
+        msg: "kube_token is {{ kube_token }}"
+    - name: Display cert_hash
+      debug:
+        msg: "cert_hash is {{ cert_hash }}"
+    - name: Install Flannel network plugin
+      shell: |
+        kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+      args:
+        creates: /etc/kubernetes/kube-flannel.yml
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+    - name: Untaint the control plane to host pods
+      shell: kubectl taint nodes $(hostname) node-role.kubernetes.io/control-plane:NoSchedule- || true
+# Worker Node Setup
+- hosts: worker_nodes
+  become: true
+  tasks:
+    - name: Join Kubernetes cluster
+      shell: |
+        kubeadm join {{ hostvars['global'].resolved_control_plane_ip }}:6443 --token {{ hostvars['control_node'].kube_token }} --discovery-token-ca-cert-hash sha256:{{ hostvars['control_node'].cert_hash }} --cri-socket unix:///var/run/cri-dockerd.sock --v=5
+      args:
+        creates: /var/lib/kubelet/kubeadm-flags.env
+      become: true
+    - name: Ensure .kube directory exists
+      file:
+        path: "/users/{{ ansible_user }}/.kube"
+        state: directory
+        mode: '0755'
+      become_user: "{{ ansible_user }}"  # Ensure directory is created under the correct user
+    - name: Display ansible_user
+      debug:
+        msg: "ansible_user is {{ ansible_user }}"

@@ -13,7 +13,6 @@ from aiopslab.paths import SOCIAL_NETWORK_METADATA
 
 
 class SocialNetwork(Application):
-
     def __init__(self):
         super().__init__(SOCIAL_NETWORK_METADATA)
         self.load_app_json()

@@ -1,0 +1,19 @@
+
+all:
+  vars:
+    k8s_user: <your-username>
+    k8s_user2: <your-username>
+  children:
+    control_nodes:
+      hosts:
+        control_node:
+          ansible_host: <control-node-hostname>
+          ansible_user: "{{ k8s_user }}"
+    worker_nodes:
+      hosts:
+        worker_node_1:
+          ansible_host: <worker-node-1-hostname>
+          ansible_user: "{{ k8s_user2 }}"
+        worker_node_2:
+          ansible_host: <worker-node-2-hostname>
+          ansible_user: "{{ k8s_user2 }}"

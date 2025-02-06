@@ -1,6 +1,0 @@
-apiVersion: v2
-name: social-graph-redis
-description: social-graph-redis microservice in SocialNetwork 
-type: application
-version: 0.1.0
-appVersion: 6.2.4

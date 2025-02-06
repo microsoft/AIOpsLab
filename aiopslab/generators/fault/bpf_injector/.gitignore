@@ -1,0 +1,3 @@
+*.o
+err_inject
+*.skel.h

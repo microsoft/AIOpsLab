@@ -190,7 +190,9 @@ class AssignNonExistentNodeSocialNetMitigation(
         all_normal = True
 
         # Check if the faulty service exists
-        faulty_service_exists = any(pod.metadata.name == self.faulty_service for pod in pod_list.items)
+        faulty_service_exists = any(
+            pod.metadata.name == self.faulty_service for pod in pod_list.items
+        )
         if not faulty_service_exists:
             print(f"Pod named {self.faulty_service} does not exist.")
             all_normal = False
@@ -200,7 +202,8 @@ class AssignNonExistentNodeSocialNetMitigation(
                     for container_status in pod.status.container_statuses:
                         if (
                             container_status.state.waiting
-                            and container_status.state.waiting.reason == "CrashLoopBackOff"
+                            and container_status.state.waiting.reason
+                            == "CrashLoopBackOff"
                         ):
                             print(
                                 f"Container {container_status.name} is in CrashLoopBackOff"

@@ -13,5 +13,5 @@
         "chart_path": "observer/prometheus/prometheus/", 
         "namespace": "observe"
     },
-    "PersistentVolumeConfig": "observer/prometheus/prometheus-pv.yml" 
+    "PersistentVolumeClaimConfig": "observer/prometheus/prometheus-pvc.yml" 
 }

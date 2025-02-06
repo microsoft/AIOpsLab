@@ -9,7 +9,6 @@ from aiopslab.orchestrator.tasks.detection import DetectionTask
 
 
 class TestParser(unittest.TestCase):
-
     def setUp(self):
         self.app = SocialNetwork()
         self.task = DetectionTask(self.app)

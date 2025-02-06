@@ -4,11 +4,15 @@
 """Orchestrator class that interfaces with the agent and the environment."""
 
 from aiopslab.service.helm import Helm
+from aiopslab.service.kubectl import KubeCtl
 from aiopslab.session import Session
 from aiopslab.orchestrator.problems.registry import ProblemRegistry
 from aiopslab.orchestrator.parser import ResponseParser
 from aiopslab.utils.status import *
 from aiopslab.service.telemetry.prometheus import Prometheus
+import time
+import inspect
+import asyncio
 
 
 class Orchestrator:
@@ -18,6 +22,9 @@ class Orchestrator:
         self.parser = ResponseParser()
         self.probs = ProblemRegistry()
         self.sprint = SessionPrint()
+        self.execution_start_time = None
+        self.execution_end_time = None
+        self.kubectl = KubeCtl()
 
     def init_problem(self, problem_id: str):
         """Initialize a problem instance for the agent to solve.
@@ -28,11 +35,30 @@ class Orchestrator:
         Returns:
             tuple: A tuple containing the problem description, task message, and session object.
         """
+        # Start timer
+        self.execution_start_time = time.time()
+
         self.session = Session()
         print(f"Session ID: {self.session.session_id}")
         prob = self.probs.get_problem_instance(problem_id)
         self.session.set_problem(prob, pid=problem_id)
         self.session.set_agent(self.agent_name)
+
+        print("Setting up OpenEBS...")
+
+        command = "kubectl get pods -n openebs"
+        result = self.kubectl.exec_command(command)
+        if "Running" in result:
+            print("OpenEBS is already running. Skipping installation.")
+        else:
+            self.kubectl.exec_command(
+                "kubectl apply -f https://openebs.github.io/charts/openebs-operator.yaml"
+            )
+            self.kubectl.exec_command(
+                "kubectl patch storageclass openebs-hostpath -p '{\"metadata\": {\"annotations\":{\"storageclass.kubernetes.io/is-default-class\":\"true\"}}}'"
+            )
+            self.kubectl.wait_for_state("openebs", "Running")
+            print("OpenEBS setup completed.")
 
         # Setup and deploy Prometheus
         self.prometheus = Prometheus()
@@ -44,7 +70,12 @@ class Orchestrator:
 
         # inject fault
         prob.inject_fault()
-        prob.start_workload()
+
+        # Check if start_workload is async or sync
+        if inspect.iscoroutinefunction(prob.start_workload):
+            asyncio.create_task(prob.start_workload())
+        else:
+            prob.start_workload()
 
         task_desc = prob.get_task_description()
         instructions = prob.get_instructions()
@@ -144,8 +175,18 @@ class Orchestrator:
         # if not self.session.problem.sys_status_after_recovery():
         self.session.problem.app.cleanup()
 
+        self.execution_end_time = time.time()
+        total_execution_time = self.execution_end_time - self.execution_start_time
+        time_keys = ["TTD", "TTL", "TTA", "TTM"]
+        key = next((k for k in time_keys if k in results), None)
+        framework_overhead = (
+            total_execution_time - results[key]
+        )  # Time spent doing everything besides running the agent
+        print(f"Framework overhead: {framework_overhead}")
+
         return {
             "history": self.session.history,
             "final_state": env_response,
             "results": results,
+            "framework_overhead": framework_overhead,
         }

@@ -4,6 +4,7 @@
 """Base class for task actions."""
 
 import os
+import pandas as pd
 from datetime import datetime, timedelta
 from aiopslab.utils.actions import action, read, write
 from aiopslab.service.kubectl import KubeCtl
@@ -96,6 +97,29 @@ class TaskActions:
         )
 
         return save_dir_str
+    
+    @staticmethod
+    @read
+    def read_metrics(file_path: str) -> str:
+        """
+        Reads and returns metrics from a specified CSV file.
+
+        Args:
+            file_path (str): Path to the metrics file (CSV format).
+
+        Returns:
+            str: The requested metrics or an error message.
+        """
+        if not os.path.exists(file_path):
+            return {"error": f"Metrics file '{file_path}' not found."}
+
+        try:
+            df_metrics = pd.read_csv(file_path)
+
+            return df_metrics.to_string(index=False)
+
+        except Exception as e:
+            return f"Failed to read metrics: {str(e)}"
 
     @staticmethod
     @read
@@ -123,6 +147,29 @@ class TaskActions:
 
         return trace_api.save_traces(df_traces, save_path)
         # return f"Trace data exported to: {save_path}"
+
+    @staticmethod
+    @read
+    def read_traces(file_path: str) -> str:
+        """
+        Reads and returns traces from a specified CSV file.
+
+        Args:
+            file_path (str): Path to the traces file (CSV format).
+
+        Returns:
+            str: The requested traces or an error message.
+        """
+        if not os.path.exists(file_path):
+            return {"error": f"Traces file '{file_path}' not found."}
+
+        try:
+            df_traces = pd.read_csv(file_path)
+
+            return df_traces.to_string(index=False)
+
+        except Exception as e:
+            return f"Failed to read traces: {str(e)}"
 
     @staticmethod
     # @read

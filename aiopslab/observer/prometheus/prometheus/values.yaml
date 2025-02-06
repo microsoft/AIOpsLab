@@ -456,7 +456,7 @@ server:
     ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
     ##   GKE, AWS & OpenStack)
     ## yinfang
-    storageClass: "local-storage"
+    storageClass: "openebs-hostpath"
 
     ## Prometheus server data Persistent Volume Binding Mode
     ## If defined, volumeBindingMode: <volumeBindingMode>
@@ -483,7 +483,7 @@ server:
     ## Persistent Volume Name
     ## Useful if Persistent Volumes have been provisioned in advance and you want to use a specific one
     ## yinfang
-    volumeName: "prometheus-pv"
+    #volumeName: "prometheus-pv" # Changed in order to use PVC
 
   emptyDir:
     ## Prometheus server emptyDir volume size limit

@@ -1,0 +1,32 @@
+# apiVersion: chaos-mesh.org/v1alpha1
+# kind: KernelChaos
+# metadata:
+#   name: kernel-chaos-example
+#   namespace: chaos-mesh
+# spec:
+#   mode: one
+#   # selector:
+#   #   namespaces: 
+#   #     - default
+#   failKernRequest:
+#     callchain:
+#       - funcname: '__x64_sys_mount'
+#     failtype: 0
+#     probability: 100
+
+apiVersion: chaos-mesh.org/v1alpha1
+kind: KernelChaos
+metadata:
+  name: kernel-chaos-example
+  namespace: chaos-mesh
+spec:
+  mode: one
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      'io.kompose.service': 'geo'
+  failKernRequest:
+    callchain:
+      - funcname: '__x64_sys_mount'
+    failtype: 0

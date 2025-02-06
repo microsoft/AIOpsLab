@@ -9,6 +9,7 @@ These clients are some baselines that we have implemented and evaluated to help 
 - [ReAct](/clients/react.py): A naive LLM agent that uses the ReAct framework.
 - [FLASH](/clients/flash.py): A naive LLM agent that uses status supervision and hindsight integration components to ensure the high reliability of workflow execution.
 
+<!-- 
 Note: The script [GPT-managed-identity](/clients/gpt_managed_identity.py) uses the `DefaultAzureCredential` method from the `azure-identity` package to authenticate. This method simplifies authentication by supporting various credential types, including managed identities.
 
 We recommend using a [user-assigned managed identity](https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/how-manage-user-assigned-managed-identities?pivots=identity-mi-methods-azp) for this setup. Ensure the following steps are completed:
@@ -25,4 +26,4 @@ Please ensure the required Azure configuration is provided using the /configs/ex
 
 ### Useful Links
 1. [How to configure Azure OpenAI Service with Microsoft Entra ID authentication](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/managed-identity)  
-2. [Azure Identity client library for Python](https://learn.microsoft.com/en-us/python/api/overview/azure/identity-readme?view=azure-python#defaultazurecredential)
+2. [Azure Identity client library for Python](https://learn.microsoft.com/en-us/python/api/overview/azure/identity-readme?view=azure-python#defaultazurecredential) -->

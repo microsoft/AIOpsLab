@@ -8,7 +8,6 @@ from aiopslab.session import SessionItem
 
 
 class TestLLMJudge(unittest.TestCase):
-
     def setUp(self):
         self.trace = [
             SessionItem(role="user", content="Hello"),

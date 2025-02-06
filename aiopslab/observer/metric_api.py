@@ -2,7 +2,11 @@
 # Licensed under the MIT License.
 
 import os
-import random
+import time
+import subprocess
+import socket
+import select
+import threading
 from datetime import datetime
 from typing import Union
 from datetime import datetime, timedelta
@@ -133,11 +137,88 @@ def network_kpi_name_format(metric):
 class PrometheusAPI:
     # disable_ssl – (bool) if True, will skip prometheus server's http requests' SSL certificate
     def __init__(self, url: str, namespace: str):
+        self.namespace = namespace
+        self.port = 32000
+        self.port_forward_process = None
+        self.stop_event = threading.Event()
+        self.start_port_forward()
         self.client = PrometheusConnect(url, disable_ssl=True)
         self.namespace = namespace
         self.pod_list, self.service_list = self.initialize_pod_and_service_lists(
             namespace
         )
+    
+    def is_port_in_use(self, port):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            return s.connect_ex(("127.0.0.1", port)) == 0
+
+    def print_output(self, stream):
+        """Thread function to print output from a subprocess stream non-blockingly."""
+        while not self.stop_event.is_set():
+            ready, _, _ = select.select([stream], [], [], 0.1)
+            if ready:
+                try:
+                    line = stream.readline()
+                    if line:
+                        print(line, end="")
+                    else:
+                        break
+                except ValueError:
+                    break
+
+    def start_port_forward(self):
+        """Starts port-forwarding to access Prometheus."""
+        if self.port_forward_process and self.port_forward_process.poll() is None:
+            print("Port-forwarding already active.")
+            return
+        
+        for attempt in range(3):
+            if self.is_port_in_use(self.port):
+                print(
+                    f"Port {self.port} is already in use. Attempt {attempt + 1} of 3. Retrying in 3 seconds..."
+                )
+                time.sleep(3)
+                continue
+
+            command = f"kubectl port-forward svc/prometheus-server {self.port}:80 -n observe"
+            self.port_forward_process = subprocess.Popen(
+                command,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+
+            thread_out = threading.Thread(
+                target=self.print_output, args=(self.port_forward_process.stdout,)
+            )
+            thread_err = threading.Thread(
+                target=self.print_output, args=(self.port_forward_process.stderr,)
+            )
+            thread_out.start()
+            thread_err.start()
+
+            time.sleep(3)  # Wait a bit for the port-forward to establish
+
+            if self.port_forward_process.poll() is None:
+                print("Port forwarding established successfully.")
+                break
+            else:
+                print("Port forwarding failed. Retrying...")
+        else:
+            print("Failed to establish port forwarding after multiple attempts.")
+
+    def stop_port_forward(self):
+        """Stops the kubectl port-forward command."""
+        if self.port_forward_process:
+            self.port_forward_process.terminate()
+            self.port_forward_process.wait()
+            self.stop_event.set()
+            print("Port forwarding stopped.")
+
+    def cleanup(self):
+        """Cleanup resources like port-forwarding."""
+        self.stop_port_forward()
 
     def initialize_pod_and_service_lists(self, custom_namespace=None):
         namespace = custom_namespace or monitor_config["namespace"]
@@ -264,6 +345,7 @@ class PrometheusAPI:
                         dt.to_csv(f, header=False, index=False)
                 else:
                     dt.to_csv(file_path, index=False)
+            self.cleanup() # Stop port-forwarding after metrics are exported
 
             # # for metric in istio_metrics:
             #     data_raw = self.client.custom_query_range(f"{metric}{{namespace='{namespace}'}}", time_format_transform(start_time), time_format_transform(current_et), step=step)
@@ -298,7 +380,18 @@ class PrometheusAPI:
             #     else:
             #         dt.to_csv(file_path, index=False)
             start_time = current_et
-        return f"Metrics data exported to directory: {save_path}"
+            
+        # Print the folder structure
+        export_msg = f"Metrics data exported to directory: {save_path}\n\nFolder structure of exported metrics:\n"
+        for root, dirs, files in os.walk(save_path):
+            level = root.replace(save_path, "").count(os.sep)
+            indent = " " * 4 * level
+            export_msg += f"{indent}{os.path.basename(root)}/\n"  
+            subindent = " " * 4 * (level + 1)
+            for f in files:
+                export_msg += f"{subindent}{f}\n"
+        # print(export_msg)
+        return export_msg
 
     def get_all_metrics(self):
         """Get all of the metrics"""

@@ -1,0 +1,15 @@
+# Kubernetes control node
+k8s_host: control_node_hostname # Put `localhost` if running on cluster; put `kind` if using kind cluster; put a hostname if managing a remote cluster, e.g., apt035.apt.emulab.net
+k8s_user: your_username
+
+# ssh key path
+ssh_key_path: ~/.ssh/id_rsa # Replace with your ssh key path
+
+# Directory where data files are stored
+data_dir: data
+
+# Flag to enable/disable qualitative evaluation (makes LLM calls)
+qualitative_eval: false
+
+# Flag to enable/disable printing the session
+print_session: false

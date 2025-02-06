@@ -52,7 +52,7 @@ class MisconfigAppHotelResBaseTask:
         injector = ApplicationFaultInjector(namespace=self.namespace)
         injector._recover(
             fault_type="misconfig_app",
-            microservices=[self.faulty_service], 
+            microservices=[self.faulty_service],
         )
         print(f"Service: {self.faulty_service} | Namespace: {self.namespace}\n")
 

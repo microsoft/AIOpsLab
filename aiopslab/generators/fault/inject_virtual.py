@@ -3,12 +3,13 @@
 
 """Inject faults at the virtualization layer: K8S, Docker, etc."""
 
-import json
 import yaml
+import time
 
 from aiopslab.service.kubectl import KubeCtl
 from aiopslab.service.helm import Helm
 from aiopslab.generators.fault.base import FaultInjector
+from aiopslab.service.apps.base import Application
 from aiopslab.paths import TARGET_MICROSERVICES
 
 
@@ -185,6 +186,68 @@ class VirtualizationFaultInjector(FaultInjector):
             apply_command = f"kubectl apply -f {modified_yaml_path} -n {self.namespace}"
             self.kubectl.exec_command(apply_command)
             print(f"Removed nodeSelector for service {service} and redeployed.")
+
+    # V.5 - redeploy without deleting the PV - only for HotelReservation
+    def inject_redepoly_without_pv(self, app: Application):
+        """Inject a fault to delete the namespace without deleting the PV."""
+        self.kubectl.delete_namespace(self.namespace)
+        print(f"Deleting namespace {self.namespace} without deleting the PV.")
+        time.sleep(15)
+        print(f"Redeploying {self.namespace}.")
+        app = type(app)()
+        app.deploy()
+
+    def recover_redepoly_without_pv(self, app: Application):
+        app.cleanup()
+        # pass
+
+    # V.6 - wrong binary usage incident
+    def inject_wrong_bin_usage(self, microservices: list[str]):
+        """Inject a fault to use the wrong binary of a service."""
+        for service in microservices:
+            deployment_yaml = self._get_deployment_yaml(service)
+
+            # Modify the deployment YAML to use the 'geo' binary instead of the 'profile' binary
+            containers = deployment_yaml["spec"]["template"]["spec"]["containers"]
+            for container in containers:
+                if "command" in container and "profile" in container["command"]:
+                    print(
+                        f"Changing binary for container {container['name']} from 'profile' to 'geo'."
+                    )
+                    container["command"] = ["geo"]  # Replace 'profile' with 'geo'
+
+            modified_yaml_path = self._write_yaml_to_file(service, deployment_yaml)
+
+            # Delete the deployment and re-apply
+            delete_command = f"kubectl delete deployment {service} -n {self.namespace}"
+            apply_command = f"kubectl apply -f {modified_yaml_path} -n {self.namespace}"
+            self.kubectl.exec_command(delete_command)
+            self.kubectl.exec_command(apply_command)
+
+            print(f"Injected wrong binary usage fault for service: {service}")
+
+    def recover_wrong_bin_usage(self, microservices: list[str]):
+        for service in microservices:
+            deployment_yaml = self._get_deployment_yaml(service)
+
+            containers = deployment_yaml["spec"]["template"]["spec"]["containers"]
+            for container in containers:
+                if "command" in container and "geo" in container["command"]:
+                    print(
+                        f"Reverting binary for container {container['name']} from 'geo' to 'profile'."
+                    )
+                    container["command"] = [
+                        "profile"
+                    ]  # Restore 'geo' back to 'profile'
+
+            modified_yaml_path = self._write_yaml_to_file(service, deployment_yaml)
+
+            delete_command = f"kubectl delete deployment {service} -n {self.namespace}"
+            apply_command = f"kubectl apply -f {modified_yaml_path} -n {self.namespace}"
+            self.kubectl.exec_command(delete_command)
+            self.kubectl.exec_command(apply_command)
+
+            print(f"Recovered from wrong binary usage fault for service: {service}")
 
     ############# HELPER FUNCTIONS ################
     def _wait_for_pods_ready(self, microservices: list[str], timeout: int = 30):

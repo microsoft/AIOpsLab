@@ -14,8 +14,7 @@ class FaultInjector:
     def __init__(self, testbed):
         self.testbed = testbed
 
-    # TODO: There are faults that not happen on the service level,
-    # so it is not a must to use the microservices param.
+    # Deprecated method
     def inject_fault(
         self,
         fault_type: str,
@@ -40,17 +39,22 @@ class FaultInjector:
 
         self._inject(microservices, fault_type)
 
-        # (@manish: we should not recover fault before agent solves)
-        # self._recover(microservices, fault_type)
-
-    def _inject(self, fault_type: str, microservices: list[str], duration: str = None):
+    def _inject(
+        self, fault_type: str, microservices: list[str] = None, duration: str = None
+    ):
         if duration:
             self._invoke_method("inject", fault_type, microservices, duration)
-        else:
+        elif microservices:
             self._invoke_method("inject", fault_type, microservices)
+        else:
+            self._invoke_method("inject", fault_type)
         time.sleep(6)
 
-    def _recover(self, fault_type: str, microservices: list[str] = None,):
+    def _recover(
+        self,
+        fault_type: str,
+        microservices: list[str] = None,
+    ):
         if microservices and fault_type:
             self._invoke_method("recover", fault_type, microservices)
         elif fault_type:
@@ -65,5 +69,3 @@ class FaultInjector:
             method(*args[1:])
         else:
             print(f"Unknown fault type: {args[0]}")
-
-    

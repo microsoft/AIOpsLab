@@ -1,0 +1,13 @@
+{
+    "Name": "Train Ticket",
+    "Namespace": "train-ticket",
+    "Desc": "The project is a train ticket booking system based on microservice architecture which contains 41 microservices.",
+    "Supported Operations": [
+        ""
+    ],
+    "Helm Config": {
+        "release_name": "train-ticket",
+        "chart_path": "train-ticket",
+        "namespace": "train-ticket"
+    }
+}

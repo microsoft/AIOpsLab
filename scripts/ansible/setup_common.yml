@@ -1,0 +1,196 @@
+---
+- hosts: all
+  become: true
+  vars:
+    docker_key_url: https://download.docker.com/linux/ubuntu/gpg
+    docker_repo: "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+    # kube_version: "1.31.0"  # Adjust Kubernetes version as needed
+    cri_dockerd_version: "0.3.12.3-0"  # Example version for cri-dockerd, customize as needed
+
+  tasks:
+    - name: Remove old Kubernetes repository e.g., v1.29 if it exists
+      file:
+        path: /etc/apt/sources.list.d/kubernetes.list
+        state: absent
+
+    - name: Refresh and upgrade packages
+      apt:
+        update_cache: "yes"
+        upgrade: "yes"
+
+    # - name: Install python3-apt
+    #   apt:
+    #     name: python3-apt
+    #     state: present
+    #   become: true
+
+    - name: Remove old Docker versions if any
+      apt:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - docker.io
+        - docker-doc
+        - docker-compose
+        - podman-docker
+        - containerd
+        - runc
+
+    - name: Install prerequisites for Docker and Kubernetes
+      apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - socat
+    
+    - name: Install OpenSSL development libraries (the wrk build needs it)
+      apt:
+        name: libssl-dev
+        state: present
+
+    - name: Add Docker GPG key and repository
+      shell: |
+        sudo install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL {{ docker_key_url }} -o /etc/apt/keyrings/docker.asc
+        echo "{{ docker_repo }}" | tee /etc/apt/sources.list.d/docker.list
+      args:
+        creates: /etc/apt/sources.list.d/docker.list
+
+    - name: Update apt and install Docker
+      apt:
+        update_cache: yes
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+
+    - name: Add user to docker group to run Docker without sudo
+      user:
+        name: "{{ ansible_user_id }}"
+        groups: docker
+        append: yes
+
+    - name: Install cri-dockerd
+      get_url:
+        url: "https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.12/cri-dockerd_0.3.12.3-0.ubuntu-jammy_amd64.deb"
+        dest: /tmp/install-cri-dockerd.deb
+      register: cri_dockerd_install
+      # notify: Install CRI-Dockerd
+
+    - name: Install CRI-Dockerd from downloaded package
+      apt:
+        deb: /tmp/install-cri-dockerd.deb
+        state: present
+      when: cri_dockerd_install.changed
+
+    - name: Start and enable cri-dockerd service
+      systemd:
+        name: cri-docker
+        enabled: yes
+        state: started
+
+    - name: Check if cri-dockerd socket exists
+      stat:
+        path: /var/run/cri-dockerd.sock
+      register: cri_socket
+
+    # - name: Wait for cri-dockerd socket to be available
+    #   wait_for:
+    #     path: /var/run/cri-dockerd.sock
+    #     state: present
+    #     timeout: 30
+    #   when: not cri_socket.stat.exists
+
+    - name: Install Kubernetes packages
+      apt:
+        name:
+          - apt-transport-https
+          - curl
+          - gpg
+        state: present
+
+    # - name: Add Kubernetes GPG key and repository
+    #   shell: |
+    #     echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/{{ kube_version }}/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+    #     curl -fsSL https://pkgs.k8s.io/core:/stable:/{{ kube_version }}/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+    #   args:
+    #     creates: /etc/apt/sources.list.d/kubernetes.list
+
+    - name: Remove existing Kubernetes GPG key if it exists
+      file:
+        path: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+        state: absent
+
+    - name: Add Kubernetes GPG key
+      shell: |
+        curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+      args:
+        creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+    - name: Add Kubernetes repository for v1.31
+      shell: |
+        echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+      args:
+        creates: /etc/apt/sources.list.d/kubernetes.list
+
+    - name: Install kubeadm, kubelet, kubectl
+      apt:
+        update_cache: yes
+        name:
+          - kubeadm
+          - kubelet
+          - kubectl
+        state: present
+
+    # - name: Hold Kubernetes packages at installed version
+    #   apt:
+    #     name:
+    #       - kubeadm
+    #       - kubelet
+    #       - kubectl
+    #     state: present
+    #     mark: hold
+
+    - name: Hold Kubernetes packages at installed version
+      shell: |
+        sudo apt-mark hold kubeadm kubelet kubectl
+
+    - name: Disable swap
+      shell: |
+        sudo swapoff -a
+        sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+
+    - name: Load necessary kernel modules
+      shell: |
+        sudo modprobe overlay
+        sudo modprobe br_netfilter
+      args:
+        creates: /etc/modules-load.d/k8s.conf
+
+    - name: Configure sysctl for Kubernetes networking
+      copy:
+        content: |
+          net.bridge.bridge-nf-call-iptables  = 1
+          net.bridge.bridge-nf-call-ip6tables = 1
+          net.ipv4.ip_forward                 = 1
+        dest: /etc/sysctl.d/k8s.conf
+      notify: Reload sysctl
+
+    - name: Start and enable kubelet
+      systemd:
+        name: kubelet
+        enabled: yes
+        state: started
+
+  handlers:
+    - name: Install CRI-Dockerd
+      apt:
+        deb: /tmp/cri-dockerd.deb
+
+    - name: Reload sysctl
+      command: sysctl --system

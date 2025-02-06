@@ -77,7 +77,6 @@ class LogAPI:
 
     # log data export
     def log_extract_(self, start_time=None, end_time=None):
-
         quert_size = 7500
 
         indices = self.elastic.indices.get(index="logstash-*")

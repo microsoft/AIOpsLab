@@ -1,9 +1,0 @@
-*
-!/src/
-!/CMakeLists.txt
-!/cmake/
-!/datasets/
-!/gen-cpp/
-!/scripts/
-!/third_party/
-!/wrk2/

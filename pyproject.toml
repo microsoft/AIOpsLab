@@ -19,8 +19,10 @@ tiktoken = "^0.7.0"
 prompt-toolkit = "^3.0.47"
 prometheus-api-client = "^0.5.5"
 autogen-agentchat = "^0.2.40"
+elasticsearch = "^8.16.0"
 azure-identity = "^1.19.0"
 azure-ai-ml = "^1.22.1"
+paramiko = "^3.5.0"
 
 
 [build-system]

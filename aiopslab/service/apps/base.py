@@ -6,7 +6,7 @@ from aiopslab.paths import TARGET_MICROSERVICES
 
 
 class Application:
-    """Base class for all applications."""
+    """Base class for all microservice applications."""
 
     def __init__(self, config_file: str):
         self.config_file = config_file

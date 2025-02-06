@@ -33,10 +33,10 @@ class NoOpBaseTask:
             self.faulty_service = "PLACEHOLDER"
         else:
             raise ValueError(f"Unsupported app_name: {app_name}")
-        
+
         self.kubectl = KubeCtl()
         self.namespace = self.app.namespace
-        self.injector = NoopFaultInjector(namespace=self.namespace)        
+        self.injector = NoopFaultInjector(namespace=self.namespace)
 
     def start_workload(self):
         print("== Start Workload ==")
@@ -49,11 +49,9 @@ class NoOpBaseTask:
         )
 
     def inject_fault(self):
-        print("== Fault Injection ==")      
+        print("== Fault Injection ==")
         self.injector._inject(
-            fault_type="no_op",
-            microservices=[self.faulty_service],
-            duration="200s"
+            fault_type="no_op", microservices=[self.faulty_service], duration="200s"
         )
         print(f"Service: {self.faulty_service} | Namespace: {self.namespace}\n")
 
@@ -62,6 +60,7 @@ class NoOpBaseTask:
         self.injector._recover(
             fault_type="no_op",
         )
+
 
 ################## Detection Problem ##################
 class NoOpDetection(NoOpBaseTask, DetectionTask):
@@ -85,4 +84,3 @@ class NoOpDetection(NoOpBaseTask, DetectionTask):
             self.add_result("Detection Accuracy", "Invalid Format")
 
         return super().eval(soln, trace, duration)
-

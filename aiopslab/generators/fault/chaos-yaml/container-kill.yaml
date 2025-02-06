@@ -1,0 +1,11 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: container-kill-mesh
+  namespace: default
+spec:
+  action: container-kill
+  mode: all # This can be 'one', 'all', or 'fixed' depending on what you need, all executes everything in the list, one will pick a random one from the list
+  containerNames: []  # This will be dynamically updated with microservices from inject_chaos
+  selector:
+    labelSelectors: {}  # Empty for now, you can dynamically populate key-value pairs

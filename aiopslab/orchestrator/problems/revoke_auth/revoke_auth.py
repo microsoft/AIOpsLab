@@ -52,10 +52,7 @@ class MongoDBRevokeAuthBaseTask:
     def recover_fault(self):
         print("== Fault Recovery ==")
         injector = ApplicationFaultInjector(namespace=self.namespace)
-        injector._recover(
-            fault_type="revoke_auth", 
-            microservices=[self.faulty_service]
-        )
+        injector._recover(fault_type="revoke_auth", microservices=[self.faulty_service])
         print(f"Service: {self.faulty_service} | Namespace: {self.namespace}\n")
 
 
