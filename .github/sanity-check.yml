@@ -1,0 +1,19 @@
+name: Sanity Check
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  sanity-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Noop Sanity Check
+        run: echo "CI is running correctly!" && exit 0
