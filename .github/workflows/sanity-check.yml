@@ -1,0 +1,42 @@
+name: Sanity Check CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  sanity-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Kubernetes & Tools
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+          curl -Lo kind "https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64"
+          chmod +x kind
+          sudo mv kind /usr/local/bin/
+
+      - name: Create a Kubernetes Cluster
+        run: kind create cluster --name test-cluster
+
+      - name: Verify Cluster is Running
+        run: kubectl cluster-info
+
+      - name: Run Noop Test
+        run: |
+          kubectl run noop-test --image=busybox -- sleep 10
+          kubectl wait --for=condition=complete --timeout=20s job/noop-test || exit 1
+          echo "Noop test completed successfully!"
+
+      - name: Delete Cluster
+        if: always()
+        run: kind delete cluster --name test-cluster
