@@ -30,7 +30,7 @@ jobs:
       - name: Verify cluster is running
         run: kubectl get nodes
 
-      - name: Deploy the noop problem (hotel-reservations)
+      - name: Deploy the noop problem
         run: |
           kubectl apply -f k8s/hotel-reservations-noop.yaml
           kubectl wait --for=condition=available --timeout=60s deployment/hotel-reservations-noop
