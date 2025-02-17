@@ -1,4 +1,4 @@
-name: Sanity Check CI
+name: AIOpsLab Noop Test
 
 on:
   push:
@@ -16,27 +16,35 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Kubernetes & Tools
+      - name: Install Dependencies
         run: |
-          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          sudo apt update && sudo apt install -y python3 python3-pip
+          pip install aiopslab
+
+      - name: Install Kubernetes Tools (kubectl & kind)
+        run: |
+          curl -Lo kubectl "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           chmod +x kubectl
           sudo mv kubectl /usr/local/bin/
+          
           curl -Lo kind "https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64"
           chmod +x kind
           sudo mv kind /usr/local/bin/
 
-      - name: Create a Kubernetes Cluster
-        run: kind create cluster --name test-cluster
-
-      - name: Verify Cluster is Running
-        run: kubectl cluster-info
-
-      - name: Run Noop Test
+      - name: Create Kubernetes Test Cluster
         run: |
-          kubectl run noop-test --image=busybox -- sleep 10
-          kubectl wait --for=condition=complete --timeout=20s job/noop-test || exit 1
-          echo "Noop test completed successfully!"
+          kind create cluster --name test-cluster
+          kubectl cluster-info
 
-      - name: Delete Cluster
+      - name: Run Hotel Reservations Noop Problem
+        run: |
+          aiopslab run noop hotel-reservations --kube-context kind-test-cluster
+
+      - name: Verify Execution Logs
+        run: |
+          echo "Checking logs..."
+          cat /tmp/aiopslab/hotel-reservations.log || echo "No logs found!"
+
+      - name: Tear Down Kubernetes Cluster
         if: always()
         run: kind delete cluster --name test-cluster
