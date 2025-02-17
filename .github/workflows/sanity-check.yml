@@ -1,4 +1,4 @@
-name: AIOpsLab Noop Test
+name: Noop Sanity Check
 
 on:
   push:
@@ -11,40 +11,29 @@ on:
 jobs:
   sanity-check:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Dependencies
+      - name: Install Kubernetes tools
         run: |
-          sudo apt update && sudo apt install -y python3 python3-pip
-          pip install aiopslab
-
-      - name: Install Kubernetes Tools (kubectl & kind)
-        run: |
-          curl -Lo kubectl "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           chmod +x kubectl
           sudo mv kubectl /usr/local/bin/
-          
-          curl -Lo kind "https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64"
-          chmod +x kind
-          sudo mv kind /usr/local/bin/
 
-      - name: Create Kubernetes Test Cluster
+          curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+
+      - name: Set up a Kubernetes cluster
         run: |
-          kind create cluster --name test-cluster
-          kubectl cluster-info
+          k3d cluster create aiopslab-test --servers 1 --agents 2
 
-      - name: Run Hotel Reservations Noop Problem
+      - name: Verify cluster is running
+        run: kubectl get nodes
+
+      - name: Deploy the noop problem (hotel-reservations)
         run: |
-          aiopslab run noop hotel-reservations --kube-context kind-test-cluster
+          kubectl apply -f k8s/hotel-reservations-noop.yaml
+          kubectl wait --for=condition=available --timeout=60s deployment/hotel-reservations-noop
 
-      - name: Verify Execution Logs
-        run: |
-          echo "Checking logs..."
-          cat /tmp/aiopslab/hotel-reservations.log || echo "No logs found!"
-
-      - name: Tear Down Kubernetes Cluster
-        if: always()
-        run: kind delete cluster --name test-cluster
+      - name: Check logs and sanity test
+        run: kubectl logs deployment/hotel-reservations-noop
