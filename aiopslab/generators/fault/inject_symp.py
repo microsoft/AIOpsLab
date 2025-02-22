@@ -31,8 +31,8 @@ class SymptomFaultInjector(FaultInjector):
 
     def create_chaos_experiment(self, experiment_yaml: dict, experiment_name: str):
         chaos_yaml_path = f"/tmp/{experiment_name}.yaml"
-        with open(chaos_yaml_path):
-            yaml.dump(experiment_yaml)
+        with open(chaos_yaml_path, "w") as file:
+            yaml.dump(experiment_yaml, file)
         command = f"kubectl apply -f {chaos_yaml_path}"
         result = self.kubectl.exec_command(command)
         print(f"Applied {experiment_name} chaos experiment: {result}")
