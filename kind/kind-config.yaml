@@ -2,12 +2,12 @@ kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
   - role: control-plane
-    image: flemington8/aiopslab-kind:latest
+    image: flemington/aiopslab-kind:latest
     extraMounts:
       - hostPath: /mnt/datadrive/prometheus
         containerPath: /datadrive/prometheus
   - role: worker
-    image: flemington8/aiopslab-kind:latest
+    image: flemington/aiopslab-kind:latest
     extraMounts:
       - hostPath: /mnt/datadrive/prometheus
         containerPath: /datadrive/prometheus

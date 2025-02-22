@@ -60,7 +60,7 @@ class GPT4Turbo:
         try:
             response = client.chat.completions.create(
                 messages=payload,  # type: ignore
-                model="gpt-4-turbo-2024-04-09",
+                model="gpt-4o-mini",
                 max_tokens=1024,
                 temperature=0.5,
                 top_p=0.95,
@@ -82,3 +82,63 @@ class GPT4Turbo:
             self.cache.add_to_cache(payload, response)
             self.cache.save_cache()
         return response
+
+
+class DeepSeekR1:
+    """Abstraction for DeepSeek-R1 model."""
+
+    def __init__(self):
+        self.cache = Cache()
+
+    def inference(self, payload: list[dict[str, str]]) -> list[str]:
+        if self.cache is not None:
+            cache_result = self.cache.get_from_cache(payload)
+            if cache_result is not None:
+                return cache_result
+
+        client = OpenAI(api_key=os.getenv("DEEPSEEK_API_KEY"), base_url="https://api.deepseek.com")
+        try:
+            payload = self.ensure_interleaved_messages(payload)
+            response = client.chat.completions.create(
+                messages=payload,  # type: ignore
+                model="deepseek-reasoner",
+                max_tokens=1024,
+                n=1,
+                timeout=60,
+                stop=[],
+            )
+        except Exception as e:
+            print(f"Exception: {repr(e)}")
+            raise e
+
+        return [c.message.content for c in response.choices]  # type: ignore
+
+    def run(self, payload: list[dict[str, str]]) -> list[str]:
+        response = self.inference(payload)
+        if self.cache is not None:
+            self.cache.add_to_cache(payload, response)
+            self.cache.save_cache()
+        return response
+    
+    def ensure_interleaved_messages(self, payload: list[dict[str, str]]) -> list[dict[str, str]]:
+        """
+        deepseek-reasoner does not support successive user or assistant messages.
+        Ensures that the messages list is properly interleaved with user/assistant roles.
+        If two consecutive user messages are detected, merge or restructure them.
+        """
+        interleaved_messages = []
+        last_role = None
+
+        for message in payload:
+            if last_role == message["role"]:
+                # If two consecutive user messages appear, merge them
+                if message["role"] == "user":
+                    interleaved_messages[-1]["content"] += f"\n\n{message['content']}"
+                else:
+                    interleaved_messages.append({"role": "assistant", "content": "..."})  # Placeholder
+            else:
+                interleaved_messages.append(message)
+
+            last_role = message["role"]
+
+        return interleaved_messages
