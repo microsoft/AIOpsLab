@@ -11,7 +11,6 @@ from aiopslab.service.helm import Helm
 from aiopslab.service.kubectl import KubeCtl
 from aiopslab.generators.fault.base import FaultInjector
 
-
 class SymptomFaultInjector(FaultInjector):
     def __init__(self, namespace: str):
         super().__init__(namespace)
@@ -25,9 +24,20 @@ class SymptomFaultInjector(FaultInjector):
             "namespace": "chaos-mesh",
             "version": "2.6.2",
         }
+
+        container_runtime = self.kubectl.get_container_runtime()
+
+        if "docker" in container_runtime:
+            pass
+        elif "containerd" in container_runtime:
+            chaos_configs["extra_args"] = [
+                "--set chaosDaemon.runtime=containerd",
+                "--set chaosDaemon.socketPath=/run/containerd/containerd.sock",
+            ]
+        else:
+            raise ValueError(f"Unsupported container runtime: {container_runtime}")
+
         Helm.install(**chaos_configs)
-        time.sleep(6)
-        # Helm.uninstall(**sn_configs)
 
     def create_chaos_experiment(self, experiment_yaml: dict, experiment_name: str):
         chaos_yaml_path = f"/tmp/{experiment_name}.yaml"

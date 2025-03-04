@@ -34,6 +34,16 @@ class KubeCtl:
         """Retrieve the cluster IP address of a specified service within a namespace."""
         service_info = self.core_v1_api.read_namespaced_service(service_name, namespace)
         return service_info.spec.cluster_ip  # type: ignore
+    
+    def get_container_runtime(self):
+        """
+            Retrieve the container runtime used by the cluster.
+            If the cluster uses multiple container runtimes, the first one found will be returned.
+        """
+        for node in self.core_v1_api.list_node().items:
+            for status in node.status.conditions:
+                if status.type == "Ready" and status.status == "True":
+                    return node.status.node_info.container_runtime_version
 
     def get_pod_name(self, namespace, label_selector):
         """Get the name of the first pod in a namespace that matches a given label selector."""
