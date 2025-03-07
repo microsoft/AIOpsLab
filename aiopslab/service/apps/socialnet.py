@@ -3,7 +3,7 @@
 
 """Interface to the social network application from DeathStarBench"""
 
-import time
+import platform
 
 from aiopslab.service.helm import Helm
 from aiopslab.service.kubectl import KubeCtl
@@ -22,6 +22,8 @@ class SocialNetwork(Application):
         )
         self.create_namespace()
         self.create_tls_secret()
+        # Detect CPU architecture, we need to deploy media-frontend differently on arm
+        self.is_arm = platform.machine().lower() in ["arm64", "aarch64"]
 
     def load_app_json(self):
         super().load_app_json()
@@ -46,6 +48,14 @@ class SocialNetwork(Application):
 
     def deploy(self):
         """Deploy the Helm configurations."""
+        if self.is_arm:
+            # Update image to use arm build image
+            if "extra_args" not in self.helm_configs:
+                self.helm_configs["extra_args"] = []
+            
+            self.helm_configs["extra_args"].append("--set media-frontend.container.image=jacksonarthurclark/media-frontend")
+            self.helm_configs["extra_args"].append("--set media-frontend.container.imageVersion=latest")
+        
         Helm.install(**self.helm_configs)
         Helm.assert_if_deployed(self.helm_configs["namespace"])
 

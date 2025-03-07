@@ -18,12 +18,15 @@ class Helm:
             release_name (str): Name of the release
             chart_path (str): Path to the helm chart
             namespace (str): Namespace to install the chart
+            version (str): Version of the chart
+            extra_args (List[str)]: Extra arguments for the helm install command
         """
         print("== Helm Install ==")
         release_name = args.get("release_name")
         chart_path = args.get("chart_path")
         namespace = args.get("namespace")
         version = args.get("version")
+        extra_args = args.get("extra_args")
 
         # Install dependencies for chart before installation
         dependency_command = f"helm dependency update {chart_path}"
@@ -36,6 +39,13 @@ class Helm:
         dependency_output, dependency_error = dependency_process.communicate()
 
         command = f"helm install {release_name} {chart_path} -n {namespace} --create-namespace"
+
+        if version:
+            command += f" --version {version}"
+
+        if extra_args:
+            command += " " + " ".join(extra_args)
+
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
         output, error = process.communicate()
 
