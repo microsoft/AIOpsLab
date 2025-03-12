@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.35.0 (9532ceef3)
+  labels:
+    io.kompose.service: supernode-2
+  name: supernode-2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: supernode-2
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.35.0 (9532ceef3)
+      labels:
+        io.kompose.service: supernode-2
+    spec:
+      containers:
+        - args:
+            - --insecure
+            - --superlink
+            - superlink:9092
+            - --clientappio-api-address
+            - 0.0.0.0:9095
+            - --isolation
+            - process
+            - --node-config
+            - partition-id=1 num-partitions=2
+          image: flwr/supernode:1.15.2
+          name: supernode-2
+          ports:
+            - containerPort: 9095
+              protocol: TCP
+      restartPolicy: Always

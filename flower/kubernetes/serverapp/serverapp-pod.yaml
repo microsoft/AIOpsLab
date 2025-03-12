@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.35.0 (9532ceef3)
+  labels:
+    io.kompose.service: serverapp
+  name: serverapp
+spec:
+  securityContext:
+    runAsUser: 0
+  containers:
+    - args:
+        - --insecure
+        - --serverappio-api-address
+        - superlink:9091
+      image: adityapgupta/flower-server:latest
+      name: serverapp
+      ports:
+        - containerPort: 9091
+          protocol: TCP
+  restartPolicy: OnFailure

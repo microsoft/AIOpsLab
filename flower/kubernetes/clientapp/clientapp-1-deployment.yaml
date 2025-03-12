@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.35.0 (9532ceef3)
+  labels:
+    io.kompose.service: clientapp-1
+  name: clientapp-1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: clientapp-1
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.35.0 (9532ceef3)
+      labels:
+        io.kompose.service: clientapp-1
+    spec:
+      containers:
+        - args:
+            - --insecure
+            - --clientappio-api-address
+            - supernode-1:9094
+          image: adityapgupta/flower-client-1:latest
+          name: clientapp-1
+          ports:
+            - containerPort: 9094
+              protocol: TCP
+          resources:
+            limits:
+              cpu: "2"
+      restartPolicy: Always
