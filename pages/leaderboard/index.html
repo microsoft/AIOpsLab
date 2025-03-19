@@ -322,24 +322,26 @@
       <div class=title-author>A Holistic Framework to Design, Develop, and Evaluate AI Agents for Enabling Autonomous Clouds</div>
   </div>
 
-  <div style="text-align:center"><a href="https://aka.ms/m365research-org" class=textM365 target="_blank">M365 Research - AIOps Team</a></div>
+  <div style="text-align:center">
+      <a href="https://aka.ms/m365research-org" class=textM365 target="_blank">M365 Research - AIOps Team</a>
+  </div>
 
   <!-- navigation -->
   <div style="margin-top: 6px; margin-bottom: 20px;" class="column has-text-centered">
       <div class="nav">
           <span class="nav-block">
-              <a href="https://microsoft.github.io/AIOpsLab/" class="link-btn">
-                  <span class="link-text"><i class="fa-solid fa-house"></i>&nbspHome</span>
+              <a href="/." class="link-btn">
+                  <span class="link-text"><i class="fa-solid fa-house"></i>&nbsp;Home</span>
               </a>
           </span>
           <span class="nav-block">
               <a href="https://www.microsoft.com/en-us/research/publication/aiopslab-a-holistic-framework-for-evaluating-ai-agents-for-enabling-autonomous-cloud" class="link-btn button" target="_blank">
-                  <span class="link-text"><i class="fa-solid fa-file-lines"></i>&nbspPaper</span><!-- URL of paper -->
+                  <span class="link-text"><i class="fa-solid fa-file-lines"></i>&nbsp;Paper</span>
               </a>
           </span>
           <span class="nav-block">
               <a href="https://github.com/microsoft/AIOpsLab" class="link-btn" target="_blank">
-                  <span class="link-text"><i class="fa-brands fa-github"></i>&nbspCode</span><!-- URL of code -->
+                  <span class="link-text"><i class="fa-brands fa-github"></i>&nbsp;Code</span>
               </a>
           </span>
       </div>
@@ -348,108 +350,87 @@
 
 <div class=textdiv>
     <h1 style="color: #4A90E2;">Leaderboard</h1>
-    <p style="font-size:20px;">We showcase the key results on the leaderboard. If you'd like your results to appear, please email us at <a href="mailto:AIOpsLab@microsoft.com">AIOpsLab@microsoft.com</a>. 
-  <br>
-  In the table, AVERAGE represents the average accuracy across all tasks. TIME indicates the average runtime for the agents.
-  </ul>
+    <p >
+      We showcase the key results on the leaderboard. If you'd like your results to appear, please email us at 
+      <a href="mailto:AIOpsLab@microsoft.com">AIOpsLab@microsoft.com</a>.
+      <br>
+      In the table, AVERAGE represents the average accuracy across all tasks. TIME indicates the average runtime for the agents.
+    </p>
+    <div style="display: flex; justify-content: center; align-items: center;flex-wrap: wrap;">
+      <img src="../combined.jpg" alt="radar and bar" style="max-width: 100%; height: auto;"></img>
+    </div>
 </div>
 
-<div class=table-container style="text-align:center">
-  <table id="sortableTable">
-  <thead>
-    <tr>
-      <th>Agent Name</th>
-      <th>Average</th>
-      <th>Detection</th>
-      <th>Localization</th>
-      <th>Diagnosis</th>
-      <th>Mitigation</th>
-      <th>Time</th>
-      <th>Organization</th>
-      <th>Link</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>🥇FLASH (GPT-4)</td>
-      <td><b>59.27</b></td>
-      <td><b>100</b></td>
-      <td>46.15</td>
-      <td>36.36</td>
-      <td><b>54.55</b></td>
-      <td>102.57</td>
-      <td>AIOpsLab</td>
-      <td>🔗</td>
-    </tr>
-    <tr>
-      <td>🥈REACT (GPT-4)</td>
-      <td>53.15</td>
-      <td>76.92</td>
-      <td>53.85</td>
-      <td><b>45.45</b></td>
-      <td>36.36</td>
-      <td>44.25</td>
-      <td>AIOpsLab</td>
-      <td>🔗</td>
-    </tr>
-    <tr>
-      <td>🥉GPT-4 w Shell</td>
-      <td>49.74</td>
-      <td>69.23</td>
-      <td>61.54</td>
-      <td>40.9</td>
-      <td>27.27</td>
-      <td>30.57</td>
-      <td>AIOpsLab</td>
-      <td>🔗</td>
-    </tr>
-    <tr>
-      <td>FLASH (Llama3-8b)</td>
-      <td>33.34</td>
-      <td>80</td>
-      <td>20</td>
-      <td>0</td>
-      <td>33.34</td>
-      <td>63.16</td>
-      <td>AIOpsLab</td>
-      <td>🔗</td>
-    </tr>
-    <tr>
-      <td>GPT-3.5 w Shell</td>
-      <td>15.73</td>
-      <td>23.07</td>
-      <td>30.77</td>
-      <td>9.09</td>
-      <td>0</td>
-      <td>12.79</td>
-      <td>AIOpsLab</td>
-      <td>🔗</td>
-    </tr>
-    <tr>
-      <td>REACT (Llama3-8b)</td>
-      <td>15</td>
-      <td>60</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>230.74</td>
-      <td>AIOpsLab</td>
-      <td>🔗</td>
-    </tr>
-    <tr>
-      <td>LocaleXpert (Llama3-8b)</td>
-      <td>-</td>
-      <td>-</td>
-      <td><b>80</b></td>
-      <td>-</td>
-      <td>-</td>
-      <td>102.08</td>
-      <td>AIOpsLab, NKU</td>
-      <td>🔗</td>
-    </tr>
-  </tbody>
-</table>
+<div class="table-container">
+  <table id="sortableTable" class="styled-table">
+    <thead>
+      <tr>
+        <th>Agent Name</th>
+        <th>Average</th>
+        <th>Detection</th>
+        <th>Localization</th>
+        <th>Diagnosis</th>
+        <th>Mitigation</th>
+        <th>Time</th>
+        <th>Organization</th>
+        <th>Link</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  function getColorForAgent(name) {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = Math.abs(hash) % 360;
+    return {
+      background: `hsla(${hue}, 85%, 65%, 0.3)`,
+      border: `hsl(${hue}, 85%, 50%)`,
+      pointBg: `hsl(${hue}, 85%, 50%)`,
+      pointHover: `hsl(${hue}, 85%, 50%)`
+    };
+  }  
+  function updateTable(data) {
+    const tableBody = document.querySelector('#sortableTable tbody');
+    tableBody.innerHTML = ''; 
+    data.forEach((row, rowIndex) => {
+      if (rowIndex === 0) return;
+      const tr = document.createElement('tr');
+      row.forEach((cell, cellIndex) => {
+        if (cellIndex === 9) return;
+        const td = document.createElement('td');
+        if (cellIndex === 8) {
+          const a = document.createElement('a');
+          a.textContent = cell;
+          const site = row[9] || '#';
+          a.href = site.startsWith('http') ? site : 'https://' + site;
+          a.target = '_blank';
+          td.appendChild(a);
+        } else {
+          td.textContent = cell;
+        }
+        tr.appendChild(td);
+      });
+      tableBody.appendChild(tr);
+    });
+  }
+  Papa.parse('/assets/data/data.csv', {
+    download: true,
+    complete: function(results) {
+      updateTable(results.data);
+    },
+    error: function(err) {
+      console.error("CSV err:", err);
+    }
+  });
+</script>
 
 
 
