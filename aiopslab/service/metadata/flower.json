@@ -1,0 +1,10 @@
+{
+    "Name": "Flower",
+    "Namespace": "test-flower",
+    "Desc": "A federated learning application to train models on edge devices and aggregate them on a central server.",
+    "Supported Operations": [
+        "Train models on edge devices",
+        "Aggregate models on a central server"
+    ],
+    "K8S Deploy Path": "flower/kubernetes"
+}

@@ -27,6 +27,7 @@ from aiopslab.orchestrator.problems.recommendation_service_cache_failure import 
 from aiopslab.orchestrator.problems.redeploy_without_pv import *
 from aiopslab.orchestrator.problems.wrong_bin_usage import *
 from aiopslab.orchestrator.problems.operator_misoperation import *
+from aiopslab.orchestrator.problems.flower import *
 
 
 class ProblemRegistry:
@@ -210,6 +211,8 @@ class ProblemRegistry:
             "operator_security_context_fault-localization-1": K8SOperatorSecurityContextFaultLocalization,
             "operator_wrong_update_strategy-detection-1": K8SOperatorWrongUpdateStrategyDetection,
             "operator_wrong_update_strategy-localization-1": K8SOperatorWrongUpdateStrategyLocalization,
+            # Flower
+            "flower-test-1": FlowerTest,
         }
 
     def get_problem_instance(self, problem_id: str):

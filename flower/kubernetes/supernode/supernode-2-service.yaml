@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.35.0 (9532ceef3)
+  labels:
+    io.kompose.service: supernode-2
+  name: supernode-2
+spec:
+  ports:
+    - name: "9095"
+      port: 9095
+      targetPort: 9095
+  selector:
+    io.kompose.service: supernode-2
