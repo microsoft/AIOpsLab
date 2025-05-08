@@ -23,6 +23,10 @@ elasticsearch = "^8.16.0"
 azure-identity = "^1.19.0"
 azure-ai-ml = "^1.22.1"
 paramiko = "^3.5.0"
+wandb = "^0.19.7"
+python-dotenv = "^1.0.1"
+vllm = "^0.7.3"
+transformers = "^4.49.0"
 
 
 [build-system]

@@ -28,6 +28,7 @@ Moreover, AIOpsLab provides a built-in benchmark suite with a set of problems to
 
 ### Requirements
 - Python >= 3.11
+- [Helm](https://helm.sh/)
 
 Recommended installation:
 ```bash
@@ -64,10 +65,23 @@ kind create cluster --config kind/kind-config-arm.yaml
 
 If you're running into issues, consider building a Docker image for your machine by following this [README](kind/README.md). Please also open an issue.
 
+### [Tips]
+If you are running AIOpsLab using a proxy, beware of exporting the HTTP proxy as `172.17.0.1`. When creating the kind cluster, all the nodes in the cluster will inherit the proxy setting from the host environment and the Docker container. 
+
+The `172.17.0.1` address is used to communicate with the host machine. For more details, refer to the official guide: [Configure Kind to Use a Proxy](https://kind.sigs.k8s.io/docs/user/quick-start/#configure-kind-to-use-a-proxy).
+
+Additionally, Docker doesn't support SOCKS5 proxy directly. If you're using a SOCKS5 protocol to proxy, you may need to use [Privoxy](https://www.privoxy.org) to forward SOCKS5 to HTTP.
+
+If you're running VLLM and the LLM agent locally, Privoxy will by default proxy `localhost`, which will cause errors. To avoid this issue, you should set the following environment variable:
+
+```bash
+export no_proxy=localhost
+``` 
+
 After finishing cluster creation, proceed to the next "Update `config.yml`" step.
 
 ### b) Remote cluster
-AIOpsLab supports any remote kubernetes cluster that your `kubectl` context is set to, whether it's a cluster from a cloud provider or one you build yourself. We have some Ansible playbooks we have to setup clusters on providers like [CloudLab](https://www.cloudlab.us/) and our own machines. Follow this [README](./scripts/ansible/README.md) to set up your own cluster, and then proceed to the next "Update `config.yml`" step.
+AIOpsLab supports any remote kubernetes cluster that your `kubectl` context is set to, whether it's a cluster from a cloud provider or one you build yourself. We have some Ansible playbooks to setup clusters on providers like [CloudLab](https://www.cloudlab.us/) and our own machines. Follow this [README](./scripts/ansible/README.md) to set up your own cluster, and then proceed to the next "Update `config.yml`" step.
 
 ### Update `config.yml`
 ```bash
@@ -89,11 +103,29 @@ python3 cli.py
 Run GPT-4 baseline agent:
 
 ```bash
-export OPENAI_API_KEY=<YOUR_OPENAI_API_KEY>
+# Create a .env file in the project root (if not exists)
+echo "OPENAI_API_KEY=<YOUR_OPENAI_API_KEY>" > .env
+# Add more API keys as needed:
+# echo "QWEN_API_KEY=<YOUR_QWEN_API_KEY>" >> .env
+# echo "DEEPSEEK_API_KEY=<YOUR_DEEPSEEK_API_KEY>" >> .env
+
 python3 clients/gpt.py # you can also change the problem to solve in the main() function
 ```
 
+The clients will automatically load API keys from your .env file.
+
 You can check the running status of the cluster using [k9s](https://k9scli.io/) or other cluster monitoring tools conveniently.
+
+To browse your logged `session_id` values in the W&B app as a table:
+
+1. Make sure you have W&B installed and configured.
+2. Set the USE_WANDB environment variable:
+    ```bash
+    # Add to your .env file
+    echo "USE_WANDB=true" >> .env
+    ```
+3. In the W&B web UI, open any run and click Tables → Add Query Panel.
+4. In the key field, type `runs.summary` and click `Run`, then you will see the results displayed in a table format.
 
 <h2 id="⚙️usage">⚙️ Usage</h2>
 

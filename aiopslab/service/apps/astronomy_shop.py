@@ -5,7 +5,6 @@ import time
 from aiopslab.service.helm import Helm
 from aiopslab.service.kubectl import KubeCtl
 from aiopslab.service.apps.base import Application
-from aiopslab.paths import TARGET_MICROSERVICES
 from aiopslab.paths import ASTRONOMY_SHOP_METADATA
 
 
@@ -19,7 +18,7 @@ class AstronomyShop(Application):
     def load_app_json(self):
         super().load_app_json()
         metadata = self.get_app_json()
-        self.frontend_service = "astronomy-shop-frontendproxy"
+        self.frontend_service = "frontend-proxy"
         self.frontend_port = 8080
 
     def deploy(self):

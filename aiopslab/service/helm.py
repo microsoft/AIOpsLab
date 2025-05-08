@@ -20,6 +20,7 @@ class Helm:
             namespace (str): Namespace to install the chart
             version (str): Version of the chart
             extra_args (List[str)]: Extra arguments for the helm install command
+            remote_chart (bool): Whether the chart is remote (from a Helm repo)
         """
         print("== Helm Install ==")
         release_name = args.get("release_name")
@@ -27,16 +28,18 @@ class Helm:
         namespace = args.get("namespace")
         version = args.get("version")
         extra_args = args.get("extra_args")
+        remote_chart = args.get("remote_chart", False)
 
-        # Install dependencies for chart before installation
-        dependency_command = f"helm dependency update {chart_path}"
-        dependency_process = subprocess.Popen(
-            dependency_command,
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        dependency_output, dependency_error = dependency_process.communicate()
+        if not remote_chart:
+            # Install dependencies for chart before installation
+            dependency_command = f"helm dependency update {chart_path}"
+            dependency_process = subprocess.Popen(
+                dependency_command,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            dependency_output, dependency_error = dependency_process.communicate()
 
         command = f"helm install {release_name} {chart_path} -n {namespace} --create-namespace"
 

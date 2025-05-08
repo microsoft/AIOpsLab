@@ -1,34 +1,27 @@
-"""Naive GPT4 client (with shell access) for AIOpsLab.
-
-Achiam, Josh, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya, Florencia Leoni Aleman, Diogo Almeida et al. 
-"Gpt-4 technical report." arXiv preprint arXiv:2303.08774 (2023).
-
-Code: https://openai.com/index/gpt-4-research/
-Paper: https://arxiv.org/abs/2303.08774
-"""
 import os
 import asyncio
+import time
 
 import wandb
 from aiopslab.orchestrator import Orchestrator
-from clients.utils.llm import GPTClient
+from aiopslab.orchestrator.problems.registry import ProblemRegistry
+from clients.utils.llm import vLLMClient
 from clients.utils.templates import DOCS_SHELL_ONLY
-from dotenv import load_dotenv
 
-# Load environment variables from the .env file
-load_dotenv()
 
 class Agent:
     def __init__(self):
         self.history = []
-        self.llm = GPTClient()
+        self.llm = vLLMClient()
 
     def init_context(self, problem_desc: str, instructions: str, apis: str):
         """Initialize the context for the agent."""
 
-        self.shell_api = self._filter_dict(apis, lambda k, _: "exec_shell" in k)
+        self.shell_api = self._filter_dict(
+            apis, lambda k, _: "exec_shell" in k)
         self.submit_api = self._filter_dict(apis, lambda k, _: "submit" in k)
-        stringify_apis = lambda apis: "\n\n".join(
+
+        def stringify_apis(apis): return "\n\n".join(
             [f"{k}\n{v}" for k, v in apis.items()]
         )
 
@@ -64,20 +57,34 @@ class Agent:
 if __name__ == "__main__":
     # Load use_wandb from environment variable with a default of False
     use_wandb = os.getenv("USE_WANDB", "false").lower() == "true"
-    
+
     if use_wandb:
-        # Initialize wandb running
+        # Initialize wandb run
         wandb.init(project="AIOpsLab", entity="AIOpsLab")
 
-    agent = Agent()
+    registry = ProblemRegistry()
+    pids = list(registry.PROBLEM_REGISTRY.keys())
 
-    orchestrator = Orchestrator()
-    orchestrator.register_agent(agent, name="gpt-w-shell")
+    for pid in pids:
+        agent = Agent() # Initialize the agent
 
-    pid = "misconfig_app_hotel_res-mitigation-1"
-    problem_desc, instructs, apis = orchestrator.init_problem(pid)
-    agent.init_context(problem_desc, instructs, apis)
-    asyncio.run(orchestrator.start_problem(max_steps=10))
+        orchestrator = Orchestrator()
+        orchestrator.register_agent(agent, name="Qwen2.5-Coder-3B-Instruct")
+        try:
+            print(f"*"*30)
+            print(f"Began processing pid {pid}.")
+            print(f"*"*30)
+            problem_desc, instructs, apis = orchestrator.init_problem(pid)
+            agent.init_context(problem_desc, instructs, apis)
+            asyncio.run(orchestrator.start_problem(max_steps=10))
+            print(f"*"*30)
+            print(f"Successfully processed pid {pid}.")
+            print(f"*"*30)
+
+        except Exception as e:
+            print(f"Failed to process pid {pid}. Error: {e}")
+            time.sleep(60)
+            continue
 
     if use_wandb:
         # Finish the wandb run

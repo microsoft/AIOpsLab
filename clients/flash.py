@@ -1,11 +1,14 @@
 # This is a naive implementation of Flash without tool and TSG.
 
 import asyncio
+import json
+import os
 import logging
 from typing import List, Dict, Tuple, Any
 from pydantic import BaseModel
-from clients.utils.llm import GPT4Turbo
+from clients.utils.llm import GPTClient
 from aiopslab.orchestrator import Orchestrator
+from aiopslab.orchestrator.problems.registry import ProblemRegistry
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -14,7 +17,7 @@ logger = logging.getLogger(__name__)
 class FlashAgent:
     def __init__(self):
         self.history = []
-        self.llm = GPT4Turbo()
+        self.llm = GPTClient()
         self.hindsight_builder = HindsightBuilder()
 
     def init_context(self, problem_desc: str, instructions: str, apis: dict):
@@ -76,7 +79,7 @@ class FlashAgent:
 class HindsightBuilder:
     """Agent hindsight generator."""
 
-    llm = GPT4Turbo()
+    llm = GPTClient()
 
     def generate_prompt(self, input: str, history: dict) -> str:
         """
@@ -109,30 +112,25 @@ class HindsightBuilder:
 
 
 if __name__ == "__main__":
-    pids = [
-        "k8s_target_port-misconfig-detection-2",
-        "k8s_target_port-misconfig-detection-3",
-        "user_unregistered_mongodb-detection-2",
-        "k8s_target_port-misconfig-localization-2",
-        "k8s_target_port-misconfig-localization-3",
-        "user_unregistered_mongodb-localization-2",
-        "k8s_target_port-misconfig-analysis-2",
-        "k8s_target_port-misconfig-analysis-3",
-        "user_unregistered_mongodb-analysis-2",
-        "k8s_target_port-misconfig-mitigation-2",
-        "k8s_target_port-misconfig-mitigation-3",
-        "user_unregistered_mongodb-mitigation-2",
-    ]
+    problems = ProblemRegistry().PROBLEM_REGISTRY
+    os.makedirs("results", exist_ok=True)
 
-    for pid in pids:
+    for pid in problems:
         flash_agent = FlashAgent()
         orchestrator = Orchestrator()
 
         orchestrator.register_agent(flash_agent, name="flash")
 
-        # pid = "revoke_auth_mongodb-mitigation-2"
-        problem_desc, instructions, apis = orchestrator.init_problem(pid)
+        try:
+            problem_desc, instructs, apis = orchestrator.init_problem(pid)
+            flash_agent.init_context(problem_desc, instructs, apis)
 
-        flash_agent.init_context(problem_desc, instructions, apis)
+            full_output = asyncio.run(orchestrator.start_problem(max_steps=30))
+            results = full_output.get("results", {})
+            
+            filename = os.path.join("results", f"flash_{pid}.json")
+            with open(filename, "w") as f:
+                json.dump(results, f, indent=2)
 
-        asyncio.run(orchestrator.start_problem(max_steps=20))
+        except Exception as e:
+            print(f"Error while running problem {pid}: {e}")        

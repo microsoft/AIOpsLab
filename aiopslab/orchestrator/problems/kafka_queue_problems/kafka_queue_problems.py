@@ -61,7 +61,6 @@ class KafkaQueueProblemsLocalization(KafkaQueueProblemsBaseTask, LocalizationTas
     def __init__(self):
         KafkaQueueProblemsBaseTask.__init__(self)
         LocalizationTask.__init__(self, self.app)
-        self.task_desc += "Start by investigating the kafka service."
 
     def eval(self, soln: Any, trace: list[SessionItem], duration: float):
         print("== Evaluation ==")

@@ -3,8 +3,6 @@
 
 """Interface to the social network application from DeathStarBench"""
 
-import platform
-
 from aiopslab.service.helm import Helm
 from aiopslab.service.kubectl import KubeCtl
 from aiopslab.service.apps.base import Application
@@ -22,8 +20,6 @@ class SocialNetwork(Application):
         )
         self.create_namespace()
         self.create_tls_secret()
-        # Detect CPU architecture, we need to deploy media-frontend differently on arm
-        self.is_arm = platform.machine().lower() in ["arm64", "aarch64"]
 
     def load_app_json(self):
         super().load_app_json()
@@ -47,15 +43,22 @@ class SocialNetwork(Application):
             print("TLS secret already exists. Skipping creation.")
 
     def deploy(self):
-        """Deploy the Helm configurations."""
-        if self.is_arm:
-            # Update image to use arm build image
+        """Deploy the Helm configurations with architecture-aware image selection."""
+        node_architectures = self.kubectl.get_node_architectures()
+        is_arm = any(arch in ["arm64", "aarch64"] for arch in node_architectures)
+
+        if is_arm:
+            # Use the ARM-compatible image for media-frontend
             if "extra_args" not in self.helm_configs:
                 self.helm_configs["extra_args"] = []
-            
-            self.helm_configs["extra_args"].append("--set media-frontend.container.image=jacksonarthurclark/media-frontend")
-            self.helm_configs["extra_args"].append("--set media-frontend.container.imageVersion=latest")
-        
+
+            self.helm_configs["extra_args"].append(
+                "--set media-frontend.container.image=jacksonarthurclark/media-frontend"
+            )
+            self.helm_configs["extra_args"].append(
+                "--set media-frontend.container.imageVersion=latest"
+            )
+
         Helm.install(**self.helm_configs)
         Helm.assert_if_deployed(self.helm_configs["namespace"])
 

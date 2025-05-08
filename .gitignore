@@ -327,6 +327,9 @@ cython_debug/
 # Visual Studio Code
 .vscode/
 
+# Weight & Biases
+wandb/
+
 # Project specific
 cache_dir
 demos
