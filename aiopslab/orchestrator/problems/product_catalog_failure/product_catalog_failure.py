@@ -16,7 +16,7 @@ class ProductCatalogServiceFailureBaseTask:
         self.kubectl = KubeCtl()
         self.namespace = self.app.namespace
         self.injector = OtelFaultInjector(namespace=self.namespace)
-        self.faulty_service = "productcatalogservice"
+        self.faulty_service = "product-catalog"
 
     def start_workload(self):
         print("== Start Workload ==")
@@ -65,7 +65,6 @@ class ProductCatalogServiceFailureLocalization(
     def __init__(self):
         ProductCatalogServiceFailureBaseTask.__init__(self)
         LocalizationTask.__init__(self, self.app)
-        self.task_desc += "Start by investigating the product catalog service."
 
     def eval(self, soln: Any, trace: list[SessionItem], duration: float):
         print("== Evaluation ==")

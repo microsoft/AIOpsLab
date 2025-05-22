@@ -20,7 +20,7 @@ class DetectionActions(TaskActions):
         Submit if anomalies are detected to the orchestrator for evaluation.
 
         Args:
-            has_anomaly (str): Yes if anomalies are detected, No otherwise.
+            has_anomaly (str): "Yes" if anomalies are detected, "No" otherwise.
 
         Returns:
             SubmissionStatus: The status of the submission.

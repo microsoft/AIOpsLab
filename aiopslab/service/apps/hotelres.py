@@ -75,7 +75,7 @@ class HotelReservation(Application):
         
         print(f"Deploying Kubernetes configurations in namespace: {self.namespace}")
         self.kubectl.apply_configs(self.namespace, self.k8s_deploy_path)
-        print(f"Waiting for being stable...")
+        print(f"Waiting for stability...")
         time.sleep(30)
 
     def delete(self):
