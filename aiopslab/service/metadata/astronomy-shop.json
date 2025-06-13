@@ -15,7 +15,8 @@
     ],
     "Helm Config": {
         "release_name": "astronomy-shop",
-        "chart_path": "opentelemetry-helm-charts/charts/opentelemetry-demo",
-        "namespace": "astronomy-shop"
+        "chart_path": "open-telemetry/opentelemetry-demo",
+        "namespace": "astronomy-shop",
+        "remote_chart": true
     }
 }

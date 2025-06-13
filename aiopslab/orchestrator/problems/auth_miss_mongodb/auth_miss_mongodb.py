@@ -86,7 +86,6 @@ class MongoDBAuthMissingLocalization(MongoDBAuthMissingBaseTask, LocalizationTas
     def __init__(self):
         MongoDBAuthMissingBaseTask.__init__(self)
         LocalizationTask.__init__(self, self.app)
-        self.task_desc += "Start by investigating the `compose-post-service` pod"
 
     def eval(self, soln: Any, trace: list[SessionItem], duration: float):
         print("== Evaluation ==")
@@ -128,7 +127,6 @@ class MongoDBAuthMissingAnalysis(MongoDBAuthMissingBaseTask, AnalysisTask):
     def __init__(self):
         MongoDBAuthMissingBaseTask.__init__(self)
         AnalysisTask.__init__(self, self.app)
-        self.task_desc += "Start by investigating the `compose-post-service` pod"
 
     def eval(self, soln: Any, trace: list[SessionItem], duration: float):
         print("== Evaluation ==")
@@ -169,7 +167,6 @@ class MongoDBAuthMissingMitigation(MongoDBAuthMissingBaseTask, MitigationTask):
     def __init__(self):
         MongoDBAuthMissingBaseTask.__init__(self)
         MitigationTask.__init__(self, self.app)
-        self.task_desc += "Start by investigating the `compose-post-service` pod"
 
     # TODO: this migigate eval should be a bit different.
     # The error will not be on the container/pod level but the app level,

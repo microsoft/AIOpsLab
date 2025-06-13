@@ -16,7 +16,7 @@ class AdServiceFailureBaseTask:
         self.kubectl = KubeCtl()
         self.namespace = self.app.namespace
         self.injector = OtelFaultInjector(namespace=self.namespace)
-        self.faulty_service = "adservice"
+        self.faulty_service = "ad"
 
     def start_workload(self):
         print("== Start Workload ==")
@@ -24,12 +24,12 @@ class AdServiceFailureBaseTask:
 
     def inject_fault(self):
         print("== Fault Injection ==")
-        self.injector.inject_fault("adServiceFailure")
+        self.injector.inject_fault("adFailure")
         print(f"Fault: adServiceFailure | Namespace: {self.namespace}\n")
 
     def recover_fault(self):
         print("== Fault Recovery ==")
-        self.injector.recover_fault("adServiceFailure")
+        self.injector.recover_fault("adFailure")
 
 
 ################## Detection Problem ##################
@@ -61,7 +61,6 @@ class AdServiceFailureLocalization(AdServiceFailureBaseTask, LocalizationTask):
     def __init__(self):
         AdServiceFailureBaseTask.__init__(self)
         LocalizationTask.__init__(self, self.app)
-        self.task_desc += "Start by investigating the ad service."
 
     def eval(self, soln: Any, trace: list[SessionItem], duration: float):
         print("== Evaluation ==")

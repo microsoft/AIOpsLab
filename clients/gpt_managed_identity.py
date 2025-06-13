@@ -1,4 +1,4 @@
-"""Naive GPT4 client (with shell access) for AIOpsLab. Uses Azure Managed Identity for authentication.
+"""Naive GPT client (with shell access) for AIOpsLab. Uses Azure Managed Identity for authentication.
 
 Achiam, Josh, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya, Florencia Leoni Aleman, Diogo Almeida et al. 
 "Gpt-4 technical report." arXiv preprint arXiv:2303.08774 (2023).
@@ -11,14 +11,14 @@ import sys
 import asyncio
 
 from aiopslab.orchestrator import Orchestrator
-from clients.utils.llm import GPT4Turbo
+from clients.utils.llm import GPTClient
 from clients.utils.templates import DOCS_SHELL_ONLY
 
 
 class Agent:
     def __init__(self, azure_config_file: str):
         self.history = []
-        self.llm = GPT4Turbo(auth_type="managed", azure_config_file=azure_config_file)
+        self.llm = GPTClient(auth_type="managed", azure_config_file=azure_config_file)
 
     def init_context(self, problem_desc: str, instructions: str, apis: str):
         """Initialize the context for the agent."""

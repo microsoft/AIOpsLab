@@ -8,9 +8,11 @@ Paper: https://arxiv.org/abs/2210.03629
 """
 
 import asyncio
-
+import json
+import tiktoken
 from aiopslab.orchestrator import Orchestrator
-from clients.utils.llm import GPT4Turbo
+from aiopslab.orchestrator.problems.registry import ProblemRegistry
+from clients.utils.llm import GPTClient
 from clients.utils.templates import DOCS
 
 RESP_INSTR = """DO NOT REPEAT ACTIONS! Respond with:
@@ -18,11 +20,45 @@ Thought: <your thought on the previous output>
 Action: <your action towards mitigating>
 """
 
+def count_message_tokens(message, enc):
+    # Each message format adds ~4 tokens of overhead
+    tokens = 4  # <|start|>role/name + content + <|end|>
+    tokens += len(enc.encode(message.get("content", "")))
+    return tokens
+
+def trim_history_to_token_limit(history, max_tokens=120000, model="gpt-4"):
+    enc = tiktoken.encoding_for_model(model)
+
+    trimmed = []
+    total_tokens = 0
+
+    # Always include the last message
+    last_msg = history[-1]
+    last_msg_tokens = count_message_tokens(last_msg, enc)
+
+    if last_msg_tokens > max_tokens:
+        # If even the last message is too big, truncate its content
+        truncated_content = enc.decode(enc.encode(last_msg["content"])[:max_tokens - 4])
+        return [{"role": last_msg["role"], "content": truncated_content}]
+    
+    trimmed.insert(0, last_msg)
+    total_tokens += last_msg_tokens
+
+    # Add earlier messages in reverse until limit is reached
+    for message in reversed(history[:-1]):
+        message_tokens = count_message_tokens(message, enc)
+        if total_tokens + message_tokens > max_tokens:
+            break
+        trimmed.insert(0, message)
+        total_tokens += message_tokens
+
+    return trimmed
+
 
 class Agent:
     def __init__(self):
         self.history = []
-        self.llm = GPT4Turbo()
+        self.llm = GPTClient()
 
     def init_context(self, problem_desc: str, instructions: str, apis: str):
         """Initialize the context for the agent."""
@@ -59,7 +95,8 @@ class Agent:
             str: The response from the agent.
         """
         self.history.append({"role": "user", "content": self._add_instr(input)})
-        response = self.llm.run(self.history)
+        trimmed_history = trim_history_to_token_limit(self.history)
+        response = self.llm.run(trimmed_history)
         self.history.append({"role": "assistant", "content": response[0]})
         return response[0]
 
@@ -71,12 +108,23 @@ class Agent:
 
 
 if __name__ == "__main__":
-    agent = Agent()
+    problems = ProblemRegistry().PROBLEM_REGISTRY
 
-    orchestrator = Orchestrator()
-    orchestrator.register_agent(agent, name="react")
+    for pid in problems:
+        agent = Agent()
+        orchestrator = Orchestrator()
+        orchestrator.register_agent(agent, name="react")
 
-    pid = "misconfig_app_hotel_res-mitigation-1"
-    problem_desc, instructs, apis = orchestrator.init_problem(pid)
-    agent.init_context(problem_desc, instructs, apis)
-    asyncio.run(orchestrator.start_problem(max_steps=30))
+        try:
+            problem_desc, instructs, apis = orchestrator.init_problem(pid)
+            agent.init_context(problem_desc, instructs, apis)
+
+            full_output = asyncio.run(orchestrator.start_problem(max_steps=30))
+            results = full_output.get("results", {})
+
+            filename = f"react_{pid}.json"
+            with open(filename, "w") as f:
+                json.dump(results, f, indent=2)
+
+        except Exception as e:
+            print(f"Error while running problem {pid}: {e}")
