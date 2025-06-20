@@ -8,7 +8,7 @@ class OtelFaultInjector(FaultInjector):
     def __init__(self, namespace: str):
         self.namespace = namespace
         self.kubectl = KubeCtl()
-        self.configmap_name = f"{namespace}-flagd-config"
+        self.configmap_name = "flagd-config"
 
     def inject_fault(self, feature_flag: str):
         command = (
@@ -39,6 +39,11 @@ class OtelFaultInjector(FaultInjector):
         self.kubectl.create_or_update_configmap(
             self.configmap_name, self.namespace, updated_data
         )
+
+        self.kubectl.exec_command(
+            f"kubectl rollout restart deployment flagd -n {self.namespace}"
+        )
+        
         print(f"Fault injected: Feature flag '{feature_flag}' set to 'on'.")
 
     def recover_fault(self, feature_flag: str):
@@ -69,6 +74,10 @@ class OtelFaultInjector(FaultInjector):
         updated_data = {"demo.flagd.json": json.dumps(flagd_data, indent=2)}
         self.kubectl.create_or_update_configmap(
             self.configmap_name, self.namespace, updated_data
+        )
+
+        self.kubectl.exec_command(
+            f"kubectl rollout restart deployment flagd -n {self.namespace}"
         )
         print(f"Fault recovered: Feature flag '{feature_flag}' set to 'off'.")
 

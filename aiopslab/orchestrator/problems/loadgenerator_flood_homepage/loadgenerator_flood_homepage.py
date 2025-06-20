@@ -25,12 +25,12 @@ class LoadGeneratorFloodHomepageBaseTask:
 
     def inject_fault(self):
         print("== Fault Injection ==")
-        self.injector.inject_fault("loadgeneratorFloodHomepage")
+        self.injector.inject_fault("loadGeneratorFloodHomepage")
         print(f"Fault: loadgeneratorFloodHomepage | Namespace: {self.namespace}\n")
 
     def recover_fault(self):
         print("== Fault Recovery ==")
-        self.injector.recover_fault("loadgeneratorFloodHomepage")
+        self.injector.recover_fault("loadGeneratorFloodHomepage")
 
 
 ################## Detection Problem ##################
@@ -66,7 +66,6 @@ class LoadGeneratorFloodHomepageLocalization(
     def __init__(self):
         LoadGeneratorFloodHomepageBaseTask.__init__(self)
         LocalizationTask.__init__(self, self.app)
-        self.task_desc += "Start by investigating the frontend service."
 
     def eval(self, soln: Any, trace: list[SessionItem], duration: float):
         print("== Evaluation ==")

@@ -129,6 +129,29 @@ Remember to update the `kind-config.yaml` file with your image name if you are u
 
 After finishing cluster creation, proceed to the next "Update config.yml" step.
 
+
+### 3. (Optional) Pre-pull and Load Required Images
+
+If you experience slow image downloads during cluster setup, you can pre-pull the required images and then load them into your kind cluster:
+
+1. First, pre-pull all required images from their registries:
+
+    ```bash
+    ./kind/pull_images.sh
+    ```
+  
+    This script reads from images.txt and downloads all required images to your local Docker cache.
+
+2. After creating your kind cluster, load the pre-pulled images into it:
+
+    ```bash
+    ./kind/load_images.sh [cluster-name]
+    ```
+    
+    Replace `[cluster-name]` with your kind cluster name (optional - uses default cluster if not specified).
+
+This approach will reduce deployment time by eliminating the need to download images during pod creation.
+
 ---
 
 ## **Troubleshooting**

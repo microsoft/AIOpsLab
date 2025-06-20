@@ -27,6 +27,8 @@ from aiopslab.orchestrator.problems.recommendation_service_cache_failure import 
 from aiopslab.orchestrator.problems.redeploy_without_pv import *
 from aiopslab.orchestrator.problems.wrong_bin_usage import *
 from aiopslab.orchestrator.problems.operator_misoperation import *
+from aiopslab.orchestrator.problems.flower_node_stop import *
+from aiopslab.orchestrator.problems.flower_model_misconfig import *
 
 
 class ProblemRegistry:
@@ -159,6 +161,7 @@ class ProblemRegistry:
                 app_name="hotel"
             ),
             "noop_detection_social_network-1": lambda: NoOpDetection(app_name="social"),
+            "noop_detection_astronomy_shop-1": lambda: NoOpDetection(app_name="astronomy_shop"),
             # NOTE: This should be getting fixed by the great powers of @jinghao-jia
             # Kernel fault -> https://github.com/xlab-uiuc/agent-ops/pull/10#issuecomment-2468992285
             # There's a bug in chaos mesh regarding this fault, wait for resolution and retest kernel fault
@@ -200,17 +203,24 @@ class ProblemRegistry:
             "wrong_bin_usage-analysis-1": WrongBinUsageAnalysis,
             "wrong_bin_usage-mitigation-1": WrongBinUsageMitigation,
             # K8S operator misoperation
-            "operator_overload_replicas-detection-1": K8SOperatorOverloadReplicasDetection,
-            "operator_overload_replicas-localization-1": K8SOperatorOverloadReplicasLocalization,
-            "operator_non_existent_storage-detection-1": K8SOperatorNonExistentStorageDetection,
-            "operator_non_existent_storage-localization-1": K8SOperatorNonExistentStorageLocalization,
-            "operator_invalid_affinity_toleration-detection-1": K8SOperatorInvalidAffinityTolerationDetection,
-            "operator_invalid_affinity_toleration-localization-1": K8SOperatorInvalidAffinityTolerationLocalization,
-            "operator_security_context_fault-detection-1": K8SOperatorSecurityContextFaultDetection,
-            "operator_security_context_fault-localization-1": K8SOperatorSecurityContextFaultLocalization,
-            "operator_wrong_update_strategy-detection-1": K8SOperatorWrongUpdateStrategyDetection,
-            "operator_wrong_update_strategy-localization-1": K8SOperatorWrongUpdateStrategyLocalization,
+            # "operator_overload_replicas-detection-1": K8SOperatorOverloadReplicasDetection,
+            # "operator_overload_replicas-localization-1": K8SOperatorOverloadReplicasLocalization,
+            # "operator_non_existent_storage-detection-1": K8SOperatorNonExistentStorageDetection,
+            # "operator_non_existent_storage-localization-1": K8SOperatorNonExistentStorageLocalization,
+            # "operator_invalid_affinity_toleration-detection-1": K8SOperatorInvalidAffinityTolerationDetection,
+            # "operator_invalid_affinity_toleration-localization-1": K8SOperatorInvalidAffinityTolerationLocalization,
+            # "operator_security_context_fault-detection-1": K8SOperatorSecurityContextFaultDetection,
+            # "operator_security_context_fault-localization-1": K8SOperatorSecurityContextFaultLocalization,
+            # "operator_wrong_update_strategy-detection-1": K8SOperatorWrongUpdateStrategyDetection,
+            # "operator_wrong_update_strategy-localization-1": K8SOperatorWrongUpdateStrategyLocalization,
+            # Flower
+            "flower_node_stop-detection": FlowerNodeStopDetection,
+            "flower_model_misconfig-detection": FlowerModelMisconfigDetection,
         }
+        self.DOCKER_REGISTRY = [
+            "flower_node_stop-detection",
+            "flower_model_misconfig-detection",
+        ]
 
     def get_problem_instance(self, problem_id: str):
         if problem_id not in self.PROBLEM_REGISTRY:
@@ -230,3 +240,8 @@ class ProblemRegistry:
         if task_type:
             return len([k for k in self.PROBLEM_REGISTRY.keys() if task_type in k])
         return len(self.PROBLEM_REGISTRY)
+    
+    def get_problem_deployment(self, problem_id: str):
+        if problem_id in self.DOCKER_REGISTRY:
+            return "docker"
+        return "k8s"
