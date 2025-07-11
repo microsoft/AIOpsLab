@@ -96,6 +96,390 @@ python3 clients/gpt.py # you can also change the problem to solve in the main() 
 
 You can check the running status of the cluster using [k9s](https://k9scli.io/) or other cluster monitoring tools conveniently.
 
+## 🔧 Azure OpenAI Integration Setup
+
+This section documents the modifications needed to run AIOpsLab with Azure OpenAI instead of standard OpenAI.
+
+### Prerequisites for Azure OpenAI
+
+1. **Azure OpenAI Resource**: You need an Azure OpenAI resource with a deployed model (e.g., GPT-4)
+2. **Environment Configuration**: Set up proper environment variables for Azure OpenAI authentication
+
+### Environment Configuration
+
+Create a `.env` file in the project root with your Azure OpenAI credentials:
+
+```bash
+# Environment variables for AIOpsLab - Azure OpenAI Configuration
+OPENAI_API_KEY="your-azure-openai-api-key"
+OPENAI_API_BASE="https://your-resource-name.openai.azure.com/"
+OPENAI_API_TYPE="azure"
+OPENAI_API_VERSION="2025-01-01-preview"
+AZURE_OPENAI_ENDPOINT="https://your-resource-name.openai.azure.com/"
+AZURE_OPENAI_DEPLOYMENT_NAME="gpt-4"
+```
+
+**Important**: Replace the following with your actual values:
+- `your-azure-openai-api-key`: Your Azure OpenAI API key
+- `your-resource-name`: Your Azure OpenAI resource name
+- `gpt-4`: Your actual deployment name from Azure OpenAI Studio
+
+### Required Code Modifications
+
+The following files have been modified to support Azure OpenAI:
+
+#### 1. **LLM Client Updates** (`clients/utils/llm.py`)
+- Added Azure OpenAI client support alongside standard OpenAI
+- Automatic detection of Azure vs standard OpenAI based on environment variables
+- Proper model name mapping for Azure deployments
+
+#### 2. **Evaluation System Updates** (`aiopslab/orchestrator/evaluators/qualitative.py`)
+- Fixed authentication to use `OPENAI_API_KEY` instead of `OPENAI_KEY`
+- Added Azure OpenAI support for qualitative evaluation
+- Proper error handling for Azure endpoints
+
+#### 3. **Storage Class Fixes** (`fix-storage-classes.yaml`)
+Added missing storage classes required for MongoDB pods:
+```yaml
+# Created storage classes: geo-storage, profile-storage, rate-storage, 
+# recommendation-storage, reservation-storage, user-storage
+# All pointing to openebs.io/local provisioner
+```
+
+#### 4. **Environment Loading**
+Load environment variables in PowerShell:
+```powershell
+Get-Content .env | ForEach-Object { 
+    if($_ -match '^([^#][^=]+)=(.+)$') { 
+        $name = $matches[1]; $value = $matches[2].Trim('"'); 
+        [Environment]::SetEnvironmentVariable($name, $value, 'Process') 
+    } 
+}
+```
+
+### Running with Azure OpenAI
+
+1. **Set up environment variables** (load `.env` file as shown above)
+2. **Enable qualitative evaluation** in `config.yml`:
+   ```yaml
+   qualitative_eval: true
+   ```
+3. **Run agents normally**:
+   ```bash
+   # GPT Agent
+   poetry run python clients/gpt.py
+   
+   # Flash Agent (single scenario)
+   poetry run python test_flash_single.py
+   
+   # Flash Agent (all scenarios)
+   poetry run python clients/flash.py
+   ```
+
+### Troubleshooting Common Issues
+
+#### Storage Issues
+If pods get stuck in `Pending` state due to PVC issues:
+```bash
+kubectl apply -f fix-storage-classes.yaml
+```
+
+#### Azure OpenAI Authentication Errors
+- Verify API key is correct and not expired
+- Ensure deployment name matches your Azure OpenAI Studio deployment
+- Check that API version is supported
+
+#### Environment Variable Loading
+Make sure to reload environment variables in each new PowerShell session:
+```powershell
+# Load from .env file
+Get-Content .env | ForEach-Object { if($_ -match '^([^#][^=]+)=(.+)$') { [Environment]::SetEnvironmentVariable($matches[1], $matches[2].Trim('"'), 'Process') } }
+```
+
+### Logging and Debugging
+
+Save agent execution logs for analysis:
+```powershell
+# Save output to file
+poetry run python clients/gpt.py > gpt_output.log 2>&1
+
+# Save with display (using Tee-Object)
+poetry run python test_flash_single.py | Tee-Object -FilePath flash_output.log
+```
+
+**Security Note**: The `.gitignore` file has been updated to exclude all log files and environment files to prevent accidental commit of sensitive information.
+
+## 🔧 Complete Setup and Troubleshooting Guide
+
+This section documents all the changes and fixes needed to run AIOpsLab successfully on Windows with kind cluster and Azure OpenAI.
+
+### 📋 Prerequisites Checklist
+
+Before starting, ensure you have:
+- ✅ Python 3.11+ installed
+- ✅ Poetry installed and configured
+- ✅ Docker Desktop running
+- ✅ kind installed and available in PATH
+- ✅ kubectl installed and available in PATH
+- ✅ Helm installed and available in PATH
+- ✅ Azure OpenAI resource with deployed model (e.g., GPT-4)
+
+### 🚀 Complete Setup Steps
+
+#### 1. **Initial Repository Setup**
+```bash
+# Clone with submodules
+git clone --recurse-submodules <repository-url>
+cd AIOpsLab
+
+# Install dependencies
+poetry install
+poetry shell
+```
+
+#### 2. **Kubernetes Cluster Setup**
+```bash
+# Create kind cluster (choose based on your architecture)
+kind create cluster --config kind/kind-config-x86.yaml  # for x86
+# OR
+kind create cluster --config kind/kind-config-arm.yaml  # for ARM
+
+# Verify cluster is running
+kubectl cluster-info
+```
+
+#### 3. **Initialize Git Submodules** (if not done during clone)
+```bash
+git submodule init
+git submodule update
+```
+
+#### 4. **Deploy Core Infrastructure**
+
+**Install Helm and add repositories:**
+```bash
+# Add required Helm repositories
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add openebs https://openebs.github.io/charts
+helm repo update
+
+# Install OpenEBS (required for storage)
+helm install openebs openebs/openebs --namespace openebs --create-namespace
+```
+
+**Install Prometheus monitoring stack:**
+```bash
+helm install prometheus prometheus-community/kube-prometheus-stack --namespace monitoring --create-namespace
+```
+
+#### 5. **Fix Storage Class Issues**
+
+Create and apply storage class fix:
+```bash
+# Apply the storage class fix
+kubectl apply -f fix-storage-classes.yaml
+```
+
+The `fix-storage-classes.yaml` file creates the following storage classes:
+- geo-storage
+- profile-storage  
+- rate-storage
+- recommendation-storage
+- reservation-storage
+- user-storage
+
+All pointing to `openebs.io/local` provisioner.
+
+#### 6. **Deploy Hotel Reservation Application**
+```bash
+# Deploy the hotel reservation microservices
+kubectl apply -f aiopslab-applications/hotelReservation/kubernetes/
+```
+
+#### 7. **Environment Configuration**
+
+Create `.env` file with Azure OpenAI credentials:
+```bash
+# .env file content
+OPENAI_API_KEY="your-azure-openai-api-key"
+OPENAI_API_BASE="https://your-resource-name.openai.azure.com/"
+OPENAI_API_TYPE="azure"
+OPENAI_API_VERSION="2025-01-01-preview"
+AZURE_OPENAI_ENDPOINT="https://your-resource-name.openai.azure.com/"
+AZURE_OPENAI_DEPLOYMENT_NAME="gpt-4"
+```
+
+**Load environment variables in PowerShell:**
+```powershell
+Get-Content .env | ForEach-Object { 
+    if($_ -match '^([^#][^=]+)=(.+)$') { 
+        $name = $matches[1]; $value = $matches[2].Trim('"'); 
+        [Environment]::SetEnvironmentVariable($name, $value, 'Process') 
+    } 
+}
+```
+
+#### 8. **Configure AIOpsLab**
+```bash
+cd aiopslab
+cp config.yml.example config.yml
+```
+
+Update `config.yml`:
+- Set `k8s_host: kind` (for kind cluster)
+- Set `k8s_user: <your-username>`
+- Set `qualitative_eval: true` (to enable Azure OpenAI evaluation)
+
+### 🔧 Key Code Modifications Made
+
+#### 1. **Azure OpenAI Support** (`clients/utils/llm.py`)
+- Added detection for Azure vs standard OpenAI configuration
+- Implemented proper Azure OpenAI client initialization
+- Added support for deployment name mapping
+
+#### 2. **Evaluation System Fix** (`aiopslab/orchestrator/evaluators/qualitative.py`)
+- Fixed authentication to use correct environment variable (`OPENAI_API_KEY`)
+- Added Azure OpenAI client support for evaluation system
+- Enhanced error handling for Azure endpoints
+
+#### 3. **Storage Infrastructure** (`fix-storage-classes.yaml`)
+Created missing storage classes required for MongoDB persistence:
+```yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: geo-storage
+provisioner: openebs.io/local
+# ... (similar for other storage classes)
+```
+
+#### 4. **Security Enhancements** (`.gitignore`)
+Added patterns to exclude sensitive files:
+```gitignore
+# Environment files
+.env*
+!.env.example
+
+# Log files
+*.log
+*_output.log
+
+# Common secret patterns
+*secret*
+*key*
+*token*
+```
+
+### 🧪 Testing Agent Execution
+
+#### Test GPT Agent:
+```bash
+# Load environment first
+Get-Content .env | ForEach-Object { if($_ -match '^([^#][^=]+)=(.+)$') { [Environment]::SetEnvironmentVariable($matches[1], $matches[2].Trim('"'), 'Process') } }
+
+# Run GPT agent
+poetry run python clients/gpt.py
+```
+
+#### Test Flash Agent (single scenario):
+```bash
+# Run single Flash scenario
+poetry run python test_flash_single.py
+```
+
+#### Test Flash Agent (all scenarios):
+```bash
+# Run all Flash scenarios
+poetry run python clients/flash.py
+```
+
+### 🐛 Common Issues and Solutions
+
+#### **Pod Stuck in Pending State**
+**Problem**: MongoDB pods stuck in Pending due to missing storage classes
+**Solution**: Apply storage class fix
+```bash
+kubectl apply -f fix-storage-classes.yaml
+```
+
+#### **Azure OpenAI Authentication Errors**
+**Problem**: "Invalid API key" or "Resource not found"
+**Solution**: 
+- Verify API key is correct and active
+- Ensure deployment name matches Azure OpenAI Studio
+- Check API version compatibility
+
+#### **Environment Variables Not Loading**
+**Problem**: Azure OpenAI credentials not recognized
+**Solution**: Reload environment in each new PowerShell session:
+```powershell
+Get-Content .env | ForEach-Object { if($_ -match '^([^#][^=]+)=(.+)$') { [Environment]::SetEnvironmentVariable($matches[1], $matches[2].Trim('"'), 'Process') } }
+```
+
+#### **Git Submodules Missing**
+**Problem**: Application deployments fail due to missing charts
+**Solution**: Initialize and update submodules:
+```bash
+git submodule init
+git submodule update
+```
+
+#### **Helm Chart Dependencies**
+**Problem**: Charts fail to install due to missing repositories
+**Solution**: Add and update Helm repositories:
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add openebs https://openebs.github.io/charts
+helm repo update
+```
+
+### 📊 Verification Commands
+
+Check cluster status:
+```bash
+# Check all pods are running
+kubectl get pods --all-namespaces
+
+# Check storage classes
+kubectl get storageclass
+
+# Check persistent volume claims
+kubectl get pvc --all-namespaces
+
+# Monitor pod status with watch
+kubectl get pods -w
+```
+
+Check Helm deployments:
+```bash
+# List all Helm releases
+helm list --all-namespaces
+
+# Check Prometheus status
+helm status prometheus -n monitoring
+
+# Check OpenEBS status  
+helm status openebs -n openebs
+```
+
+### 📝 Logging and Output Capture
+
+Save agent execution logs:
+```powershell
+# Save with output display
+poetry run python clients/gpt.py | Tee-Object -FilePath gpt_output.log
+
+# Save without display  
+poetry run python test_flash_single.py > flash_output.log 2>&1
+```
+
+### 🔒 Security Best Practices
+
+1. **Never commit sensitive files**: `.env`, log files, and API keys are excluded via `.gitignore`
+2. **Check git status before commits**: Verify no secrets are staged
+3. **Use environment variables**: Store all credentials in `.env` file
+4. **Review logs before sharing**: Use search tools to check for sensitive data
+
 <h2 id="⚙️usage">⚙️ Usage</h2>
 
 AIOpsLab can be used in the following ways:
