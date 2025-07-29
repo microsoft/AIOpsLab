@@ -9,6 +9,7 @@ Paper: https://arxiv.org/abs/2303.08774
 
 import sys
 import asyncio
+import os
 
 from aiopslab.orchestrator import Orchestrator
 from clients.utils.llm import GPT4Turbo
@@ -16,9 +17,9 @@ from clients.utils.templates import DOCS_SHELL_ONLY
 
 
 class Agent:
-    def __init__(self, azure_config_file: str):
+    def __init__(self, auth_type: str, azure_config_file: str):
         self.history = []
-        self.llm = GPT4Turbo(auth_type="managed", azure_config_file=azure_config_file)
+        self.llm = GPT4Turbo(auth_type=auth_type, azure_config_file=azure_config_file)
 
     def init_context(self, problem_desc: str, instructions: str, apis: str):
         """Initialize the context for the agent."""
@@ -59,12 +60,24 @@ class Agent:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        raise Exception(
-            "Please provide a filename as argument. Usage: python gpt_managed_identity.py <azure_config_file>"
-        )
-
-    agent = Agent(azure_config_file=sys.argv[1])
+    #TODO: use argparse for better argument handling
+    script_name = sys.argv[0]
+    if len(sys.argv) < 3:
+        print(f"Error: Missing required arguments.")
+        print(f"\nUsage: python {script_name} <authentication_type> <azure_config_file>")
+        print("\nArguments:")
+        print("  <authentication_type> : Required. The method to use for authentication.")
+        print("                            Accepted values: 'cli', 'managed_identity'")
+        print("  <azure_config_file>     : Required. Path to the JSON configuration file for Azure OpenAI.")
+        print("\nExamples:")
+        print(f"  python {script_name} cli ./configs/dev_config.json", file=sys.stderr)
+        print(f"  python {script_name} managed-identity ./configs/prod_config.json", file=sys.stderr)
+        
+        # Exit with a non-zero status code to indicate an error
+        sys.exit(1)
+    auth_type = sys.argv[1]
+    azure_config_file = sys.argv[2]
+    agent = Agent(auth_type=auth_type, azure_config_file=azure_config_file)
 
     orchestrator = Orchestrator()
     orchestrator.register_agent(agent, name="gpt-w-shell")

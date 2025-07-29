@@ -94,6 +94,8 @@ export OPENAI_API_KEY=<YOUR_OPENAI_API_KEY>
 python3 clients/gpt.py # you can also change the problem to solve in the main() function
 ```
 
+Our repository comes with a variety of pre-integrated agents, including agents that enable **secure authentication with Azure OpenAI endpoints using identity-based access**. Please check out [Clients](/clients) for a comprehensive list of all implemented clients.
+
 You can check the running status of the cluster using [k9s](https://k9scli.io/) or other cluster monitoring tools conveniently.
 
 <h2 id="⚙️usage">⚙️ Usage</h2>
