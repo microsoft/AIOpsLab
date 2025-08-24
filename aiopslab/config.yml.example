@@ -1,5 +1,7 @@
 # Kubernetes control node
 k8s_host: control_node_hostname # Put `localhost` if running on cluster; put `kind` if using kind cluster; put a hostname if managing a remote cluster, e.g., apt035.apt.emulab.net
+# kind cluster name (only used when k8s_host is "kind")
+kind_cluster_name: kind # Name of your kind cluster (default: "kind")
 k8s_user: your_username
 
 # ssh key path
