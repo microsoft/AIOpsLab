@@ -9,7 +9,7 @@ This guide outlines the steps for establishing a secure connection to your Azure
 
 - **Azure VPN Connection:** Set up a secure connection to your Azure environment using a VPN client.
 - **Working directory:** AIOpsLab/scripts/terraform/
-- **Privileges:** The user should have the privileges to create resources (SSH keys, VM, network interface, network interface security group (if required), public IP, subnet, virtual network) in the selected resource group.
+- **Privileges:** The user should have the privileges to create resources (resource group, SSH keys, VM, network interface, network interface security group (if required), public IP, subnet, virtual network) in the selected resource group.
 - **Azure CLI:** Follow the official [Microsoft documentation](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) for installing the Azure CLI for your operating system: 
 - **Install and initialize Terraform:**
   
