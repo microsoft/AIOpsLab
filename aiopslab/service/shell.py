@@ -22,7 +22,9 @@ class Shell:
         k8s_host = config.get("k8s_host", "localhost")  # Default to localhost
         
         if k8s_host == "kind":
-            return Shell.docker_exec("kind-control-plane", command)
+            kind_cluster_name = config.get("kind_cluster_name", "kind")
+            container_name = f"{kind_cluster_name}-control-plane"
+            return Shell.docker_exec(container_name, command)
 
         elif k8s_host == "localhost":
             # print(
