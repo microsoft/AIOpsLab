@@ -18,7 +18,7 @@ class SessionItem(BaseModel):
 
 
 class Session:
-    def __init__(self) -> None:
+    def __init__(self, results_dir=None) -> None:
         self.session_id = uuid.uuid4()
         self.pid = None
         self.problem = None
@@ -28,6 +28,7 @@ class Session:
         self.start_time = None
         self.end_time = None
         self.agent_name = None
+        self.results_dir = results_dir
 
     def set_problem(self, problem, pid=None):
         """Set the problem instance for the session.
@@ -115,19 +116,21 @@ class Session:
 
     def to_json(self):
         """Save the session to a JSON file."""
-        RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+        results_dir = self.results_dir if self.results_dir else RESULTS_DIR
+        results_dir.mkdir(parents=True, exist_ok=True)
 
-        with open(RESULTS_DIR / f"{self.session_id}_{self.start_time}.json", "w") as f:
+        with open(results_dir / f"{self.session_id}_{self.start_time}.json", "w") as f:
             json.dump(self.to_dict(), f, indent=4)
-    
+
     def to_wandb(self):
         """Log the session to Weights & Biases."""
         wandb.log(self.to_dict())
 
     def from_json(self, filename: str):
         """Load a session from a JSON file."""
+        results_dir = self.results_dir if self.results_dir else RESULTS_DIR
 
-        with open(RESULTS_DIR / filename, "r") as f:
+        with open(results_dir / filename, "r") as f:
             data = json.load(f)
 
         self.session_id = data.get("session_id")

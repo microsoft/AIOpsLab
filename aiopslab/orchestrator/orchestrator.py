@@ -19,7 +19,7 @@ import os
 
 
 class Orchestrator:
-    def __init__(self):
+    def __init__(self, results_dir=None):
         self.agent = None
         self.session = None
         self.parser = ResponseParser()
@@ -29,6 +29,7 @@ class Orchestrator:
         self.execution_end_time = None
         self.kubectl = KubeCtl()
         self.use_wandb = os.getenv("USE_WANDB", "false").lower() == "true"
+        self.results_dir = results_dir
 
     def init_problem(self, problem_id: str):
         """Initialize a problem instance for the agent to solve.
@@ -42,7 +43,7 @@ class Orchestrator:
         # Start timer
         self.execution_start_time = time.time()
 
-        self.session = Session()
+        self.session = Session(results_dir=self.results_dir)
         print(f"Session ID: {self.session.session_id}")
         prob = self.probs.get_problem_instance(problem_id)
         deployment = self.probs.get_problem_deployment(problem_id)
