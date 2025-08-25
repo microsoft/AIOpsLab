@@ -5,6 +5,7 @@
 
 from kubernetes import client, config
 from aiopslab.paths import BASE_DIR
+from aiopslab.config import get_kube_context
 import yaml
 import time
 
@@ -18,7 +19,9 @@ class Wrk:
         self.threads = threads
         self.latency = latency
 
-        config.load_kube_config()
+        kube_context = get_kube_context()
+        config.load_kube_config(context=kube_context)
+    
     
     def create_configmap(self, name, namespace, payload_script_path):
         with open(payload_script_path, "r") as script_file:
