@@ -83,14 +83,16 @@ class TraceAPI:
         
     def get_jaeger_pod_name(self):
         try:
-            result = subprocess.check_output(
-                ["kubectl", "get", "pods", "-n", self.namespace,
-                 "-l", "app.kubernetes.io/name=jaeger",
-                 "-o", "jsonpath={.items[0].metadata.name}"],
-                text=True
-            )
+            from aiopslab.service.kubectl import KubeCtl
+            kubectl = KubeCtl()
+            
+            # Use kubectl service to get pod name with automatic context support
+            command = (f"kubectl get pods -n {self.namespace} "
+                      f"-l app.kubernetes.io/name=jaeger "
+                      f"-o jsonpath={{.items[0].metadata.name}}")
+            result = kubectl.exec_command(command)
             return result.strip()
-        except subprocess.CalledProcessError as e:
+        except Exception as e:
             print("Error getting Jaeger pod name:", e)
             raise
 
