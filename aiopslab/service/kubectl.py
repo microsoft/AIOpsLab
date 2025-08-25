@@ -9,7 +9,7 @@ import subprocess
 from rich.console import Console
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
-from aiopslab.config import Config
+from aiopslab.config import Config, get_kube_context
 from aiopslab.paths import BASE_DIR
 
 config_yaml = Config(BASE_DIR / "config.yml")
@@ -18,40 +18,11 @@ config_yaml = Config(BASE_DIR / "config.yml")
 class KubeCtl:
     def __init__(self):
         """Initialize the KubeCtl object and load the Kubernetes configuration."""
-        config.load_kube_config()
+        kube_context = get_kube_context()
+        config.load_kube_config(context=kube_context)
         self.core_v1_api = client.CoreV1Api()
         self.apps_v1_api = client.AppsV1Api()
     
-    @staticmethod
-    def _get_kube_context():
-        """Get the kubernetes context from config.yml with same priority logic as Helm
-        
-        Priority (highest to lowest):
-        1. Explicit kube_context setting
-        2. If k8s_host is 'kind', construct from kind_cluster_name
-        3. No context (return None to skip --context flag)
-        
-        Returns:
-            str or None: Context name if should be specified, None if should use default
-        """
-        try:
-            # Priority 1: Explicit kube_context setting
-            kube_context = config_yaml.get("kube_context")
-            if kube_context:
-                return kube_context
-            
-            # Priority 2: If k8s_host is kind, construct from kind_cluster_name
-            k8s_host = config_yaml.get("k8s_host")
-            if k8s_host == "kind":
-                cluster_name = config_yaml.get("kind_cluster_name", "kind")
-                return f"kind-{cluster_name}"
-            
-            # Priority 3: No context specified, use system default
-            return None
-            
-        except Exception:
-            # If config reading fails, use system default
-            return None
 
     def list_namespaces(self):
         """Return a list of all namespaces in the cluster."""
@@ -93,7 +64,7 @@ class KubeCtl:
 
     def get_service_json(self, service_name, namespace, deserialize=True):
         """Retrieve the JSON description of a specified service within a namespace."""
-        kube_context = self._get_kube_context()
+        kube_context = get_kube_context()
         command = f"kubectl get service {service_name} -n {namespace} -o json"
         if kube_context:
             command += f" --context {kube_context}"
@@ -243,7 +214,7 @@ class KubeCtl:
 
     def apply_configs(self, namespace: str, config_path: str):
         """Apply Kubernetes configurations from a specified path to a namespace."""
-        kube_context = self._get_kube_context()
+        kube_context = get_kube_context()
         command = f"kubectl apply -Rf {config_path} -n {namespace}"
         if kube_context:
             command += f" --context {kube_context}"
@@ -252,7 +223,7 @@ class KubeCtl:
     def delete_configs(self, namespace: str, config_path: str):
         """Delete Kubernetes configurations from a specified path in a namespace."""
         try:
-            kube_context = self._get_kube_context()
+            kube_context = get_kube_context()
             
             get_command = f"kubectl get all -n {namespace} -o name"
             if kube_context:
@@ -301,7 +272,7 @@ class KubeCtl:
         """Execute an arbitrary kubectl command with automatic context support."""
         # If the command contains kubectl and doesn't already have --context, add it
         if "kubectl" in command and "--context" not in command:
-            kube_context = self._get_kube_context()
+            kube_context = get_kube_context()
             if kube_context:
                 # Insert --context after kubectl command
                 command = command.replace("kubectl", f"kubectl --context {kube_context}", 1)
