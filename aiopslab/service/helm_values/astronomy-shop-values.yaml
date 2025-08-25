@@ -1,0 +1,23 @@
+# Astronomy Shop Helm Values Override
+# Fix Kafka OOM issue by adjusting memory limits and JVM heap
+
+components:
+  kafka:
+    resources:
+      limits:
+        memory: "1Gi"  # Increase from 600Mi to 1Gi
+      requests:
+        memory: "800Mi"  # Increase from 600Mi to 800Mi
+    env:
+      - name: KAFKA_HEAP_OPTS
+        value: "-Xmx512M -Xms512M"  # Increase heap from 400M to 512M
+      - name: KAFKA_ADVERTISED_LISTENERS
+        value: "PLAINTEXT://kafka:9092"
+
+  # Also increase ad service memory for stability
+  ad:
+    resources:
+      limits:
+        memory: "400Mi"  # Increase from 300Mi
+      requests:
+        memory: "400Mi"

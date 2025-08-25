@@ -17,6 +17,7 @@
         "release_name": "astronomy-shop",
         "chart_path": "open-telemetry/opentelemetry-demo",
         "namespace": "astronomy-shop",
-        "remote_chart": true
+        "remote_chart": true,
+        "values_file": "aiopslab/service/helm_values/astronomy-shop-values.yaml"
     }
 }

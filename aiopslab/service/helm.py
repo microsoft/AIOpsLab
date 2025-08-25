@@ -25,6 +25,7 @@ class Helm:
             version (str): Version of the chart
             extra_args (List[str)]: Extra arguments for the helm install command
             remote_chart (bool): Whether the chart is remote (from a Helm repo)
+            values_file (str): Path to values file to override default values
         """
         print("== Helm Install ==")
         release_name = args.get("release_name")
@@ -33,6 +34,7 @@ class Helm:
         version = args.get("version")
         extra_args = args.get("extra_args")
         remote_chart = args.get("remote_chart", False)
+        values_file = args.get("values_file")
 
         kube_context = get_kube_context()
 
@@ -55,6 +57,9 @@ class Helm:
 
         if version:
             command += f" --version {version}"
+
+        if values_file:
+            command += f" -f {values_file}"
 
         if extra_args:
             command += " " + " ".join(extra_args)
