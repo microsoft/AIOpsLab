@@ -1,7 +1,17 @@
 # Kubernetes control node
 k8s_host: control_node_hostname # Put `localhost` if running on cluster; put `kind` if using kind cluster; put a hostname if managing a remote cluster, e.g., apt035.apt.emulab.net
-# kind cluster name (only used when k8s_host is "kind")
+
+# Kubernetes context configuration (optional, for advanced users)
+# Priority 1: If specified, this context will be used for all Helm operations
+# kube_context: my-custom-context
+
+# kind cluster name (only used when k8s_host is "kind" and kube_context is not set)
+# Priority 2: When k8s_host is "kind", this will construct context as "kind-{kind_cluster_name}"
 kind_cluster_name: kind # Name of your kind cluster (default: "kind")
+
+# Priority 3: If neither kube_context nor k8s_host="kind" is set, 
+# Helm will use the default kubectl context (no --kube-context flag)
+
 k8s_user: your_username
 
 # ssh key path
