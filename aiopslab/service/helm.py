@@ -7,44 +7,13 @@ import subprocess
 import time
 
 from aiopslab.service.kubectl import KubeCtl
-from aiopslab.config import Config
+from aiopslab.config import Config, get_kube_context
 from aiopslab.paths import BASE_DIR
 
 config = Config(BASE_DIR / "config.yml")
 
 
 class Helm:
-    @staticmethod
-    def _get_kube_context():
-        """Get the kubernetes context from config.yml with priority logic
-        
-        Priority (highest to lowest):
-        1. Explicit kube_context setting
-        2. If k8s_host is 'kind', construct from kind_cluster_name
-        3. No context (return None to skip --kube-context flag)
-        
-        Returns:
-            str or None: Context name if should be specified, None if should use default
-        """
-        try:
-            # Priority 1: Explicit kube_context setting
-            kube_context = config.get("kube_context")
-            if kube_context:
-                return kube_context
-            
-            # Priority 2: If k8s_host is kind, construct from kind_cluster_name
-            k8s_host = config.get("k8s_host")
-            if k8s_host == "kind":
-                cluster_name = config.get("kind_cluster_name", "kind")
-                return f"kind-{cluster_name}"
-            
-            # Priority 3: No context specified, use system default
-            return None
-            
-        except Exception:
-            # If config reading fails, use system default
-            return None
-
     @staticmethod
     def install(**args):
         """Install a helm chart
@@ -65,7 +34,7 @@ class Helm:
         extra_args = args.get("extra_args")
         remote_chart = args.get("remote_chart", False)
 
-        kube_context = Helm._get_kube_context()
+        kube_context = get_kube_context()
 
         if not remote_chart:
             # Install dependencies for chart before installation
@@ -110,7 +79,7 @@ class Helm:
         release_name = args.get("release_name")
         namespace = args.get("namespace")
         
-        kube_context = Helm._get_kube_context()
+        kube_context = get_kube_context()
 
         if not Helm.exists_release(release_name, namespace):
             print(f"Release {release_name} does not exist. Skipping uninstall.")
@@ -138,7 +107,7 @@ class Helm:
         Returns:
             bool: True if release exists
         """
-        kube_context = Helm._get_kube_context()
+        kube_context = get_kube_context()
         command = f"helm list -n {namespace}"
         if kube_context:
             command += f" --kube-context {kube_context}"
@@ -190,7 +159,7 @@ class Helm:
         values_file = args.get("values_file")
         set_values = args.get("set_values", {})
         
-        kube_context = Helm._get_kube_context()
+        kube_context = get_kube_context()
 
         command = [
             "helm",
@@ -232,7 +201,7 @@ class Helm:
             url (str): URL of the repository
         """
         print(f"== Helm Repo Add: {name} ==")
-        kube_context = Helm._get_kube_context()
+        kube_context = get_kube_context()
         command = f"helm repo add {name} {url}"
         # Note: helm repo add doesn't typically need --kube-context
         # as it operates on local helm configuration, but keeping for consistency
