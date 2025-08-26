@@ -183,8 +183,9 @@ class DeepSeekClient:
 class QwenClient:
     """Abstraction for Qwen's model. Some Qwen models only support streaming output."""
 
-    def __init__(self):
+    def __init__(self, model="qwq-32b"):
         self.cache = Cache()
+        self.model = model
 
     def inference(self, payload: list[dict[str, str]]) -> list[str]:
         if self.cache is not None:
@@ -198,7 +199,7 @@ class QwenClient:
             # TODO: Add constraints for the input context length
             response = client.chat.completions.create(
                 messages=payload,  # type: ignore
-                model="qwq-32b",
+                model=self.model,
                 max_tokens=1024,
                 n=1,
                 timeout=60,
