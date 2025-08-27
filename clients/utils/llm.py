@@ -149,28 +149,31 @@ class DeepSeekClient:
 class QwenClient:
     """Abstraction for Qwen's model. Some Qwen models only support streaming output."""
 
-    def __init__(self, model="qwq-32b"):
+    def __init__(self,
+                 model="qwen-plus",
+                 max_tokens=1024,
+                 is_stream=True):
         self.cache = Cache()
-        self.model = model
+        self.model = os.getenv("QWEN_MODEL", model)
+        self.max_tokens = os.getenv("QWEN_MAX_TOKEN", max_tokens)
+        self.is_stream = os.getenv("QWEN_IS_STREAM", is_stream)
 
     def inference(self, payload: list[dict[str, str]]) -> list[str]:
         if self.cache is not None:
             cache_result = self.cache.get_from_cache(payload)
             if cache_result is not None:
                 return cache_result
-
         client = OpenAI(api_key=os.getenv("DASHSCOPE_API_KEY"),
                         base_url="https://dashscope.aliyuncs.com/compatible-mode/v1")
         try:
-            # TODO: Add constraints for the input context length
             response = client.chat.completions.create(
                 messages=payload,  # type: ignore
                 model=self.model,
-                max_tokens=1024,
-                n=1,
+                max_tokens=self.max_tokens,
+                n=1,  # The response count to generate
                 timeout=60,
                 stop=[],
-                stream=True
+                stream=self.is_stream
             )
         except Exception as e:
             print(f"Exception: {repr(e)}")

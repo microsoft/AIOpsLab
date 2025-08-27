@@ -2,6 +2,10 @@
 
 import os
 import asyncio
+import argparse
+import json
+from pathlib import Path
+
 import tiktoken
 import wandb
 import argparse
@@ -10,11 +14,13 @@ from pathlib import Path
 from aiopslab.orchestrator import Orchestrator
 from aiopslab.orchestrator.problems.registry import ProblemRegistry
 from clients.utils.llm import QwenClient
+from aiopslab.orchestrator.problems.registry import ProblemRegistry
 from clients.utils.templates import DOCS_SHELL_ONLY
 from dotenv import load_dotenv
 
 # Load environment variables from the .env file
 load_dotenv()
+from dotenv import load_dotenv
 
 
 def count_message_tokens(message, enc):
@@ -52,10 +58,9 @@ def trim_history_to_token_limit(history, max_tokens=120000, model="gpt-4"):
     return trimmed
 
 class QwenAgent:
-    def __init__(self, model="qwen-turbo"):
+    def __init__(self):
         self.history = []
-        self.llm = QwenClient(model=model)
-        self.model = model
+        self.llm = QwenClient()
 
     def init_context(self, problem_desc: str, instructions: str, apis: str):
         """Initialize the context for the agent."""
@@ -107,7 +112,6 @@ class QwenAgent:
 
     def _filter_dict(self, dictionary, filter_func):
         return {k: v for k, v in dictionary.items() if filter_func(k, v)}
-
 
 def get_completed_problems(results_dir: Path, agent_name: str, model: str) -> set:
     """Get set of completed problem IDs from existing result files."""
@@ -205,6 +209,43 @@ if __name__ == "__main__":
             exit(0)
 
     print(f"Running {len(problems)} problems with model: {model}")
+    model = args.model
+    agent_name = "qwen"
+
+    # Setup organized results directory
+    results_dir = setup_results_directory(model, agent_name)
+    print(f"Results will be saved to: {results_dir}")
+
+    # Get all problems
+    problems = ProblemRegistry().PROBLEM_REGISTRY
+
+    # Filter problems if specific IDs requested
+    if args.problem_ids:
+        problems = {pid: problems[pid] for pid in args.problem_ids if pid in problems}
+        if not problems:
+            print("No valid problem IDs found")
+            exit(1)
+
+    # Skip completed problems if requested
+    if args.skip_completed:
+        completed_problems = get_completed_problems(
+            Path("aiopslab/data/results"), agent_name, model
+        )
+        problems = {pid: prob for pid, prob in problems.items()
+                   if pid not in completed_problems}
+
+        print(f"Found {len(completed_problems)} completed problems")
+        print(f"Running {len(problems)} remaining problems")
+
+        if not problems:
+            print("All problems have been completed!")
+            exit(0)
+
+    print(f"Running {len(problems)} problems with model: {model}")
+
+    for pid in problems:
+        print(f"\n=== Starting problem: {pid} ===")
+        agent = QwenAgent()
 
     for pid in problems:
         print(f"\n=== Starting problem: {pid} ===")
