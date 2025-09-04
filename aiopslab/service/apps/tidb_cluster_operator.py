@@ -5,6 +5,7 @@ from aiopslab.service.helm import Helm
 from aiopslab.service.kubectl import KubeCtl
 from aiopslab.service.apps.base import Application
 from aiopslab.paths import TIDB_METADATA
+from aiopslab.paths import config
 
 
 class TiDBCluster(Application):
@@ -51,6 +52,15 @@ class TiDBCluster(Application):
 
         operator_namespace = self.helm_operator_config.get("namespace", "tidb-admin")
         self.kubectl.create_namespace_if_not_exist(operator_namespace)
+
+        # Apply image pull policy from config if specified
+        helm_config = config.get("helm", {})
+        if helm_config and "image_pull_policy" in helm_config:
+            if "extra_args" not in self.helm_operator_config:
+                self.helm_operator_config["extra_args"] = []
+            self.helm_operator_config["extra_args"].append(
+                f"--set global.imagePullPolicy={helm_config['image_pull_policy']}"
+            )
 
         print("Installing TiDB Operator...")
         Helm.install(**self.helm_operator_config)

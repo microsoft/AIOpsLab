@@ -6,6 +6,7 @@ from aiopslab.service.kubectl import KubeCtl
 from aiopslab.service.apps.base import Application
 from aiopslab.paths import TARGET_MICROSERVICES
 from aiopslab.paths import TRAIN_TICKET_METADATA
+from aiopslab.paths import config
 
 
 class TrainTicket(Application):
@@ -24,6 +25,16 @@ class TrainTicket(Application):
     def deploy(self):
         """Deploy the Helm configurations."""
         self.kubectl.create_namespace_if_not_exist(self.namespace)
+        
+        # Apply image pull policy from config if specified
+        helm_config = config.get("helm", {})
+        if helm_config and "image_pull_policy" in helm_config:
+            if "extra_args" not in self.helm_configs:
+                self.helm_configs["extra_args"] = []
+            self.helm_configs["extra_args"].append(
+                f"--set global.imagePullPolicy={helm_config['image_pull_policy']}"
+            )
+        
         Helm.install(**self.helm_configs)
         Helm.assert_if_deployed(self.helm_configs["namespace"])
 
