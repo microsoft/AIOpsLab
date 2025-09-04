@@ -11,6 +11,7 @@ from aiopslab.orchestrator.parser import ResponseParser
 from aiopslab.utils.status import *
 from aiopslab.utils.critical_section import CriticalSection
 from aiopslab.service.telemetry.prometheus import Prometheus
+from aiopslab.paths import config
 import time
 import inspect
 import asyncio
@@ -203,7 +204,7 @@ class Orchestrator:
         # if not self.session.problem.sys_status_after_recovery():
         self.session.problem.app.cleanup()
         
-        if self.session.problem.namespace != "docker":
+        if self.session.problem.namespace != "docker" and not config.get("keep_infra", False):
             self.prometheus.teardown()
             print("Uninstalling OpenEBS...")
             self.kubectl.exec_command("kubectl delete sc openebs-hostpath openebs-device --ignore-not-found")

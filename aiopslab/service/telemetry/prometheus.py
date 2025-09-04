@@ -9,6 +9,7 @@ from subprocess import CalledProcessError
 from aiopslab.service.helm import Helm
 from aiopslab.service.kubectl import KubeCtl
 from aiopslab.paths import PROMETHEUS_METADATA, BASE_DIR
+from aiopslab.paths import config
 
 
 class Prometheus:
@@ -77,6 +78,15 @@ class Prometheus:
             pvc_name = self._get_pvc_name_from_file(self.pvc_config_file)
             if not self._pvc_exists(pvc_name):
                 self._apply_pvc()
+
+        # Apply image pull policy from config if specified
+        helm_config = config.get("helm", {})
+        if helm_config and "image_pull_policy" in helm_config:
+            if "extra_args" not in self.helm_configs:
+                self.helm_configs["extra_args"] = []
+            self.helm_configs["extra_args"].append(
+                f"--set global.imagePullPolicy={helm_config['image_pull_policy']}"
+            )
 
         Helm.install(**self.helm_configs)
         Helm.assert_if_deployed(self.namespace)

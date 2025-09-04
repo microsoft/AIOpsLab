@@ -13,3 +13,11 @@ qualitative_eval: false
 
 # Flag to enable/disable printing the session
 print_session: false
+
+# Helm deployment settings
+helm:
+  image_pull_policy: IfNotPresent  # Options: Always, IfNotPresent, Never
+  # IfNotPresent enables caching - images are only pulled if not already on the node
+
+# Infrastructure cleanup settings
+keep_infra: true  # Keep OpenEBS and Prometheus running after problem completion
