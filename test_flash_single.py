@@ -2,7 +2,6 @@
 # Modified Flash agent to run a single scenario for testing
 
 import asyncio
-import logging
 from typing import List, Dict, Tuple, Any
 from pydantic import BaseModel
 from clients.utils.llm import GPT4Turbo
