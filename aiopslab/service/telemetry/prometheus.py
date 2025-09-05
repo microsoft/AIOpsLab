@@ -4,12 +4,10 @@
 import os
 import json
 import yaml
-import time
 from subprocess import CalledProcessError
 from aiopslab.service.helm import Helm
 from aiopslab.service.kubectl import KubeCtl
 from aiopslab.paths import PROMETHEUS_METADATA, BASE_DIR
-from aiopslab.paths import config
 
 
 class Prometheus:

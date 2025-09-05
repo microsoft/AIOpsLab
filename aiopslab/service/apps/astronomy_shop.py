@@ -6,7 +6,6 @@ from aiopslab.service.helm import Helm
 from aiopslab.service.kubectl import KubeCtl
 from aiopslab.service.apps.base import Application
 from aiopslab.paths import ASTRONOMY_SHOP_METADATA
-from aiopslab.paths import config
 
 
 class AstronomyShop(Application):
@@ -29,7 +28,6 @@ class AstronomyShop(Application):
             "open-telemetry",
             "https://open-telemetry.github.io/opentelemetry-helm-charts",
         )
-        
         Helm.install(**self.helm_configs)
         Helm.assert_if_deployed(self.helm_configs["namespace"])
 

@@ -8,7 +8,6 @@ from aiopslab.service.kubectl import KubeCtl
 from aiopslab.service.apps.base import Application
 from aiopslab.paths import TARGET_MICROSERVICES
 from aiopslab.paths import SOCIAL_NETWORK_METADATA
-from aiopslab.paths import config
 
 
 class SocialNetwork(Application):
@@ -48,11 +47,11 @@ class SocialNetwork(Application):
         node_architectures = self.kubectl.get_node_architectures()
         is_arm = any(arch in ["arm64", "aarch64"] for arch in node_architectures)
 
-        if "extra_args" not in self.helm_configs:
-            self.helm_configs["extra_args"] = []
-
         if is_arm:
             # Use the ARM-compatible image for media-frontend
+            if "extra_args" not in self.helm_configs:
+                self.helm_configs["extra_args"] = []
+
             self.helm_configs["extra_args"].append(
                 "--set media-frontend.container.image=jacksonarthurclark/media-frontend"
             )

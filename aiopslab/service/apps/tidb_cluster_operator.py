@@ -5,7 +5,6 @@ from aiopslab.service.helm import Helm
 from aiopslab.service.kubectl import KubeCtl
 from aiopslab.service.apps.base import Application
 from aiopslab.paths import TIDB_METADATA
-from aiopslab.paths import config
 
 
 class TiDBCluster(Application):

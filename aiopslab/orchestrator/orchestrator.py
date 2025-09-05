@@ -3,7 +3,6 @@
 
 """Orchestrator class that interfaces with the agent and the environment."""
 
-from aiopslab.service.helm import Helm
 from aiopslab.service.kubectl import KubeCtl
 from aiopslab.session import Session
 from aiopslab.orchestrator.problems.registry import ProblemRegistry

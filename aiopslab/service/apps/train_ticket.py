@@ -4,9 +4,7 @@ import time
 from aiopslab.service.helm import Helm
 from aiopslab.service.kubectl import KubeCtl
 from aiopslab.service.apps.base import Application
-from aiopslab.paths import TARGET_MICROSERVICES
 from aiopslab.paths import TRAIN_TICKET_METADATA
-from aiopslab.paths import config
 
 
 class TrainTicket(Application):
@@ -25,7 +23,6 @@ class TrainTicket(Application):
     def deploy(self):
         """Deploy the Helm configurations."""
         self.kubectl.create_namespace_if_not_exist(self.namespace)
-        
         Helm.install(**self.helm_configs)
         Helm.assert_if_deployed(self.helm_configs["namespace"])
 

@@ -4,9 +4,7 @@ import time
 from aiopslab.service.helm import Helm
 from aiopslab.service.kubectl import KubeCtl
 from aiopslab.service.apps.base import Application
-from aiopslab.paths import TARGET_MICROSERVICES
 from aiopslab.paths import FLIGHT_TICKET_METADATA
-from aiopslab.paths import config
 
 
 class FlightTicket(Application):
@@ -29,7 +27,6 @@ class FlightTicket(Application):
             "flight-ticket",
             "https://xlab-uiuc.github.io/flight-ticket",
         )
-        
         Helm.install(**self.helm_configs)
         Helm.assert_if_deployed(self.helm_configs["namespace"])
 

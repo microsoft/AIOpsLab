@@ -4,9 +4,9 @@
 """Interface for helm operations"""
 
 import subprocess
-import time
 
 from aiopslab.service.kubectl import KubeCtl
+from aiopslab.paths import config
 
 
 class Helm:
