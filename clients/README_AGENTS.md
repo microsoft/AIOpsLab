@@ -293,13 +293,6 @@ print(f"Steps taken: {summary['total_steps']}")
    - Optimize API usage
    - Check resource constraints
 
-### Getting Help
-
-- Review the AIOpsLab documentation
-- Check the issue tracker
-- Examine existing agent implementations
-- Enable debug logging for detailed traces
-
 ## Contributing
 
 To contribute new agents or improvements:

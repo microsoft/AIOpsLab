@@ -27,8 +27,7 @@ Moreover, AIOpsLab provides a built-in benchmark suite with a set of problems to
 <h2 id="📦installation">📦 Installation</h2>
 
 ### Requirements
-- Python >= 3.11
-- Additional requirements depend on the deployment option selected, which is explained in the next section
+For specific platform and troubleshooting instructions, please see [SETUP.md](./SETUP.md).
 
 Recommended installation:
 ```bash
@@ -119,11 +118,6 @@ AZURE_OPENAI_ENDPOINT="https://your-resource-name.openai.azure.com/"
 AZURE_OPENAI_DEPLOYMENT_NAME="gpt-4"
 ```
 
-**Important**: Replace the following with your actual values:
-- `your-azure-openai-api-key`: Your Azure OpenAI API key
-- `your-resource-name`: Your Azure OpenAI resource name
-- `gpt-4`: Your actual deployment name from Azure OpenAI Studio
-
 ### Required Code Modifications
 
 The following files have been modified to support Azure OpenAI:
@@ -181,7 +175,7 @@ Get-Content .env | ForEach-Object {
 #### Storage Issues
 If pods get stuck in `Pending` state due to PVC issues:
 ```bash
-kubectl apply -f fix-storage-classes.yaml
+kubectl apply -f AIOpsLab/troubleshooting/fix-storage-classes.yaml
 ```
 
 #### Azure OpenAI Authentication Errors
@@ -277,7 +271,7 @@ helm install prometheus prometheus-community/kube-prometheus-stack --namespace m
 Create and apply storage class fix:
 ```bash
 # Apply the storage class fix
-kubectl apply -f fix-storage-classes.yaml
+kubectl apply -f AIOpsLab/troubleshooting/fix-storage-classes.yaml
 ```
 
 The `fix-storage-classes.yaml` file creates the following storage classes:
@@ -483,9 +477,7 @@ poetry run python test_flash_single.py > flash_output.log 2>&1
 <h2 id="⚙️usage">⚙️ Usage</h2>
 
 AIOpsLab can be used in the following ways:
-- [Onboard your agent to AIOpsLab](#how-to-onboard-your-agent-to-aiopslab)
-- [Add new applications to AIOpsLab](#how-to-add-new-applications-to-aiopslab)
-- [Add new problems to AIOpsLab](#how-to-add-new-problems-to-aiopslab)
+For detailed instructions on developing and testing agents, see [clients/README_AGENTS.md](./clients/README_AGENTS.md).
 
 
 ### How to onboard your agent to AIOpsLab?
