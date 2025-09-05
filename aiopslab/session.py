@@ -6,6 +6,7 @@
 import time
 import uuid
 import json
+import wandb
 from pydantic import BaseModel
 
 from aiopslab.paths import RESULTS_DIR
@@ -118,6 +119,10 @@ class Session:
 
         with open(RESULTS_DIR / f"{self.session_id}_{self.start_time}.json", "w") as f:
             json.dump(self.to_dict(), f, indent=4)
+    
+    def to_wandb(self):
+        """Log the session to Weights & Biases."""
+        wandb.log(self.to_dict())
 
     def from_json(self, filename: str):
         """Load a session from a JSON file."""

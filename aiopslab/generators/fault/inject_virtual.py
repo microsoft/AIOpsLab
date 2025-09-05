@@ -8,6 +8,7 @@ import time
 
 from aiopslab.service.kubectl import KubeCtl
 from aiopslab.service.helm import Helm
+from aiopslab.service.dock import Docker
 from aiopslab.generators.fault.base import FaultInjector
 from aiopslab.service.apps.base import Application
 from aiopslab.paths import TARGET_MICROSERVICES
@@ -18,6 +19,7 @@ class VirtualizationFaultInjector(FaultInjector):
         super().__init__(namespace)
         self.namespace = namespace
         self.kubectl = KubeCtl()
+        self.docker = Docker()
         self.mongo_service_pod_map = {
             "url-shorten-mongodb": "url-shorten-service",
         }
@@ -248,7 +250,35 @@ class VirtualizationFaultInjector(FaultInjector):
             self.kubectl.exec_command(apply_command)
 
             print(f"Recovered from wrong binary usage fault for service: {service}")
-
+            
+    def inject_container_stop(self, microservices: list[str]):
+        """Inject a fault to stop a container."""
+        for service in microservices:
+            self.docker.get_container(service).stop()
+            print(f"Stopped container {service}.")
+            
+            print("Waiting for faults to propagate...")
+            time.sleep(15)
+            print("Faults propagated.") 
+    
+    def recover_container_stop(self, microservices: list[str]):
+        for service in microservices:
+            self.docker.get_container(service).start()
+            print(f"Started container {service}.")
+            
+    def inject_model_misconfig(self, microservices: list[str]):
+        """Inject a fault to misconfigure the model in the Flower application."""
+        for service in microservices:
+            command = f""" docker exec -it {service} sh -c "sed -i '24s/84/80/' /app/.flwr/apps/*/task.py" """
+            self.docker.exec_command(command)
+            print(f"Changed model configuration for service: {service}")
+            
+    def recover_model_misconfig(self, microservices: list[str]):
+        for service in microservices:
+            command = f""" docker exec -it {service} sh -c "sed -i '24s/80/84/' /app/.flwr/apps/*/task.py" """
+            self.docker.exec_command(command)
+            print(f"Recovered model configuration for service: {service}")
+            
     ############# HELPER FUNCTIONS ################
     def _wait_for_pods_ready(self, microservices: list[str], timeout: int = 30):
         for service in microservices:

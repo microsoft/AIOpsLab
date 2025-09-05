@@ -103,7 +103,9 @@ class MongoDBUserUnregisteredLocalization(
             return self.results
 
         # Calculate exact match and subset
-        is_exact = is_exact_match(soln, self.faulty_service)
+        # Given that monogodb-geo and geo are closely coupled
+        # (likewise with rate), either pod should be an answer
+        is_exact = is_exact_match(soln, self.faulty_service) or is_exact_match(soln, self.faulty_service.removeprefix("mongodb-"))
         is_sub = is_subset([self.faulty_service], soln)
 
         # Determine accuracy

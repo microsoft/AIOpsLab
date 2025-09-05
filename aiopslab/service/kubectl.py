@@ -80,9 +80,7 @@ class KubeCtl:
                 try:
                     pod_list = self.list_pods(namespace)
                     
-                    if not pod_list.items:
-                        console.log(f"[yellow]No pods found in namespace '{namespace}', waiting...")
-                    else:
+                    if pod_list.items:
                         ready_pods = [
                             pod for pod in pod_list.items
                             if pod.status.container_statuses and
@@ -271,6 +269,17 @@ class KubeCtl:
         # else:
         #     return out.stdout.decode("utf-8")
 
+    def get_node_architectures(self):
+        """Return a set of CPU architectures from all nodes in the cluster."""
+        architectures = set()
+        try:
+            nodes = self.core_v1_api.list_node()
+            for node in nodes.items:
+                arch = node.status.node_info.architecture
+                architectures.add(arch)
+        except ApiException as e:
+            print(f"Exception when retrieving node architectures: {e}\n")
+        return architectures
 
 # Example usage:
 if __name__ == "__main__":

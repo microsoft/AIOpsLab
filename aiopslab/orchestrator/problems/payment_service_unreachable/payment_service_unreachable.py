@@ -16,7 +16,7 @@ class PaymentServiceUnreachableBaseTask:
         self.kubectl = KubeCtl()
         self.namespace = self.app.namespace
         self.injector = OtelFaultInjector(namespace=self.namespace)
-        self.faulty_service = "paymentservice"
+        self.faulty_service = "checkout"
 
     def start_workload(self):
         print("== Start Workload ==")
@@ -24,12 +24,12 @@ class PaymentServiceUnreachableBaseTask:
 
     def inject_fault(self):
         print("== Fault Injection ==")
-        self.injector.inject_fault("paymentServiceUnreachable")
+        self.injector.inject_fault("paymentUnreachable")
         print(f"Fault: paymentServiceUnreachable | Namespace: {self.namespace}\n")
 
     def recover_fault(self):
         print("== Fault Recovery ==")
-        self.injector.recover_fault("paymentServiceUnreachable")
+        self.injector.recover_fault("paymentUnreachable")
 
 
 ################## Detection Problem ##################
@@ -65,7 +65,6 @@ class PaymentServiceUnreachableLocalization(
     def __init__(self):
         PaymentServiceUnreachableBaseTask.__init__(self)
         LocalizationTask.__init__(self, self.app)
-        self.task_desc += "Start by investigating the payment service."
 
     def eval(self, soln: Any, trace: list[SessionItem], duration: float):
         print("== Evaluation ==")

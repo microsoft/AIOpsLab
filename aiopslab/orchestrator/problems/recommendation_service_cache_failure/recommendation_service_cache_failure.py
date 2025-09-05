@@ -16,7 +16,7 @@ class RecommendationServiceCacheFailureBaseTask:
         self.kubectl = KubeCtl()
         self.namespace = self.app.namespace
         self.injector = OtelFaultInjector(namespace=self.namespace)
-        self.faulty_service = "recommendationservice"
+        self.faulty_service = "recommendation"
 
     def start_workload(self):
         print("== Start Workload ==")
@@ -24,14 +24,14 @@ class RecommendationServiceCacheFailureBaseTask:
 
     def inject_fault(self):
         print("== Fault Injection ==")
-        self.injector.inject_fault("recommendationServiceCacheFailure")
+        self.injector.inject_fault("recommendationCacheFailure")
         print(
             f"Fault: recommendationServiceCacheFailure | Namespace: {self.namespace}\n"
         )
 
     def recover_fault(self):
         print("== Fault Recovery ==")
-        self.injector.recover_fault("recommendationServiceCacheFailure")
+        self.injector.recover_fault("recommendationCacheFailure")
 
 
 ################## Detection Problem ##################
@@ -67,7 +67,6 @@ class RecommendationServiceCacheFailureLocalization(
     def __init__(self):
         RecommendationServiceCacheFailureBaseTask.__init__(self)
         LocalizationTask.__init__(self, self.app)
-        self.task_desc += "Start by investigating the reccomendation service."
 
     def eval(self, soln: Any, trace: list[SessionItem], duration: float):
         print("== Evaluation ==")

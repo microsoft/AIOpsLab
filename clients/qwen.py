@@ -1,31 +1,28 @@
-"""Naive GPT4 client (with shell access) for AIOpsLab. Uses Azure Managed Identity for authentication.
-
-Achiam, Josh, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya, Florencia Leoni Aleman, Diogo Almeida et al. 
-"Gpt-4 technical report." arXiv preprint arXiv:2303.08774 (2023).
-
-Code: https://openai.com/index/gpt-4-research/
-Paper: https://arxiv.org/abs/2303.08774
+"""Naive Qwen client (with shell access) for AIOpsLab.
 """
 
-import sys
+import os
 import asyncio
 
+import wandb
 from aiopslab.orchestrator import Orchestrator
-from clients.utils.llm import GPT4Turbo
+from clients.utils.llm import QwenClient
 from clients.utils.templates import DOCS_SHELL_ONLY
 
 
-class Agent:
-    def __init__(self, azure_config_file: str):
+class QwenAgent:
+    def __init__(self):
         self.history = []
-        self.llm = GPT4Turbo(auth_type="managed", azure_config_file=azure_config_file)
+        self.llm = QwenClient()
 
     def init_context(self, problem_desc: str, instructions: str, apis: str):
         """Initialize the context for the agent."""
 
-        self.shell_api = self._filter_dict(apis, lambda k, _: "exec_shell" in k)
+        self.shell_api = self._filter_dict(
+            apis, lambda k, _: "exec_shell" in k)
         self.submit_api = self._filter_dict(apis, lambda k, _: "submit" in k)
-        stringify_apis = lambda apis: "\n\n".join(
+
+        def stringify_apis(apis): return "\n\n".join(
             [f"{k}\n{v}" for k, v in apis.items()]
         )
 
@@ -59,17 +56,23 @@ class Agent:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        raise Exception(
-            "Please provide a filename as argument. Usage: python gpt_managed_identity.py <azure_config_file>"
-        )
+    # Load use_wandb from environment variable with a default of False
+    use_wandb = os.getenv("USE_WANDB", "false").lower() == "true"
+    
+    if use_wandb:
+        # Initialize wandb running
+        wandb.init(project="AIOpsLab", entity="AIOpsLab")
 
-    agent = Agent(azure_config_file=sys.argv[1])
+    agent = QwenAgent()
 
     orchestrator = Orchestrator()
-    orchestrator.register_agent(agent, name="gpt-w-shell")
+    orchestrator.register_agent(agent, name="qwq-32b")
 
     pid = "misconfig_app_hotel_res-mitigation-1"
     problem_desc, instructs, apis = orchestrator.init_problem(pid)
     agent.init_context(problem_desc, instructs, apis)
     asyncio.run(orchestrator.start_problem(max_steps=10))
+
+    if use_wandb:
+        # Finish the wandb run
+        wandb.finish()

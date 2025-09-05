@@ -26,29 +26,37 @@ class LocalizationTask(Task):
         self.actions = LocalizationActions()
 
         self.task_desc = """\
-            You are an expert DevOps engineer who has been tasked with localizing faults in a deployed service.
+            You are an expert DevOps engineer assigned to localize faults in a deployed service.
 
-            The service you are working with today is described below:
+            Service Details:
             {app_summary}
 
+            You are requested to identify the service(s) where the root cause of the fault lies.
             You will begin by analyzing the service's state and telemetry, and then submit one of two possible solutions:
             1. list[str]: list of faulty components (i.e., service names)
-            2. str: `None` if no faults were detected
+            2. list[]: an empty list if no faults were detected
             """
 
         self.instructions = """\
             You will respond with one of the above APIs as your next action.
             Please respond in the following format in a markdown code block:
-            ```
-            <API_NAME>(<API_PARAM1>, <API_PARAM2> ...)
-            ```
+            ```\n<API_NAME>(<API_PARAM1>, <API_PARAM2> ...)\n```
 
-            For example:
-            ```
-            exec_shell("ls -l")      # will list files in current directory
-            ```
+            For instance, if you want to list files in current directory, your response must be exactly:
+            
+            ```\nexec_shell("ls -l")\n```
 
-            Please respond with only a single action per turn.
+            If there are faulty components to submit:
+
+            ```\nsubmit([\"placeholderA\", \"placeholderB\"])\n```
+
+            (where "placeholderA" and "placeholderB" are placeholders; replace them with the faulty components in your environment)
+            
+            Or, if no faults are found:
+
+            ```\nsubmit([])\n```
+
+            Please respond with only a single API call (a.k.a., action) per turn without any additional words, labels, or prefixes.
             """
 
     def get_task_description(self):

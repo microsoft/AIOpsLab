@@ -22,7 +22,7 @@ def out_tokens(trace: list[SessionItem]) -> int:
     # NOTE: not dollar value, since depends on Agent's model
 
     agent_steps = "".join([item.content for item in trace if item.role == "assistant"])
-    return len(tokenizer.encode(agent_steps))
+    return len(tokenizer.encode(agent_steps, disallowed_special=()))
 
 
 def in_tokens(trace: list[SessionItem]) -> int:

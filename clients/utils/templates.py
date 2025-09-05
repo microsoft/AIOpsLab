@@ -35,15 +35,15 @@ Action: <your action>
 DOCS_SHELL_ONLY = """{prob_desc}
 You are provided with a direct API to a secure terminal to the service where you can run commands:
 
-
 {shell_api}
-
 
 Finally, you will submit your solution for this task using the following API:
 
-
 {submit_api}
 
+IMPORTANT:
+1. The submit() call must strictly follow its defined parameter signature for this task.
+2. Provide the call in a markdown code block.
 
 At each turn respond with:
 Action: <your action>

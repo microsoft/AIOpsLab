@@ -1,20 +1,58 @@
 # This is a naive implementation of Flash without tool and TSG.
 
 import asyncio
+import json
+import os
 import logging
+import tiktoken
 from typing import List, Dict, Tuple, Any
 from pydantic import BaseModel
-from clients.utils.llm import GPT4Turbo
+from clients.utils.llm import GPTClient
 from aiopslab.orchestrator import Orchestrator
+from aiopslab.orchestrator.problems.registry import ProblemRegistry
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def count_message_tokens(message, enc):
+    # Each message format adds ~4 tokens of overhead
+    tokens = 4  # <|start|>role/name + content + <|end|>
+    tokens += len(enc.encode(message.get("content", "")))
+    return tokens
+
+def trim_history_to_token_limit(history, max_tokens=90000, model="gpt-4"):
+    enc = tiktoken.encoding_for_model(model)
+
+    trimmed = []
+    total_tokens = 0
+
+    # Always include the last message
+    last_msg = history[-1]
+    last_msg_tokens = count_message_tokens(last_msg, enc)
+
+    if last_msg_tokens > max_tokens:
+        # If even the last message is too big, truncate its content
+        truncated_content = enc.decode(enc.encode(last_msg["content"])[:max_tokens - 4])
+        return [{"role": last_msg["role"], "content": truncated_content}]
+    
+    trimmed.insert(0, last_msg)
+    total_tokens += last_msg_tokens
+
+    # Add earlier messages in reverse until limit is reached
+    for message in reversed(history[:-1]):
+        message_tokens = count_message_tokens(message, enc)
+        if total_tokens + message_tokens > max_tokens:
+            break
+        trimmed.insert(0, message)
+        total_tokens += message_tokens
+
+    return trimmed
+
 class FlashAgent:
     def __init__(self):
         self.history = []
-        self.llm = GPT4Turbo()
+        self.llm = GPTClient()
         self.hindsight_builder = HindsightBuilder()
 
     def init_context(self, problem_desc: str, instructions: str, apis: dict):
@@ -50,17 +88,21 @@ class FlashAgent:
 
     async def get_action(self, input_text: str) -> str:
         """Determine the next action based on the input, hindsight, and reasoning."""
-        hindsight = await self.diagnose_with_hindsight(input_text, self.history)
+        trimmed_for_hindsight = trim_history_to_token_limit(self.history, max_tokens=50000)
+        hindsight = await self.diagnose_with_hindsight(input_text, trimmed_for_hindsight)
+        if hindsight:
+            hightsight = hindsight[:1000]
+
 
         combined_input = (
             f"{input_text}\n\nHindsight from Flash agent:\n{hindsight}"
             if hindsight
             else input_text
         )
-        self.history.append({"role": "user", "content": combined_input})
+        trimmed_history = trim_history_to_token_limit(self.history + [{"role": "user", "content": combined_input}])
+        response = self.llm.run(trimmed_history)
+        self.history = trimmed_history + [{"role": "assistant", "content": response[0]}]
 
-        response = self.llm.run(self.history)
-        self.history.append({"role": "assistant", "content": response[0]})
         return response[0]
 
     async def diagnose_with_hindsight(self, input: str, history: dict):
@@ -76,28 +118,34 @@ class FlashAgent:
 class HindsightBuilder:
     """Agent hindsight generator."""
 
-    llm = GPT4Turbo()
+    llm = GPTClient()
 
-    def generate_prompt(self, input: str, history: dict) -> str:
-        """
-        Generate a prompt asking the LLM whether the next action should be a submit action
-        or if further diagnostic actions like log analysis are required.
-        """
+    def summarize_history(self, history: List[Dict]) -> str:
+        summary = []
+        for msg in history[-5:]:  # Keep only last 5 messages
+            content = msg['content']
+            summary.append(f"{msg['role']}: {content[:300]}")  # Truncate long messages
+        return "\n".join(summary)
+
+    def generate_prompt(self, input: str, history: List[Dict]) -> str:
+        summarized_history = self.summarize_history(history)
         prompt = f"""
-        You are a helpful assistant determining the next best action based on the current situation.
+    You are a helpful assistant determining the next best action based on the current situation.
 
-        Given the history of the previous action: {history}
-            
-        and the environment output from last action : {input}
+    Given the history of the previous actions:
+    {summarized_history}
 
-        1. Should the next action be a submit operation? 
-        2. If not, please suggest additional diagnostic steps, such as analyzing logs from microservices.
+    And the environment output from last action:
+    {input[:1000]}
 
-        Thought: Identify whether submitting is the right next step, and if not, propose alternative actions.
+    1. Should the next action be a submit operation? 
+    2. If not, please suggest additional diagnostic steps.
 
-        Solution: Provide reasoning and next steps.
-        """
+    Thought: Identify whether submitting is the right next step.
+    Solution: Provide reasoning and next steps.
+    """
         return prompt
+
 
     def develop_hindsight(self, input: str, history: dict) -> str:
         """
@@ -109,30 +157,25 @@ class HindsightBuilder:
 
 
 if __name__ == "__main__":
-    pids = [
-        "k8s_target_port-misconfig-detection-2",
-        "k8s_target_port-misconfig-detection-3",
-        "user_unregistered_mongodb-detection-2",
-        "k8s_target_port-misconfig-localization-2",
-        "k8s_target_port-misconfig-localization-3",
-        "user_unregistered_mongodb-localization-2",
-        "k8s_target_port-misconfig-analysis-2",
-        "k8s_target_port-misconfig-analysis-3",
-        "user_unregistered_mongodb-analysis-2",
-        "k8s_target_port-misconfig-mitigation-2",
-        "k8s_target_port-misconfig-mitigation-3",
-        "user_unregistered_mongodb-mitigation-2",
-    ]
+    problems = ProblemRegistry().PROBLEM_REGISTRY
+    os.makedirs("results", exist_ok=True)
 
-    for pid in pids:
+    for pid in problems:
         flash_agent = FlashAgent()
         orchestrator = Orchestrator()
 
         orchestrator.register_agent(flash_agent, name="flash")
 
-        # pid = "revoke_auth_mongodb-mitigation-2"
-        problem_desc, instructions, apis = orchestrator.init_problem(pid)
+        try:
+            problem_desc, instructs, apis = orchestrator.init_problem(pid)
+            flash_agent.init_context(problem_desc, instructs, apis)
 
-        flash_agent.init_context(problem_desc, instructions, apis)
+            full_output = asyncio.run(orchestrator.start_problem(max_steps=30))
+            results = full_output.get("results", {})
+            
+            filename = os.path.join("results", f"flash_{pid}.json")
+            with open(filename, "w") as f:
+                json.dump(results, f, indent=2)
 
-        asyncio.run(orchestrator.start_problem(max_steps=20))
+        except Exception as e:
+            print(f"Error while running problem {pid}: {e}")        

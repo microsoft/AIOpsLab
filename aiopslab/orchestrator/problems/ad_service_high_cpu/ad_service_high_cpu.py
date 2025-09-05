@@ -16,7 +16,7 @@ class AdServiceHighCpuBaseTask:
         self.kubectl = KubeCtl()
         self.namespace = self.app.namespace
         self.injector = OtelFaultInjector(namespace=self.namespace)
-        self.faulty_service = "adservice"
+        self.faulty_service = "ad"
 
     def start_workload(self):
         print("== Start Workload ==")
@@ -24,12 +24,12 @@ class AdServiceHighCpuBaseTask:
 
     def inject_fault(self):
         print("== Fault Injection ==")
-        self.injector.inject_fault("adServiceHighCpu")
+        self.injector.inject_fault("adHighCpu")
         print(f"Fault: AdServiceHighCpu | Namespace: {self.namespace}\n")
 
     def recover_fault(self):
         print("== Fault Recovery ==")
-        self.injector.recover_fault("adServiceHighCpu")
+        self.injector.recover_fault("adHighCpu")
 
 
 ################## Detection Problem ##################
@@ -61,7 +61,6 @@ class AdServiceHighCpuLocalization(AdServiceHighCpuBaseTask, LocalizationTask):
     def __init__(self):
         AdServiceHighCpuBaseTask.__init__(self)
         LocalizationTask.__init__(self, self.app)
-        self.task_desc += "Start by investigating the ad service."
 
     def eval(self, soln: Any, trace: list[SessionItem], duration: float):
         print("== Evaluation ==")

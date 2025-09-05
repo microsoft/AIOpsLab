@@ -21,14 +21,20 @@ class TraceAPI:
         self.port_forward_process = None
         self.namespace = namespace
         self.stop_event = threading.Event()
+        self.output_threads = []
 
-        # NOTE: it may not be jaeger-out for other apps
-        node_port = self.get_nodeport("jaeger", namespace)
-        if node_port:
-            self.base_url = f"http://localhost:{node_port}"
-        else:
-            self.base_url = "http://localhost:16686"
+        if self.namespace == "astronomy-shop":
+            # No NodePort in astronomy shop
+            self.base_url = "http://localhost:16686/jaeger/ui"
             self.start_port_forward()
+        else:
+            # Other namespaces may expose a NodePort
+            node_port = self.get_nodeport("jaeger", namespace)
+            if node_port:
+                self.base_url = f"http://localhost:{node_port}"
+            else:
+                self.base_url = "http://localhost:16686"
+                self.start_port_forward()
 
     def get_nodeport(self, service_name, namespace):
         """Fetch the NodePort for the given service."""
@@ -74,19 +80,38 @@ class TraceAPI:
     def is_port_in_use(self, port):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             return s.connect_ex(("127.0.0.1", port)) == 0
+        
+    def get_jaeger_pod_name(self):
+        try:
+            result = subprocess.check_output(
+                ["kubectl", "get", "pods", "-n", self.namespace,
+                 "-l", "app.kubernetes.io/name=jaeger",
+                 "-o", "jsonpath={.items[0].metadata.name}"],
+                text=True
+            )
+            return result.strip()
+        except subprocess.CalledProcessError as e:
+            print("Error getting Jaeger pod name:", e)
+            raise
 
     def start_port_forward(self):
-        """Starts kubectl port-forward command to access Jaeger service."""
+        """Starts kubectl port-forward command to access Jaeger service or pod."""
         for attempt in range(3):
             if self.is_port_in_use(16686):
                 print(
-                    f"Port 16686 is already in use. Attempt {attempt + 1} of {3}. Retrying in {3} seconds..."
+                    f"Port 16686 is already in use. Attempt {attempt + 1} of 3. Retrying in 3 seconds..."
                 )
                 time.sleep(3)
                 continue
 
-            # command = "kubectl port-forward svc/jaeger 16686:16686 -n hotel-reservation"
-            command = f"kubectl port-forward svc/jaeger 16686:16686 -n {self.namespace}"
+            # Use pod port-forwarding for astronomy-shop only
+            if self.namespace == "astronomy-shop":
+                pod_name = self.get_jaeger_pod_name()
+                command = f"kubectl port-forward pod/{pod_name} 16686:16686 -n {self.namespace}"
+            else:
+                command = f"kubectl port-forward svc/jaeger 16686:16686 -n {self.namespace}"
+
+            print("Starting port-forward with command:", command)
             self.port_forward_process = subprocess.Popen(
                 command,
                 shell=True,
@@ -103,17 +128,17 @@ class TraceAPI:
             )
             thread_out.start()
             thread_err.start()
-            time.sleep(3)  # Wait a bit for the port-forward to establish
 
-            if (
-                self.port_forward_process.poll() is None
-            ):  # Check if the process is still running
+            time.sleep(3)  # Let port-forward initialize
+
+            if self.port_forward_process.poll() is None:
                 print("Port forwarding established successfully.")
                 break
             else:
                 print("Port forwarding failed. Retrying...")
         else:
-            print("Failed to establish port forwarding after multiple attempts.")
+            print("Failed to establish port forwarding after 3 attempts.")
+
         # TODO: modify this command for other microservices
         # command = "kubectl port-forward svc/jaeger 16686:16686 -n hotel-reservation"
         # self.port_forward_process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -126,38 +151,44 @@ class TraceAPI:
         # time.sleep(3)  # Wait a bit for the port-forward to establish
 
     def stop_port_forward(self):
-        """Stops the kubectl port-forward command."""
         if self.port_forward_process:
-            self.port_forward_process.terminate()  # Send SIGTERM
-            self.port_forward_process.wait()  # Wait for the process to terminate
-            self.stop_event.set()
-            print("Set the stop event.")
-            self.port_forward_process.stdout.close()
-            self.port_forward_process.stderr.close()
-            print("Port forwarding stopped.")
+            self.stop_event.set()  # Signal threads to exit
+            try:
+                self.port_forward_process.terminate()
+                self.port_forward_process.wait(timeout=5)
+            except Exception as e:
+                print("Error terminating port-forward process:", e)
+
+            try:
+                if self.port_forward_process.stdout:
+                    self.port_forward_process.stdout.close()
+                if self.port_forward_process.stderr:
+                    self.port_forward_process.stderr.close()
+            except Exception as e:
+                print("Error closing process streams:", e)
+            self.port_forward_process = None
+
 
     def cleanup(self):
-        """Clean up resources."""
         self.stop_port_forward()
-        for thread in threading.enumerate():
-            if thread != threading.current_thread():
-                thread.join(timeout=5)
-                if thread.is_alive():
-                    print(
-                        f"Thread {thread.name} could not be joined and may need to be stopped forcefully."
-                    )
+        for thread in self.output_threads:
+            thread.join(timeout=5)
+            if thread.is_alive():
+                print(f"Thread {thread.name} could not be joined and may need to be stopped forcefully.")
+        self.output_threads.clear()
         print("Cleanup completed.")
 
     def get_services(self) -> list:
         """Fetch a list of services from the tracing API."""
         url = f"{self.base_url}/api/services"
-        response = requests.get(url)
-        if response.status_code == 200:
-            data = response.json()
-            # print(f"data: {response}")
-            return data.get("data", [])
-        else:
-            print(f"Failed to get services: {response.status_code}")
+        headers = {"Accept": "application/json"} if self.namespace == "astronomy-shop" else {}
+
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            return response.json().get("data", [])
+        except Exception as e:
+            print(f"Failed to get services: {e}")
             return []
 
     def get_traces(
@@ -171,15 +202,14 @@ class TraceAPI:
         Fetch traces for a specific service between start_time and end_time.
         If limit is not specified, all available traces are fetched.
         """
-        # Calculate the lookback in milliseconds.
         lookback = int((datetime.now() - start_time).total_seconds())
-
         url = f"{self.base_url}/api/traces?service={service_name}&lookback={lookback}s"
         if limit is not None:
             url += f"&limit={limit}"
 
+        headers = {"Accept": "application/json"} if self.namespace == "astronomy-shop" else {}
         try:
-            response = requests.get(url)
+            response = requests.get(url, headers=headers)
             response.raise_for_status()
             return response.json().get("data", [])
         except requests.RequestException as e:
@@ -211,9 +241,9 @@ class TraceAPI:
             )
             for trace in traces:
                 for span in trace["spans"]:
-                    span[
+                    span["serviceName"] = trace["processes"][span["processID"]][
                         "serviceName"
-                    ] = service  # Directly associate service name with each span
+                    ]
                 all_traces.append(trace)  # Collect the trace with service name included
         self.cleanup()
         print("Cleanup completed.")
@@ -223,22 +253,20 @@ class TraceAPI:
     def process_traces(self, traces) -> pd.DataFrame:
         """Process raw traces data into a structured DataFrame."""
         trace_id_list = []
+        span_id_list = []
         service_name_list = []
         operation_name_list = []
         start_time_list = []
         duration_list = []
         parent_span_list = []
+        error_list = []
+        response_list = []
 
         for trace in traces:
             trace_id = trace["traceID"]
             for span in trace["spans"]:
                 trace_id_list.append(trace_id)
-                service_name_list.append(
-                    span["serviceName"]
-                )  # Use the correct service name from the span
-                operation_name_list.append(span["operationName"])
-                start_time_list.append(span["startTime"])
-                duration_list.append(span["duration"])
+                span_id_list.append(span["spanID"])
                 parent_span = "ROOT"
                 if "references" in span:
                     for ref in span["references"]:
@@ -247,14 +275,34 @@ class TraceAPI:
                             break
                 parent_span_list.append(parent_span)
 
+                service_name_list.append(
+                    span["serviceName"]
+                )  # Use the correct service name from the span
+                operation_name_list.append(span["operationName"])
+                start_time_list.append(span["startTime"])
+                duration_list.append(span["duration"])
+
+                has_error = False
+                response = "Unknown"
+                for tag in span.get("tags", []):
+                    if tag["key"] == "error" and tag["value"] == True:
+                        has_error = True
+                    if tag["key"] == "http.status_code" or tag["key"] == "response_class":
+                        response = tag["value"]
+                error_list.append(has_error)
+                response_list.append(response)
+
         df = pd.DataFrame(
             {
                 "trace_id": trace_id_list,
+                "span_id": span_id_list,
+                "parent_span": parent_span_list,
                 "service_name": service_name_list,
                 "operation_name": operation_name_list,
                 "start_time": start_time_list,
                 "duration": duration_list,
-                "parent_span": parent_span_list,
+                "has_error": error_list,
+                "response": response_list,
             }
         )
         return df

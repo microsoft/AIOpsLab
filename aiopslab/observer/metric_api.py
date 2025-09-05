@@ -138,7 +138,8 @@ class PrometheusAPI:
     # disable_ssl – (bool) if True, will skip prometheus server's http requests' SSL certificate
     def __init__(self, url: str, namespace: str):
         self.namespace = namespace
-        self.port = 32000
+        self.output_threads = []
+        self.port = self.find_free_port()
         self.port_forward_process = None
         self.stop_event = threading.Event()
         self.start_port_forward()
@@ -151,6 +152,13 @@ class PrometheusAPI:
     def is_port_in_use(self, port):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             return s.connect_ex(("127.0.0.1", port)) == 0
+    
+    def find_free_port(self, start=32000, end=32100):
+        for port in range(start, end):
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                if s.connect_ex(("127.0.0.1", port)) != 0:
+                    return port
+        raise RuntimeError("No free ports available in the range.")
 
     def print_output(self, stream):
         """Thread function to print output from a subprocess stream non-blockingly."""
@@ -197,6 +205,7 @@ class PrometheusAPI:
             )
             thread_out.start()
             thread_err.start()
+            self.output_threads.extend([thread_out, thread_err])
 
             time.sleep(3)  # Wait a bit for the port-forward to establish
 
@@ -209,12 +218,28 @@ class PrometheusAPI:
             print("Failed to establish port forwarding after multiple attempts.")
 
     def stop_port_forward(self):
-        """Stops the kubectl port-forward command."""
+        """Stops the kubectl port-forward command and cleans up resources."""
         if self.port_forward_process:
             self.port_forward_process.terminate()
-            self.port_forward_process.wait()
+            try:
+                self.port_forward_process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                print("Port-forward process did not terminate in time, killing...")
+                self.port_forward_process.kill()
+
             self.stop_event.set()
+
+            if self.port_forward_process.stdout:
+                self.port_forward_process.stdout.close()
+            if self.port_forward_process.stderr:
+                self.port_forward_process.stderr.close()
+
             print("Port forwarding stopped.")
+
+        for thread in self.output_threads:
+            thread.join(timeout=5)
+            if thread.is_alive():
+                print(f"Warning: Thread {thread.name} did not terminate cleanly.")
 
     def cleanup(self):
         """Cleanup resources like port-forwarding."""

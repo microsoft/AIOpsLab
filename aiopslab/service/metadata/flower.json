@@ -1,0 +1,10 @@
+{
+    "Name": "Flower",
+    "Namespace": "docker",
+    "Desc": "A federated learning application to train models on edge devices and aggregate them on a central server. It consists of four main components, the serverapp which is the central server, the superlink which is the communication link for the serverapp, the clientapp which is the edge device application, and the supernode which is the communication link for the clientapp. The serverapp and superlink are used to aggregate models from the clientapp and supernode, while the clientapp and supernode are used to train models on edge devices. The current deployment consists of one server and two clients.",
+    "Supported Operations": [
+        "Train models on edge devices",
+        "Aggregate models on a central server"
+    ],
+    "Docker Deploy Path": "flower"
+}

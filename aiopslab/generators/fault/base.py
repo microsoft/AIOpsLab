@@ -59,7 +59,6 @@ class FaultInjector:
             self._invoke_method("recover", fault_type, microservices)
         elif fault_type:
             self._invoke_method("recover", fault_type)
-        time.sleep(6)
 
     def _invoke_method(self, action_prefix, *args):
         """helper: injects/recovers faults based on name"""
