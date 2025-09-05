@@ -27,8 +27,13 @@ class Helm:
         chart_path = args.get("chart_path")
         namespace = args.get("namespace")
         version = args.get("version")
-        extra_args = args.get("extra_args")
+        extra_args = args.get("extra_args", [])
         remote_chart = args.get("remote_chart", False)
+        
+        # Apply batch mode if enabled
+        if config.get("batch_mode", False):
+            extra_args = extra_args or []
+            extra_args.append("--set global.imagePullPolicy=IfNotPresent")
 
         if not remote_chart:
             # Install dependencies for chart before installation

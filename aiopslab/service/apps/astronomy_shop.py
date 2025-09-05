@@ -30,14 +30,6 @@ class AstronomyShop(Application):
             "https://open-telemetry.github.io/opentelemetry-helm-charts",
         )
         
-        # Apply batch mode optimizations if enabled
-        if config.get("batch_mode", False):
-            if "extra_args" not in self.helm_configs:
-                self.helm_configs["extra_args"] = []
-            self.helm_configs["extra_args"].append(
-                "--set global.imagePullPolicy=IfNotPresent"
-            )
-        
         Helm.install(**self.helm_configs)
         Helm.assert_if_deployed(self.helm_configs["namespace"])
 

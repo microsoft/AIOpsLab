@@ -26,14 +26,6 @@ class TrainTicket(Application):
         """Deploy the Helm configurations."""
         self.kubectl.create_namespace_if_not_exist(self.namespace)
         
-        # Apply batch mode optimizations if enabled
-        if config.get("batch_mode", False):
-            if "extra_args" not in self.helm_configs:
-                self.helm_configs["extra_args"] = []
-            self.helm_configs["extra_args"].append(
-                "--set global.imagePullPolicy=IfNotPresent"
-            )
-        
         Helm.install(**self.helm_configs)
         Helm.assert_if_deployed(self.helm_configs["namespace"])
 

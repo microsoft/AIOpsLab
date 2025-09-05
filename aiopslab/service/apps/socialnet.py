@@ -60,12 +60,6 @@ class SocialNetwork(Application):
                 "--set media-frontend.container.imageVersion=latest"
             )
 
-        # Apply batch mode optimizations if enabled
-        if config.get("batch_mode", False):
-            self.helm_configs["extra_args"].append(
-                "--set global.imagePullPolicy=IfNotPresent"
-            )
-
         Helm.install(**self.helm_configs)
         Helm.assert_if_deployed(self.helm_configs["namespace"])
 

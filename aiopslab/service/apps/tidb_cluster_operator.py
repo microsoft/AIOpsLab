@@ -53,14 +53,6 @@ class TiDBCluster(Application):
         operator_namespace = self.helm_operator_config.get("namespace", "tidb-admin")
         self.kubectl.create_namespace_if_not_exist(operator_namespace)
 
-        # Apply batch mode optimizations if enabled
-        if config.get("batch_mode", False):
-            if "extra_args" not in self.helm_operator_config:
-                self.helm_operator_config["extra_args"] = []
-            self.helm_operator_config["extra_args"].append(
-                "--set global.imagePullPolicy=IfNotPresent"
-            )
-
         print("Installing TiDB Operator...")
         Helm.install(**self.helm_operator_config)
         Helm.assert_if_deployed(operator_namespace)
