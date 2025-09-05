@@ -79,13 +79,12 @@ class Prometheus:
             if not self._pvc_exists(pvc_name):
                 self._apply_pvc()
 
-        # Apply image pull policy from config if specified
-        helm_config = config.get("helm", {})
-        if helm_config and "image_pull_policy" in helm_config:
+        # Apply batch mode optimizations if enabled
+        if config.get("batch_mode", False):
             if "extra_args" not in self.helm_configs:
                 self.helm_configs["extra_args"] = []
             self.helm_configs["extra_args"].append(
-                f"--set global.imagePullPolicy={helm_config['image_pull_policy']}"
+                "--set global.imagePullPolicy=IfNotPresent"
             )
 
         Helm.install(**self.helm_configs)

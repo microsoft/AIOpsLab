@@ -204,7 +204,8 @@ class Orchestrator:
         # if not self.session.problem.sys_status_after_recovery():
         self.session.problem.app.cleanup()
         
-        if self.session.problem.namespace != "docker" and not config.get("keep_infra", False):
+        # In batch mode, keep infrastructure running between problems
+        if self.session.problem.namespace != "docker" and not config.get("batch_mode", False):
             self.prometheus.teardown()
             print("Uninstalling OpenEBS...")
             self.kubectl.exec_command("kubectl delete sc openebs-hostpath openebs-device --ignore-not-found")
