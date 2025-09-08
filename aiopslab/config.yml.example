@@ -23,5 +23,8 @@ data_dir: data
 # Flag to enable/disable qualitative evaluation (makes LLM calls)
 qualitative_eval: false
 
+# Flag to enable/disable supervisor evaluation for detection tasks (makes LLM calls)
+supervisor_eval: false
+
 # Flag to enable/disable printing the session
 print_session: false

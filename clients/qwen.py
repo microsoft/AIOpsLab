@@ -1,4 +1,5 @@
-"""Qwen client (with shell access) for AIOpsLab."""
+"""Naive Qwen client (with shell access) for AIOpsLab.
+"""
 
 import os
 import asyncio
@@ -6,56 +7,14 @@ import argparse
 import json
 from pathlib import Path
 
-import tiktoken
 import wandb
-import argparse
-import json
-from pathlib import Path
 from aiopslab.orchestrator import Orchestrator
-from aiopslab.orchestrator.problems.registry import ProblemRegistry
 from clients.utils.llm import QwenClient
 from aiopslab.orchestrator.problems.registry import ProblemRegistry
 from clients.utils.templates import DOCS_SHELL_ONLY
 from dotenv import load_dotenv
 
-# Load environment variables from the .env file
 load_dotenv()
-from dotenv import load_dotenv
-
-
-def count_message_tokens(message, enc):
-    # Each message format adds ~4 tokens of overhead
-    tokens = 4  # <|start|>role/name + content + <|end|>
-    tokens += len(enc.encode(message.get("content", "")))
-    return tokens
-
-def trim_history_to_token_limit(history, max_tokens=120000, model="gpt-4"):
-    enc = tiktoken.encoding_for_model(model)
-
-    trimmed = []
-    total_tokens = 0
-
-    # Always include the last message
-    last_msg = history[-1]
-    last_msg_tokens = count_message_tokens(last_msg, enc)
-
-    if last_msg_tokens > max_tokens:
-        # If even the last message is too big, truncate its content
-        truncated_content = enc.decode(enc.encode(last_msg["content"])[:max_tokens - 4])
-        return [{"role": last_msg["role"], "content": truncated_content}]
-
-    trimmed.insert(0, last_msg)
-    total_tokens += last_msg_tokens
-
-    # Add earlier messages in reverse until limit is reached
-    for message in reversed(history[:-1]):
-        message_tokens = count_message_tokens(message, enc)
-        if total_tokens + message_tokens > max_tokens:
-            break
-        trimmed.insert(0, message)
-        total_tokens += message_tokens
-
-    return trimmed
 
 class QwenAgent:
     def __init__(self):
@@ -84,11 +43,8 @@ class QwenAgent:
         self.history.append({"role": "system", "content": self.system_message})
         self.history.append({"role": "user", "content": self.task_message})
 
-    def test(self):
-        return self.llm.run([{"role": "system", "content": "hello"}])
-
     async def get_action(self, input) -> str:
-        """Wrapper to interface the agent with AIOpsLab.
+        """Wrapper to interface the agent with OpsBench.
 
         Args:
             input (str): The input from the orchestrator/environment.
@@ -97,18 +53,10 @@ class QwenAgent:
             str: The response from the agent.
         """
         self.history.append({"role": "user", "content": input})
-        try:
-            trimmed_history = trim_history_to_token_limit(self.history)
-            response = self.llm.run(trimmed_history)
-            print(f"===== Agent (Qwen - {self.model}) ====\n{response[0]}")
-            self.history.append({"role": "assistant", "content": response[0]})
-            return response[0]
-        except Exception as e:
-            print(f"Qwen API error: {e}")
-            # Return a fallback response
-            fallback_response = f"Error occurred while calling Qwen API: {e}"
-            self.history.append({"role": "assistant", "content": fallback_response})
-            return fallback_response
+        response = self.llm.run(self.history)
+        print(f"===== Agent (Qwen - {self.llm.model}) ====\n{response[0]}")
+        self.history.append({"role": "assistant", "content": response[0]})
+        return response[0]
 
     def _filter_dict(self, dictionary, filter_func):
         return {k: v for k, v in dictionary.items() if filter_func(k, v)}
@@ -154,9 +102,8 @@ def setup_results_directory(model: str, agent_name: str = "qwen") -> Path:
 
     return results_dir
 
-
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Run Qwen agent on AIOpsLab problems')
+    parser = argparse.ArgumentParser(description='Run qwen agent on AIOpsLab problems')
     parser.add_argument('--skip-completed', action='store_true',
                        help='Skip problems that have already been completed')
     parser.add_argument('--problem-ids', nargs='+',
@@ -164,11 +111,10 @@ if __name__ == "__main__":
     parser.add_argument('--max-steps', type=int, default=30,
                        help='Maximum steps per problem (default: 30)')
     parser.add_argument('--model', type=str,
-                       default=os.getenv("QWEN_MODEL", "qwen-turbo"),
-                       help='Qwen model to use')
+                       default=os.getenv("QWEN_MODEL", "openai/gpt-4o-mini"),
+                       help='qwen model to use')
 
     args = parser.parse_args()
-
     # Load use_wandb from environment variable with a default of False
     use_wandb = os.getenv("USE_WANDB", "false").lower() == "true"
 
@@ -209,47 +155,10 @@ if __name__ == "__main__":
             exit(0)
 
     print(f"Running {len(problems)} problems with model: {model}")
-    model = args.model
-    agent_name = "qwen"
-
-    # Setup organized results directory
-    results_dir = setup_results_directory(model, agent_name)
-    print(f"Results will be saved to: {results_dir}")
-
-    # Get all problems
-    problems = ProblemRegistry().PROBLEM_REGISTRY
-
-    # Filter problems if specific IDs requested
-    if args.problem_ids:
-        problems = {pid: problems[pid] for pid in args.problem_ids if pid in problems}
-        if not problems:
-            print("No valid problem IDs found")
-            exit(1)
-
-    # Skip completed problems if requested
-    if args.skip_completed:
-        completed_problems = get_completed_problems(
-            Path("aiopslab/data/results"), agent_name, model
-        )
-        problems = {pid: prob for pid, prob in problems.items()
-                   if pid not in completed_problems}
-
-        print(f"Found {len(completed_problems)} completed problems")
-        print(f"Running {len(problems)} remaining problems")
-
-        if not problems:
-            print("All problems have been completed!")
-            exit(0)
-
-    print(f"Running {len(problems)} problems with model: {model}")
 
     for pid in problems:
         print(f"\n=== Starting problem: {pid} ===")
         agent = QwenAgent()
-
-    for pid in problems:
-        print(f"\n=== Starting problem: {pid} ===")
-        agent = QwenAgent(model=model)
 
         orchestrator = Orchestrator(results_dir=results_dir)
         orchestrator.register_agent(agent, name=agent_name)

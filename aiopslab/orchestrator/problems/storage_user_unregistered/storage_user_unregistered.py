@@ -66,7 +66,6 @@ class MongoDBUserUnregisteredDetection(MongoDBUserUnregisteredBaseTask, Detectio
         DetectionTask.__init__(self, self.app)
 
     def eval(self, soln: Any, trace: list[SessionItem], duration: float):
-        print("== Evaluation ==")
         expected_solution = "Yes"
 
         if isinstance(soln, str):
@@ -79,7 +78,6 @@ class MongoDBUserUnregisteredDetection(MongoDBUserUnregisteredBaseTask, Detectio
         else:
             print("Invalid solution format")
             self.add_result("Detection Accuracy", "Invalid Format")
-
         return super().eval(soln, trace, duration)
 
 
@@ -92,7 +90,6 @@ class MongoDBUserUnregisteredLocalization(
         LocalizationTask.__init__(self, self.app)
 
     def eval(self, soln: Any, trace: list[SessionItem], duration: float):
-        print("== Evaluation ==")
 
         if soln is None:
             print("Solution is None")
