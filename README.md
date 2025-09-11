@@ -27,9 +27,7 @@ Moreover, AIOpsLab provides a built-in benchmark suite with a set of problems to
 <h2 id="📦installation">📦 Installation</h2>
 
 ### Requirements
-- Python >= 3.11
-- [Helm](https://helm.sh/)
-- Additional requirements depend on the deployment option selected, which is explained in the next section
+
 
 Recommended installation:
 ```bash
@@ -119,23 +117,11 @@ The clients will automatically load API keys from your .env file.
 
 You can check the running status of the cluster using [k9s](https://k9scli.io/) or other cluster monitoring tools conveniently.
 
-To browse your logged `session_id` values in the W&B app as a table:
-
-1. Make sure you have W&B installed and configured.
-2. Set the USE_WANDB environment variable:
-    ```bash
-    # Add to your .env file
-    echo "USE_WANDB=true" >> .env
-    ```
-3. In the W&B web UI, open any run and click Tables → Add Query Panel.
-4. In the key field, type `runs.summary` and click `Run`, then you will see the results displayed in a table format.
 
 <h2 id="⚙️usage">⚙️ Usage</h2>
 
 AIOpsLab can be used in the following ways:
-- [Onboard your agent to AIOpsLab](#how-to-onboard-your-agent-to-aiopslab)
-- [Add new applications to AIOpsLab](#how-to-add-new-applications-to-aiopslab)
-- [Add new problems to AIOpsLab](#how-to-add-new-problems-to-aiopslab)
+For detailed instructions on developing and testing agents, see [clients/README_AGENTS.md](./clients/README_AGENTS.md).
 
 ### Running agents remotely
 You can run AIOpsLab on a remote machine with larger computational resources. This section guides you through setting up and using AIOpsLab remotely.

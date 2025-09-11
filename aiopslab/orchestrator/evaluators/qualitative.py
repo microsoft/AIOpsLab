@@ -74,11 +74,26 @@ class GPT4Turbo:
             if cache_result is not None:
                 return cache_result
 
-        client = OpenAI(api_key=os.getenv("OPENAI_KEY"))
+        # Check if using Azure OpenAI
+        if os.getenv("OPENAI_API_TYPE") == "azure":
+            from openai import AzureOpenAI
+            azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+            if not azure_endpoint:
+                raise ValueError("AZURE_OPENAI_ENDPOINT environment variable is required for Azure OpenAI")
+            client = AzureOpenAI(
+                api_key=os.getenv("OPENAI_API_KEY"),
+                api_version=os.getenv("OPENAI_API_VERSION", "2023-12-01-preview"),
+                azure_endpoint=azure_endpoint
+            )
+            model_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4")
+        else:
+            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            model_name = "gpt-4-turbo-2024-04-09"
+            
         try:
             response = client.chat.completions.create(
                 messages=payload,  # type: ignore
-                model="gpt-4-turbo-2024-04-09",
+                model=model_name,
                 max_tokens=1024,
                 temperature=0.0,
                 top_p=0.95,
