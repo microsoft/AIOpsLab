@@ -9,14 +9,20 @@ import subprocess
 from rich.console import Console
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
+from aiopslab.config import Config, get_kube_context
+from aiopslab.paths import BASE_DIR
+
+config_yaml = Config(BASE_DIR / "config.yml")
 
 
 class KubeCtl:
     def __init__(self):
         """Initialize the KubeCtl object and load the Kubernetes configuration."""
-        config.load_kube_config()
+        kube_context = get_kube_context()
+        config.load_kube_config(context=kube_context)
         self.core_v1_api = client.CoreV1Api()
         self.apps_v1_api = client.AppsV1Api()
+    
 
     def list_namespaces(self):
         """Return a list of all namespaces in the cluster."""
@@ -58,7 +64,10 @@ class KubeCtl:
 
     def get_service_json(self, service_name, namespace, deserialize=True):
         """Retrieve the JSON description of a specified service within a namespace."""
+        kube_context = get_kube_context()
         command = f"kubectl get service {service_name} -n {namespace} -o json"
+        if kube_context:
+            command += f" --context {kube_context}"
         result = self.exec_command(command)
 
         return json.loads(result) if deserialize else result
@@ -205,20 +214,27 @@ class KubeCtl:
 
     def apply_configs(self, namespace: str, config_path: str):
         """Apply Kubernetes configurations from a specified path to a namespace."""
+        kube_context = get_kube_context()
         command = f"kubectl apply -Rf {config_path} -n {namespace}"
+        if kube_context:
+            command += f" --context {kube_context}"
         self.exec_command(command)
 
     def delete_configs(self, namespace: str, config_path: str):
         """Delete Kubernetes configurations from a specified path in a namespace."""
         try:
-            exists_resource = self.exec_command(
-                f"kubectl get all -n {namespace} -o name"
-            )
+            kube_context = get_kube_context()
+            
+            get_command = f"kubectl get all -n {namespace} -o name"
+            if kube_context:
+                get_command += f" --context {kube_context}"
+            exists_resource = self.exec_command(get_command)
+            
             if exists_resource:
                 print(f"Deleting K8S configs in namespace: {namespace}")
-                command = (
-                    f"kubectl delete -Rf {config_path} -n {namespace} --timeout=10s"
-                )
+                command = f"kubectl delete -Rf {config_path} -n {namespace} --timeout=10s"
+                if kube_context:
+                    command += f" --context {kube_context}"
                 self.exec_command(command)
             else:
                 print(f"No resources found in: {namespace}. Skipping deletion.")
@@ -253,7 +269,14 @@ class KubeCtl:
                 print(f"Error checking/creating namespace '{namespace}': {e}")
 
     def exec_command(self, command: str, input_data=None):
-        """Execute an arbitrary kubectl command."""
+        """Execute an arbitrary kubectl command with automatic context support."""
+        # If the command contains kubectl and doesn't already have --context, add it
+        if "kubectl" in command and "--context" not in command:
+            kube_context = get_kube_context()
+            if kube_context:
+                # Insert --context after kubectl command
+                command = command.replace("kubectl", f"kubectl --context {kube_context}", 1)
+        
         if input_data is not None:
             input_data = input_data.encode("utf-8")
         try:

@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 
 from kubernetes import config, client
 from yaml import full_load
+from aiopslab.config import get_kube_context
 
 root_path = pathlib.Path(__file__).parent
 sys.path.append(root_path)
@@ -37,7 +38,7 @@ def get_services_list(v1, namespace="default"):
     return services_names
 
 
-config.kube_config.load_kube_config(config_file=monitor_config["kubernetes_path"])
+config.kube_config.load_kube_config(config_file=monitor_config["kubernetes_path"], context=get_kube_context())
 v1 = client.CoreV1Api()
 
 # pod_list = [

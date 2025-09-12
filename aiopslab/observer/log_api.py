@@ -8,13 +8,14 @@ from datetime import datetime, timedelta, timezone
 from ssl import create_default_context
 from enum import Enum
 from typing import Union
-from kubernetes import client
+from kubernetes import client, config
 
 import pandas as pd
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import ConnectionTimeout
 
 from . import monitor_config, root_path, get_pod_list, get_services_list
+from aiopslab.config import get_kube_context
 from .utils.extract import merge_csv
 
 
@@ -43,6 +44,8 @@ class LogAPI:
 
     def initialize_pod_and_service_lists(self, custom_namespace=None):
         namespace = custom_namespace or monitor_config["namespace"]
+        kube_context = get_kube_context()
+        config.load_kube_config(context=kube_context)
         v1 = client.CoreV1Api()
         pod_list = [
             pod
