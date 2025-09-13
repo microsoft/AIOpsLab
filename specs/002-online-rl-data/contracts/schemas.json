@@ -1,0 +1,236 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "TaskRequest": {
+      "type": "object",
+      "required": ["problem_id"],
+      "properties": {
+        "problem_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "AIOpsLab problem identifier"
+        },
+        "agent_config": {
+          "type": "object",
+          "properties": {
+            "model": {"type": "string"},
+            "temperature": {"type": "number", "minimum": 0, "maximum": 2}
+          },
+          "additionalProperties": true
+        },
+        "max_steps": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 30
+        },
+        "timeout_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 180,
+          "default": 30
+        },
+        "callback_url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10,
+          "default": 5
+        }
+      },
+      "additionalProperties": false
+    },
+    
+    "TaskResponse": {
+      "type": "object",
+      "required": ["id", "problem_id", "status", "created_at", "updated_at"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "problem_id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "running", "completed", "failed", "timeout"]
+        },
+        "parameters": {
+          "type": "object"
+        },
+        "worker_id": {
+          "type": ["string", "null"]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "started_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "completed_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
+      }
+    },
+    
+    "TaskDetailResponse": {
+      "allOf": [
+        {"$ref": "#/definitions/TaskResponse"},
+        {
+          "type": "object",
+          "properties": {
+            "result": {
+              "type": ["object", "null"],
+              "properties": {
+                "logs": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                },
+                "metrics": {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                "output": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            },
+            "error_details": {
+              "type": ["string", "null"]
+            },
+            "logs": {
+              "type": "array",
+              "items": {"$ref": "#/definitions/TaskLog"}
+            }
+          }
+        }
+      ]
+    },
+    
+    "TaskLog": {
+      "type": "object",
+      "required": ["id", "timestamp", "level", "message"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "level": {
+          "type": "string",
+          "enum": ["debug", "info", "warning", "error", "critical"]
+        },
+        "message": {
+          "type": "string"
+        },
+        "context": {
+          "type": "object",
+          "properties": {
+            "step": {"type": "integer"},
+            "action": {"type": "string"},
+            "details": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      }
+    },
+    
+    "WorkerRegisterRequest": {
+      "type": "object",
+      "required": ["id", "backend_type"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^worker-\\d{3}-kind$"
+        },
+        "backend_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capabilities": {
+          "type": "object",
+          "properties": {
+            "max_parallel_tasks": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "supported_problems": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "host": {"type": "string"},
+            "version": {"type": "string"},
+            "kind_cluster": {"type": "string"}
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    
+    "WorkerHeartbeatRequest": {
+      "type": "object",
+      "required": ["worker_id", "status"],
+      "properties": {
+        "worker_id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["idle", "busy"]
+        },
+        "current_task_id": {
+          "type": ["string", "null"],
+          "format": "uuid"
+        }
+      },
+      "additionalProperties": false
+    },
+    
+    "ErrorResponse": {
+      "type": "object",
+      "required": ["error"],
+      "properties": {
+        "error": {
+          "type": "string",
+          "minLength": 1
+        },
+        "code": {
+          "type": "string"
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}

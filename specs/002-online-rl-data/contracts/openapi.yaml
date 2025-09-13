@@ -1,0 +1,582 @@
+openapi: 3.0.3
+info:
+  title: AIOpsLab Task Execution API
+  description: RESTful API for submitting and managing AIOpsLab task executions
+  version: 1.0.0
+  contact:
+    name: AIOpsLab Team
+    url: https://github.com/microsoft/AIOpsLab
+
+servers:
+  - url: http://localhost:8000
+    description: Development server
+  - url: http://api.aiopslab.local
+    description: Production server
+
+paths:
+  /tasks:
+    post:
+      summary: Create a new task
+      operationId: createTask
+      tags:
+        - Tasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskRequest'
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    get:
+      summary: List tasks
+      operationId: listTasks
+      tags:
+        - Tasks
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, running, completed, failed, timeout]
+          description: Filter by task status
+        - name: problem_id
+          in: query
+          schema:
+            type: string
+          description: Filter by problem ID
+        - name: worker_id
+          in: query
+          schema:
+            type: string
+          description: Filter by worker ID
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+          description: Number of results to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Number of results to skip
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [created_at, -created_at, priority, -priority]
+            default: -created_at
+          description: Sort order (- for descending)
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskListResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /tasks/{task_id}:
+    get:
+      summary: Get task details
+      operationId: getTask
+      tags:
+        - Tasks
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Task ID
+        - name: include_logs
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Include execution logs
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskDetailResponse'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    delete:
+      summary: Cancel a task
+      operationId: cancelTask
+      tags:
+        - Tasks
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Task ID
+      responses:
+        '200':
+          description: Task cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Task cannot be cancelled (already completed/failed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /tasks/{task_id}/logs:
+    get:
+      summary: Get task execution logs
+      operationId: getTaskLogs
+      tags:
+        - Tasks
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Task ID
+        - name: level
+          in: query
+          schema:
+            type: string
+            enum: [debug, info, warning, error, critical]
+          description: Filter by log level
+        - name: since
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Get logs after this timestamp
+      responses:
+        '200':
+          description: Task logs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskLogsResponse'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /workers:
+    get:
+      summary: List registered workers
+      operationId: listWorkers
+      tags:
+        - Workers
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [idle, busy, offline]
+          description: Filter by worker status
+        - name: backend_type
+          in: query
+          schema:
+            type: string
+          description: Filter by backend type
+      responses:
+        '200':
+          description: List of workers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkerListResponse'
+
+  /workers/{worker_id}:
+    get:
+      summary: Get worker details
+      operationId: getWorker
+      tags:
+        - Workers
+      parameters:
+        - name: worker_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Worker ID
+      responses:
+        '200':
+          description: Worker details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkerResponse'
+        '404':
+          description: Worker not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /workers/heartbeat:
+    post:
+      summary: Worker heartbeat
+      operationId: workerHeartbeat
+      tags:
+        - Workers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkerHeartbeatRequest'
+      responses:
+        '200':
+          description: Heartbeat acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkerHeartbeatResponse'
+        '404':
+          description: Worker not registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /workers/register:
+    post:
+      summary: Register a new worker
+      operationId: registerWorker
+      tags:
+        - Workers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkerRegisterRequest'
+      responses:
+        '201':
+          description: Worker registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkerResponse'
+        '409':
+          description: Worker already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    TaskRequest:
+      type: object
+      required:
+        - problem_id
+      properties:
+        problem_id:
+          type: string
+          description: AIOpsLab problem identifier
+          example: "misconfig_app_hotel_res-detection-1"
+        agent_config:
+          type: object
+          description: Agent configuration settings
+          properties:
+            model:
+              type: string
+              example: "gpt-4"
+            temperature:
+              type: number
+              example: 0.7
+        max_steps:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          default: 30
+          description: Maximum execution steps
+        timeout_minutes:
+          type: integer
+          minimum: 1
+          maximum: 180
+          default: 30
+          description: Task timeout in minutes
+        callback_url:
+          type: string
+          format: uri
+          description: Webhook URL for completion notification
+        metadata:
+          type: object
+          description: User-defined metadata
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 10
+          default: 5
+          description: Task priority (higher = more urgent)
+
+    TaskResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Task ID
+        problem_id:
+          type: string
+        status:
+          type: string
+          enum: [pending, running, completed, failed, timeout]
+        parameters:
+          type: object
+        worker_id:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    TaskDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/TaskResponse'
+        - type: object
+          properties:
+            result:
+              type: object
+              nullable: true
+              properties:
+                logs:
+                  type: array
+                  items:
+                    type: string
+                metrics:
+                  type: object
+                output:
+                  type: object
+            error_details:
+              type: string
+              nullable: true
+            logs:
+              type: array
+              items:
+                $ref: '#/components/schemas/TaskLog'
+
+    TaskListResponse:
+      type: object
+      properties:
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskResponse'
+        total:
+          type: integer
+          description: Total number of tasks
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    TaskLog:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        level:
+          type: string
+          enum: [debug, info, warning, error, critical]
+        message:
+          type: string
+        context:
+          type: object
+          properties:
+            step:
+              type: integer
+            action:
+              type: string
+            details:
+              type: object
+
+    TaskLogsResponse:
+      type: object
+      properties:
+        task_id:
+          type: string
+          format: uuid
+        logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskLog'
+
+    WorkerRegisterRequest:
+      type: object
+      required:
+        - id
+        - backend_type
+      properties:
+        id:
+          type: string
+          pattern: '^worker-\d{3}-kind$'
+          example: "worker-001-kind"
+        backend_type:
+          type: string
+          example: "default"
+        capabilities:
+          type: object
+          properties:
+            max_parallel_tasks:
+              type: integer
+              minimum: 1
+              default: 1
+            supported_problems:
+              type: array
+              items:
+                type: string
+        metadata:
+          type: object
+          properties:
+            host:
+              type: string
+            version:
+              type: string
+
+    WorkerResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        backend_type:
+          type: string
+        status:
+          type: string
+          enum: [idle, busy, offline]
+        last_heartbeat:
+          type: string
+          format: date-time
+        current_task_id:
+          type: string
+          format: uuid
+          nullable: true
+        capabilities:
+          type: object
+        metadata:
+          type: object
+        registered_at:
+          type: string
+          format: date-time
+        tasks_completed:
+          type: integer
+        tasks_failed:
+          type: integer
+
+    WorkerListResponse:
+      type: object
+      properties:
+        workers:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkerResponse'
+        total:
+          type: integer
+
+    WorkerHeartbeatRequest:
+      type: object
+      required:
+        - worker_id
+        - status
+      properties:
+        worker_id:
+          type: string
+        status:
+          type: string
+          enum: [idle, busy]
+        current_task_id:
+          type: string
+          format: uuid
+          nullable: true
+
+    WorkerHeartbeatResponse:
+      type: object
+      properties:
+        acknowledged:
+          type: boolean
+        next_task_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Next task to execute (if worker is idle)
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        details:
+          type: object
+          description: Additional error details
