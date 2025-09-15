@@ -30,7 +30,18 @@ transformers = "^4.49.0"
 fastapi = "^0.115.12"
 groq = "^0.28.0"
 flwr = "^1.19.0"
+pydantic-settings = "^2.10.1"
+structlog = "^25.4.0"
+prometheus-client = "^0.22.1"
+sqlalchemy = "^2.0.43"
+asyncpg = "^0.30.0"
+psycopg2-binary = "^2.9.10"
+alembic = "^1.16.5"
+greenlet = "^3.2.4"
 
+
+[tool.poetry.group.dev.dependencies]
+aiosqlite = "^0.21.0"
 
 [build-system]
 requires = ["poetry-core"]

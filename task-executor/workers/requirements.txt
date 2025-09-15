@@ -1,0 +1,18 @@
+# Core dependencies
+httpx==0.26.0
+pydantic==2.5.3
+asyncio-mqtt==0.16.2
+
+# Logging
+structlog==24.1.0
+python-json-logger==2.0.7
+
+# Development
+pytest==7.4.4
+pytest-asyncio==0.21.1
+black==24.1.1
+ruff==0.1.11
+
+# Utilities
+python-dotenv==1.0.0
+click==8.1.7
