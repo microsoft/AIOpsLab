@@ -8,6 +8,7 @@ import uuid
 import json
 import wandb
 import sys
+import copy
 from io import StringIO
 from pydantic import BaseModel
 
@@ -23,6 +24,7 @@ class Session:
     def __init__(self, results_dir=None) -> None:
         self.session_id = uuid.uuid4()
         self.pid = None
+        self.canonical_pid = None
         self.problem = None
         self.solution = None
         self.results = {}
@@ -34,15 +36,17 @@ class Session:
         self.print_logs = []
         self.original_stdout = None
 
-    def set_problem(self, problem, pid=None):
+    def set_problem(self, problem, pid=None, canonical_pid=None):
         """Set the problem instance for the session.
 
         Args:
             problem (Task): The problem instance to set.
             pid (str): The problem ID.
+            canonical_pid (str | None): Canonical identifier for the problem.
         """
         self.problem = problem
         self.pid = pid
+        self.canonical_pid = canonical_pid
 
     def set_solution(self, solution):
         """Set the solution shared by the agent.
@@ -131,14 +135,37 @@ class Session:
 
     def to_dict(self):
         """Return the session history as a dictionary."""
+        variant_context = None
+        try:
+            from aiopslab.orchestrator.tasks.variant_task import VariantTask
+        except ImportError:
+            VariantTask = None
+
+        if VariantTask and isinstance(self.problem, VariantTask):
+            generator = getattr(self.problem, "variant_generator", None)
+            base_config = None
+            if generator is not None:
+                base_config = copy.deepcopy(getattr(generator, "base_config", None))
+
+            variant_context = {
+                "supports_variants": True,
+                "current_variant": copy.deepcopy(self.problem.current_variant),
+                "variant_history": copy.deepcopy(self.problem.variant_history),
+                "variant_summary": self.problem.get_variant_summary(),
+                "base_config": base_config,
+                "applied": self.problem.current_variant is not None,
+            }
+
         summary = {
             "agent": self.agent_name,
             "session_id": str(self.session_id),
             "problem_id": self.pid,
+            "canonical_problem_id": self.canonical_pid,
             "start_time": self.start_time,
             "end_time": self.end_time,
             "trace": [item.model_dump() for item in self.history],
             "results": self.results,
+            "variant_context": variant_context,
         }
 
         return summary
@@ -184,4 +211,6 @@ class Session:
         self.start_time = data.get("start_time")
         self.end_time = data.get("end_time")
         self.results = data.get("results")
+        self.pid = data.get("problem_id")
+        self.canonical_pid = data.get("canonical_problem_id")
         self.history = [SessionItem.model_validate(item) for item in data.get("trace")]
