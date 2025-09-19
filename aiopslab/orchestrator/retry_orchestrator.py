@@ -3,9 +3,9 @@
 
 """Orchestrator with retry capabilities using task variants."""
 
-import time
 import asyncio
 import inspect
+import copy
 from typing import Dict, Any, Optional
 from aiopslab.orchestrator.orchestrator import Orchestrator
 from aiopslab.orchestrator.tasks.variant_task import VariantTask
@@ -59,11 +59,17 @@ class RetryOrchestrator:
         Returns:
             Final results including retry information
         """
+        session = getattr(self.orchestrator, "session", None)
         overall_results = {
             "retry_count": 0,
             "attempts": [],
+            "variant_attempts": [],
             "final_success": False,
-            "final_results": None
+            "final_results": None,
+            "problem_id": getattr(session, "problem_id", None),
+            "canonical_problem_id": getattr(session, "canonical_pid", None),
+            "variant_mode": self.orchestrator.probs.variant_mode,
+            "variants_enabled_for_retries": self.enable_variants,
         }
         
         for attempt in range(self.max_retries + 1):
@@ -92,17 +98,23 @@ class RetryOrchestrator:
             try:
                 results = await self.orchestrator.start_problem(max_steps)
                 
-                # Record attempt
-                variant_info = None
-                if isinstance(self.orchestrator.session.problem, VariantTask):
-                    variant_info = self.orchestrator.session.problem.current_variant
-                    
+                # Record attempt with variant metadata
+                variant_metadata = self._capture_variant_metadata()
                 attempt_info = {
                     "attempt_number": attempt + 1,
+                    "problem_id": getattr(self.orchestrator.session, "problem_id", None),
+                    "canonical_problem_id": getattr(self.orchestrator.session, "canonical_pid", None),
                     "results": results,
-                    "variant": variant_info
+                    "variant": variant_metadata.get("current_variant"),
+                    "variant_context": variant_metadata,
                 }
                 overall_results["attempts"].append(attempt_info)
+                overall_results["variant_attempts"].append(
+                    {"attempt_number": attempt + 1, **variant_metadata}
+                )
+                overall_results["problem_id"] = attempt_info["problem_id"]
+                overall_results["canonical_problem_id"] = attempt_info["canonical_problem_id"]
+                self.retry_history.append(attempt_info)
                 
                 # Check if successful
                 if self._is_successful(results):
@@ -122,18 +134,24 @@ class RetryOrchestrator:
                         
             except Exception as e:
                 print(f"Exception during attempt {attempt + 1}: {e}")
-                
-                variant_info = None
-                if isinstance(self.orchestrator.session.problem, VariantTask):
-                    variant_info = self.orchestrator.session.problem.current_variant
-                    
+
+                variant_metadata = self._capture_variant_metadata()
                 attempt_info = {
                     "attempt_number": attempt + 1,
+                    "problem_id": getattr(self.orchestrator.session, "problem_id", None),
+                    "canonical_problem_id": getattr(self.orchestrator.session, "canonical_pid", None),
                     "error": str(e),
-                    "variant": variant_info
+                    "variant": variant_metadata.get("current_variant"),
+                    "variant_context": variant_metadata,
                 }
                 overall_results["attempts"].append(attempt_info)
-                
+                overall_results["variant_attempts"].append(
+                    {"attempt_number": attempt + 1, **variant_metadata}
+                )
+                overall_results["problem_id"] = attempt_info["problem_id"]
+                overall_results["canonical_problem_id"] = attempt_info["canonical_problem_id"]
+                self.retry_history.append(attempt_info)
+
                 if attempt < self.max_retries:
                     await self._prepare_retry()
                 else:
@@ -149,9 +167,11 @@ class RetryOrchestrator:
             print(f"Succeeded on attempt: {overall_results['retry_count'] + 1}")
         else:
             print("All attempts failed")
-            
+
+        overall_results["final_variant_context"] = self._capture_variant_metadata()
+
         return overall_results
-    
+
     def _is_successful(self, results: Dict[str, Any]) -> bool:
         """
         Determine if the results indicate success.
@@ -187,6 +207,35 @@ class RetryOrchestrator:
             return results["final_state"] == SubmissionStatus.VALID_SUBMISSION
             
         return False
+
+    def _capture_variant_metadata(self) -> Dict[str, Any]:
+        """Capture variant-specific metadata for the current session."""
+        session = getattr(self.orchestrator, "session", None)
+        problem = getattr(session, "problem", None)
+        metadata = {
+            "mode": self.orchestrator.probs.variant_mode,
+            "supports_variants": isinstance(problem, VariantTask),
+            "current_variant": None,
+            "variant_history": [],
+            "summary": "Base configuration",
+            "base_config": None,
+            "applied": False,
+            "problem_id": getattr(session, "problem_id", None),
+            "canonical_problem_id": getattr(session, "canonical_pid", None),
+        }
+
+        if isinstance(problem, VariantTask):
+            metadata["current_variant"] = copy.deepcopy(problem.current_variant)
+            metadata["variant_history"] = copy.deepcopy(problem.variant_history)
+            metadata["summary"] = problem.get_variant_summary()
+            metadata["applied"] = problem.current_variant is not None
+            generator = getattr(problem, "variant_generator", None)
+            if generator is not None:
+                metadata["base_config"] = copy.deepcopy(
+                    getattr(generator, "base_config", None)
+                )
+
+        return metadata
     
     async def _prepare_retry(self):
         """Prepare for a retry attempt."""
@@ -209,9 +258,12 @@ class RetryOrchestrator:
             
         if problem_id:
             # Re-initialize the problem
-            self.orchestrator.session = Session()
+            self.orchestrator.session = Session(results_dir=self.orchestrator.results_dir)
             prob = self.orchestrator.probs.get_problem_instance(problem_id)
-            self.orchestrator.session.set_problem(prob, pid=problem_id)
+            canonical_pid = self.orchestrator.probs.get_canonical_id(problem_id)
+            self.orchestrator.session.set_problem(
+                prob, pid=problem_id, canonical_pid=canonical_pid
+            )
             self.orchestrator.session.set_agent(self.orchestrator.agent_name)
             
             # Re-deploy application
