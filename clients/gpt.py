@@ -15,7 +15,7 @@ from aiopslab.orchestrator.problems.registry import ProblemRegistry
 from clients.utils.llm import GPTClient
 from dotenv import load_dotenv
 
-from parse_result import DOCS_SHELL_ONLY
+from clients.utils.templates import DOCS_SHELL_ONLY
 
 # Load environment variables from the .env file
 load_dotenv()
