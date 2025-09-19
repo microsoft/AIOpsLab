@@ -32,9 +32,17 @@ def parse_args():
                         help="Top-p for nucleus sampling (vLLM only)")
     parser.add_argument("--max-tokens", type=int, default=1024,
                         help="Maximum tokens to generate (vLLM only)")
+    parser.add_argument(
+        "--problem-variant-mode",
+        choices=["static", "variant"],
+        default=None,
+        help="Override problem registry variant mode (static or variant)",
+    )
     return parser.parse_args()
 
-async def run_agent(agent_name, problem_id, max_steps, model, temperature, top_p, max_tokens, repetition_penalty, use_wandb=False):
+async def run_agent(agent_name, problem_id, max_steps, model, temperature, top_p,
+                    max_tokens, repetition_penalty, use_wandb=False,
+                    problem_variant_mode=None):
     """Run an agent on a problem."""
     if use_wandb:
         # Initialize wandb running
@@ -60,7 +68,7 @@ async def run_agent(agent_name, problem_id, max_steps, model, temperature, top_p
         agent = agent_cls()
 
 
-    orchestrator = Orchestrator()
+    orchestrator = Orchestrator(problem_variant_mode=problem_variant_mode)
     orchestrator.register_agent(agent, name=f"{agent_name}-agent")
 
     try:
@@ -97,5 +105,6 @@ if __name__ == "__main__":
         top_p=args.top_p,
         max_tokens=args.max_tokens,
         repetition_penalty=args.repetition_penalty,
-        use_wandb=use_wandb
+        use_wandb=use_wandb,
+        problem_variant_mode=args.problem_variant_mode,
     ))

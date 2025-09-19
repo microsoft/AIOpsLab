@@ -19,11 +19,11 @@ import os
 
 
 class Orchestrator:
-    def __init__(self, results_dir=None):
+    def __init__(self, results_dir=None, problem_variant_mode: str | None = None):
         self.agent = None
         self.session = None
         self.parser = ResponseParser()
-        self.probs = ProblemRegistry()
+        self.probs = ProblemRegistry(variant_mode=problem_variant_mode)
         self.sprint = SessionPrint()
         self.execution_start_time = None
         self.execution_end_time = None
@@ -47,7 +47,8 @@ class Orchestrator:
         print(f"Session ID: {self.session.session_id}")
         prob = self.probs.get_problem_instance(problem_id)
         deployment = self.probs.get_problem_deployment(problem_id)
-        self.session.set_problem(prob, pid=problem_id)
+        canonical_pid = self.probs.get_canonical_id(problem_id)
+        self.session.set_problem(prob, pid=problem_id, canonical_pid=canonical_pid)
         self.session.set_agent(self.agent_name)
 
         if deployment != "docker":

@@ -1,15 +1,51 @@
+import os
+import re
+from typing import Callable, Dict
+
 from aiopslab.orchestrator.problems.k8s_target_port_misconfig import *
+from aiopslab.orchestrator.problems.k8s_target_port_misconfig.target_port_variant import (
+    K8STargetPortMisconfigVariantDetection,
+    K8STargetPortMisconfigVariantLocalization,
+)
 from aiopslab.orchestrator.problems.auth_miss_mongodb import *
 from aiopslab.orchestrator.problems.revoke_auth import *
 from aiopslab.orchestrator.problems.storage_user_unregistered import *
 from aiopslab.orchestrator.problems.misconfig_app import *
+from aiopslab.orchestrator.problems.misconfig_app.misconfig_app_variant import (
+    MisconfigAppVariantDetection,
+    MisconfigAppVariantLocalization,
+)
 from aiopslab.orchestrator.problems.scale_pod import *
+from aiopslab.orchestrator.problems.scale_pod.scale_pod_variant import (
+    ScalePodVariantDetection,
+    ScalePodVariantLocalization,
+)
 from aiopslab.orchestrator.problems.assign_non_existent_node import *
 from aiopslab.orchestrator.problems.container_kill import *
+from aiopslab.orchestrator.problems.container_kill.container_kill_variant import (
+    ContainerKillVariantDetection,
+    ContainerKillVariantLocalization,
+)
 from aiopslab.orchestrator.problems.pod_failure import *
+from aiopslab.orchestrator.problems.pod_failure.pod_failure_variant import (
+    PodFailureVariantDetection,
+    PodFailureVariantLocalization,
+)
 from aiopslab.orchestrator.problems.pod_kill import *
+from aiopslab.orchestrator.problems.pod_kill.pod_kill_variant import (
+    PodKillVariantDetection,
+    PodKillVariantLocalization,
+)
 from aiopslab.orchestrator.problems.network_loss import *
+from aiopslab.orchestrator.problems.network_loss.network_loss_variant import (
+    NetworkLossVariantDetection,
+    NetworkLossVariantLocalization,
+)
 from aiopslab.orchestrator.problems.network_delay import *
+from aiopslab.orchestrator.problems.network_delay.network_delay_variant import (
+    NetworkDelayVariantDetection,
+    NetworkDelayVariantLocalization,
+)
 from aiopslab.orchestrator.problems.no_op import *
 from aiopslab.orchestrator.problems.kernel_fault import *
 from aiopslab.orchestrator.problems.disk_woreout import *
@@ -27,13 +63,18 @@ from aiopslab.orchestrator.problems.recommendation_service_cache_failure import 
 from aiopslab.orchestrator.problems.redeploy_without_pv import *
 from aiopslab.orchestrator.problems.wrong_bin_usage import *
 from aiopslab.orchestrator.problems.operator_misoperation import *
+from aiopslab.orchestrator.problems.operator_misoperation.operator_misoperation_variant import (
+    K8SOperatorMisoperationVariantDetection,
+    K8SOperatorMisoperationVariantLocalization,
+)
 from aiopslab.orchestrator.problems.flower_node_stop import *
 from aiopslab.orchestrator.problems.flower_model_misconfig import *
 
 
 class ProblemRegistry:
-    def __init__(self):
-        self.PROBLEM_REGISTRY = {
+    def __init__(self, variant_mode: str | None = None):
+        self.variant_mode = self._resolve_variant_mode(variant_mode)
+        self._static_registry: Dict[str, Callable[[], object]] = {
             # K8s target port misconfig
             "k8s_target_port-misconfig-detection-1": lambda: K8STargetPortMisconfigDetection(
                 faulty_service="user-service"
@@ -217,6 +258,15 @@ class ProblemRegistry:
             "flower_node_stop-detection": FlowerNodeStopDetection,
             "flower_model_misconfig-detection": FlowerModelMisconfigDetection,
         }
+        self._canonical_map: Dict[str, str] = {}
+        self._augment_with_canonical_ids()
+        self._variant_registry = self._build_variant_registry()
+        self.PROBLEM_REGISTRY = (
+            self._variant_registry
+            if self.variant_mode == "variant"
+            else self._static_registry
+        )
+
         self.DOCKER_REGISTRY = [
             "flower_node_stop-detection",
             "flower_model_misconfig-detection",
@@ -245,3 +295,200 @@ class ProblemRegistry:
         if problem_id in self.DOCKER_REGISTRY:
             return "docker"
         return "k8s"
+
+    def get_canonical_id(self, problem_id: str) -> str:
+        """Return the canonical identifier for a problem id."""
+        return self._canonical_map.get(
+            problem_id,
+            self._canonicalize_problem_id(problem_id),
+        )
+
+    @property
+    def using_variants(self) -> bool:
+        """Whether the registry is currently configured for variant constructors."""
+        return self.variant_mode == "variant"
+
+    def _resolve_variant_mode(self, override: str | None) -> str:
+        """Resolve variant mode from override or environment variables."""
+        if override:
+            mode = override.lower()
+        else:
+            env_mode = os.getenv("AIOPSLAB_PROBLEM_VARIANT_MODE")
+            if env_mode:
+                mode = env_mode.lower()
+            else:
+                flag = os.getenv("AIOPSLAB_USE_PROBLEM_VARIANTS")
+                if flag and flag.lower() in {"1", "true", "yes", "on"}:
+                    mode = "variant"
+                else:
+                    mode = "static"
+
+        if mode not in {"static", "variant"}:
+            mode = "static"
+        return mode
+
+    def _augment_with_canonical_ids(self) -> None:
+        """Add canonical ids (without numeric suffix) for each problem."""
+        original_keys = list(self._static_registry.keys())
+        for problem_id in original_keys:
+            canonical_id = self._canonicalize_problem_id(problem_id)
+            self._canonical_map.setdefault(problem_id, canonical_id)
+            if canonical_id not in self._static_registry:
+                self._static_registry[canonical_id] = self._static_registry[problem_id]
+            self._canonical_map.setdefault(canonical_id, canonical_id)
+
+        # Ensure all entries have canonical mapping
+        for problem_id in self._static_registry.keys():
+            self._canonical_map.setdefault(
+                problem_id, self._canonicalize_problem_id(problem_id)
+            )
+
+    def _canonicalize_problem_id(self, problem_id: str) -> str:
+        """Strip numeric suffixes to compute canonical identifiers."""
+        return re.sub(r"-\d+$", "", problem_id)
+
+    def _build_variant_registry(self) -> Dict[str, Callable[[], object]]:
+        """Create registry that returns variant constructors when available."""
+        variant_registry = dict(self._static_registry)
+        variant_registry.update(self._collect_variant_overrides())
+        return variant_registry
+
+    def _collect_variant_overrides(self) -> Dict[str, Callable[[], object]]:
+        """Return constructors for tasks that support variant execution."""
+        overrides: Dict[str, Callable[[], object]] = {
+            # K8s target port misconfiguration
+            "k8s_target_port-misconfig-detection": lambda: K8STargetPortMisconfigVariantDetection(
+                enable_variants=True
+            ),
+            "k8s_target_port-misconfig-detection-1": lambda: K8STargetPortMisconfigVariantDetection(
+                faulty_service="user-service", enable_variants=True
+            ),
+            "k8s_target_port-misconfig-detection-2": lambda: K8STargetPortMisconfigVariantDetection(
+                faulty_service="text-service", enable_variants=True
+            ),
+            "k8s_target_port-misconfig-detection-3": lambda: K8STargetPortMisconfigVariantDetection(
+                faulty_service="post-storage-service", enable_variants=True
+            ),
+            "k8s_target_port-misconfig-localization": lambda: K8STargetPortMisconfigVariantLocalization(
+                enable_variants=True
+            ),
+            "k8s_target_port-misconfig-localization-1": lambda: K8STargetPortMisconfigVariantLocalization(
+                faulty_service="user-service", enable_variants=True
+            ),
+            "k8s_target_port-misconfig-localization-2": lambda: K8STargetPortMisconfigVariantLocalization(
+                faulty_service="text-service", enable_variants=True
+            ),
+            "k8s_target_port-misconfig-localization-3": lambda: K8STargetPortMisconfigVariantLocalization(
+                faulty_service="post-storage-service", enable_variants=True
+            ),
+            # Misconfig app (Hotel Reservation)
+            "misconfig_app_hotel_res-detection": lambda: MisconfigAppVariantDetection(
+                enable_variants=True
+            ),
+            "misconfig_app_hotel_res-detection-1": lambda: MisconfigAppVariantDetection(
+                faulty_service="geo", config_type="env", enable_variants=True
+            ),
+            "misconfig_app_hotel_res-localization": lambda: MisconfigAppVariantLocalization(
+                enable_variants=True
+            ),
+            "misconfig_app_hotel_res-localization-1": lambda: MisconfigAppVariantLocalization(
+                faulty_service="geo", config_type="env", enable_variants=True
+            ),
+            # Scale pod (Social Network)
+            "scale_pod_zero_social_net-detection": lambda: ScalePodVariantDetection(
+                enable_variants=True
+            ),
+            "scale_pod_zero_social_net-detection-1": lambda: ScalePodVariantDetection(
+                faulty_service="user-service", enable_variants=True
+            ),
+            "scale_pod_zero_social_net-localization": lambda: ScalePodVariantLocalization(
+                enable_variants=True
+            ),
+            "scale_pod_zero_social_net-localization-1": lambda: ScalePodVariantLocalization(
+                faulty_service="user-service", enable_variants=True
+            ),
+            # Pod failure (Hotel Reservation)
+            "pod_failure_hotel_res-detection": lambda: PodFailureVariantDetection(
+                enable_variants=True
+            ),
+            "pod_failure_hotel_res-detection-1": lambda: PodFailureVariantDetection(
+                faulty_service="user", enable_variants=True
+            ),
+            "pod_failure_hotel_res-localization": lambda: PodFailureVariantLocalization(
+                enable_variants=True
+            ),
+            "pod_failure_hotel_res-localization-1": lambda: PodFailureVariantLocalization(
+                faulty_service="user", enable_variants=True
+            ),
+            # Pod kill (Hotel Reservation)
+            "pod_kill_hotel_res-detection": lambda: PodKillVariantDetection(
+                enable_variants=True
+            ),
+            "pod_kill_hotel_res-detection-1": lambda: PodKillVariantDetection(
+                faulty_service="user", duration="100s", enable_variants=True
+            ),
+            "pod_kill_hotel_res-localization": lambda: PodKillVariantLocalization(
+                enable_variants=True
+            ),
+            "pod_kill_hotel_res-localization-1": lambda: PodKillVariantLocalization(
+                faulty_service="user", duration="100s", enable_variants=True
+            ),
+            # Network loss (Hotel Reservation)
+            "network_loss_hotel_res-detection": lambda: NetworkLossVariantDetection(
+                enable_variants=True
+            ),
+            "network_loss_hotel_res-detection-1": lambda: NetworkLossVariantDetection(
+                faulty_service="user", loss_rate=0.1, enable_variants=True
+            ),
+            "network_loss_hotel_res-localization": lambda: NetworkLossVariantLocalization(
+                enable_variants=True
+            ),
+            "network_loss_hotel_res-localization-1": lambda: NetworkLossVariantLocalization(
+                faulty_service="user", loss_rate=0.1, enable_variants=True
+            ),
+            # Network delay (Hotel Reservation)
+            "network_delay_hotel_res-detection": lambda: NetworkDelayVariantDetection(
+                enable_variants=True
+            ),
+            "network_delay_hotel_res-detection-1": lambda: NetworkDelayVariantDetection(
+                faulty_service="user", delay_ms=100, enable_variants=True
+            ),
+            "network_delay_hotel_res-localization": lambda: NetworkDelayVariantLocalization(
+                enable_variants=True
+            ),
+            "network_delay_hotel_res-localization-1": lambda: NetworkDelayVariantLocalization(
+                faulty_service="user", delay_ms=100, enable_variants=True
+            ),
+            # Container kill (Hotel Reservation)
+            "container_kill-detection": lambda: ContainerKillVariantDetection(
+                faulty_service="geo",
+                faulty_container="hotel-reserv-geo",
+                enable_variants=True,
+            ),
+            "container_kill-localization": lambda: ContainerKillVariantLocalization(
+                faulty_service="geo",
+                faulty_container="hotel-reserv-geo",
+                enable_variants=True,
+            ),
+        }
+
+        # Operator misoperation variants (if enabled in the registry)
+        if "operator_overload_replicas-detection-1" in self._static_registry:
+            overrides.update(
+                {
+                    "operator_overload_replicas-detection": lambda: K8SOperatorMisoperationVariantDetection(
+                        fault_type="overload_replicas", enable_variants=True
+                    ),
+                    "operator_overload_replicas-detection-1": lambda: K8SOperatorMisoperationVariantDetection(
+                        fault_type="overload_replicas", enable_variants=True
+                    ),
+                    "operator_overload_replicas-localization": lambda: K8SOperatorMisoperationVariantLocalization(
+                        fault_type="overload_replicas", enable_variants=True
+                    ),
+                    "operator_overload_replicas-localization-1": lambda: K8SOperatorMisoperationVariantLocalization(
+                        fault_type="overload_replicas", enable_variants=True
+                    ),
+                }
+            )
+
+        return overrides
