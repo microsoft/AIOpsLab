@@ -3,7 +3,6 @@
 
 """Orchestrator class that interfaces with the agent and the environment."""
 
-from aiopslab.service.helm import Helm
 from aiopslab.service.kubectl import KubeCtl
 from aiopslab.session import Session
 from aiopslab.orchestrator.problems.registry import ProblemRegistry
@@ -11,6 +10,7 @@ from aiopslab.orchestrator.parser import ResponseParser
 from aiopslab.utils.status import *
 from aiopslab.utils.critical_section import CriticalSection
 from aiopslab.service.telemetry.prometheus import Prometheus
+from aiopslab.paths import config
 import time
 import inspect
 import asyncio
@@ -204,7 +204,8 @@ class Orchestrator:
         # if not self.session.problem.sys_status_after_recovery():
         self.session.problem.app.cleanup()
         
-        if self.session.problem.namespace != "docker":
+        # In batch mode, keep infrastructure running between problems
+        if self.session.problem.namespace != "docker" and not config.get("batch_mode", False):
             self.prometheus.teardown()
             print("Uninstalling OpenEBS...")
             self.kubectl.exec_command("kubectl delete sc openebs-hostpath openebs-device --ignore-not-found")
