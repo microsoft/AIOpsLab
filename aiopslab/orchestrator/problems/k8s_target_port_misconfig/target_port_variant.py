@@ -57,7 +57,7 @@ class K8STargetPortMisconfigVariantBase(VariantProblemMixin):
             service_gen = ServiceVariantGenerator(base_config, available_services)
             port_gen = PortMisconfigVariantGenerator(base_config)
 
-            variant_generator = CompositeVariantGenerator([service_gen, port_gen])
+            variant_generator = CompositeVariantGenerator(base_config, [service_gen, port_gen])
 
         super().__init__(variant_generator)
 

@@ -78,7 +78,7 @@ class K8SOperatorMisoperationVariantBase(VariantProblemMixin):
                 values=[1000, 10000, 50000, 100000, 200000],
             )
 
-            variant_generator = CompositeVariantGenerator([config_gen, replica_gen])
+            variant_generator = CompositeVariantGenerator(base_config, [config_gen, replica_gen])
 
         super().__init__(variant_generator)
 

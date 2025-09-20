@@ -66,7 +66,7 @@ class MisconfigAppVariantBase(VariantProblemMixin):
             service_gen = ServiceVariantGenerator(base_config, available_services)
             config_gen = ConfigVariantGenerator(base_config, config_variants)
 
-            variant_generator = CompositeVariantGenerator([service_gen, config_gen])
+            variant_generator = CompositeVariantGenerator(base_config, [service_gen, config_gen])
 
         super().__init__(variant_generator)
 

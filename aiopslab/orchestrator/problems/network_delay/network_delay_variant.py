@@ -61,7 +61,7 @@ class NetworkDelayVariantBase(VariantProblemMixin):
                 values=[50, 100, 200, 500, 1000],
             )
 
-            variant_generator = CompositeVariantGenerator([service_gen, delay_gen])
+            variant_generator = CompositeVariantGenerator(base_config, [service_gen, delay_gen])
 
         super().__init__(variant_generator)
 

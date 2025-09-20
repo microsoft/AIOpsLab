@@ -61,7 +61,7 @@ class NetworkLossVariantBase(VariantProblemMixin):
                 values=[0.05, 0.1, 0.2, 0.3, 0.5],
             )
 
-            variant_generator = CompositeVariantGenerator([service_gen, loss_gen])
+            variant_generator = CompositeVariantGenerator(base_config, [service_gen, loss_gen])
 
         super().__init__(variant_generator)
 
