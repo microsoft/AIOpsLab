@@ -70,7 +70,7 @@ class PodKillVariantBase(VariantProblemMixin):
                 values=["50s", "100s", "200s", "300s"],
             )
 
-            variant_generator = CompositeVariantGenerator([service_gen, duration_gen])
+            variant_generator = CompositeVariantGenerator(base_config, [service_gen, duration_gen])
 
         super().__init__(variant_generator)
 

@@ -223,20 +223,28 @@ class NumericVariantGenerator(VariantGenerator):
 
 class CompositeVariantGenerator(VariantGenerator):
     """Combine multiple variant generators."""
-    
-    def __init__(self, generators: List[VariantGenerator]):
+
+    def __init__(self, base_config: Dict[str, Any], generators: List[VariantGenerator]):
+        super().__init__(base_config)
         self.generators = generators
-        
+
     def generate_variants(self, num_variants: int = 3) -> List[Dict[str, Any]]:
-        """
-        Generate composite variants by combining multiple generators.
-        """
-        all_variants = []
-        
-        for generator in self.generators:
-            variants = generator.generate_variants(num_variants)
-            all_variants.extend(variants)
-            
-        # Shuffle and limit to requested number
-        random.shuffle(all_variants)
-        return all_variants[:num_variants]
+        """Generate composite variants by merging outputs from child generators."""
+        generator_variants = [
+            generator.generate_variants(num_variants) for generator in self.generators
+        ]
+
+        combined_variants: List[Dict[str, Any]] = []
+
+        for index in range(num_variants):
+            variant = self.base_config.copy()
+
+            for variants in generator_variants:
+                if not variants:
+                    continue
+                variant.update(variants[index % len(variants)])
+
+            combined_variants.append(variant)
+
+        random.shuffle(combined_variants)
+        return combined_variants[:num_variants]
