@@ -101,15 +101,18 @@ class RetryOrchestrator:
             self.enable_variants if enable_variants is None else enable_variants
         )
         session = getattr(self.orchestrator, "session", None)
+        starting_problem_id = getattr(session, "problem_id", None) or getattr(session, "pid", None)
         overall_results = {
             "retry_count": 0,
             "attempts": [],
             "variant_attempts": [],
             "final_success": False,
             "final_results": None,
-            "problem_id": getattr(session, "problem_id", None),
+            "problem_id": starting_problem_id,
             "canonical_problem_id": getattr(session, "canonical_pid", None),
-            "variant_mode": self.orchestrator.probs.variant_mode,
+            "variant_mode": getattr(self.orchestrator, "probs", None).variant_mode
+            if getattr(self.orchestrator, "probs", None)
+            else None,
             "variants_enabled_for_retries": self.enable_variants,
         }
 
@@ -164,7 +167,8 @@ class RetryOrchestrator:
 
                 attempt_info = {
                     "attempt_number": attempt + 1,
-                    "problem_id": getattr(self.orchestrator.session, "problem_id", None),
+                    "problem_id": getattr(self.orchestrator.session, "problem_id", None)
+                    or getattr(self.orchestrator.session, "pid", None),
                     "canonical_problem_id": getattr(self.orchestrator.session, "canonical_pid", None),
                     "results": results,
                     "variant": variant_metadata.get("current_variant"),
@@ -196,7 +200,8 @@ class RetryOrchestrator:
                 variant_metadata = self._capture_variant_metadata()
                 attempt_info = {
                     "attempt_number": attempt + 1,
-                    "problem_id": getattr(self.orchestrator.session, "problem_id", None),
+                    "problem_id": getattr(self.orchestrator.session, "problem_id", None)
+                    or getattr(self.orchestrator.session, "pid", None),
                     "canonical_problem_id": getattr(self.orchestrator.session, "canonical_pid", None),
                     "error": str(e),
                     "variant": variant_metadata.get("current_variant"),
@@ -274,8 +279,9 @@ class RetryOrchestrator:
         """Capture variant-specific metadata for the current session."""
         session = getattr(self.orchestrator, "session", None)
         problem = getattr(session, "problem", None)
+        registry = getattr(self.orchestrator, "probs", None)
         metadata = {
-            "mode": self.orchestrator.probs.variant_mode,
+            "mode": getattr(registry, "variant_mode", None),
             "supports_variants": isinstance(problem, VariantTask),
             "current_variant": None,
             "variant_history": [],
@@ -320,46 +326,25 @@ class RetryOrchestrator:
         print(f"Waiting {self.retry_delay} seconds before retry...")
         await asyncio.sleep(self.retry_delay)
         # Re-initialize problem
-        problem_id = None
-        if hasattr(self.orchestrator.session, 'problem_id'):
-            problem_id = self.orchestrator.session.problem_id
-            
-        if problem_id:
-            # Re-initialize the problem
-            self.orchestrator.session = Session(results_dir=self.orchestrator.results_dir)
-            prob = self.orchestrator.probs.get_problem_instance(problem_id)
-            canonical_pid = self.orchestrator.probs.get_canonical_id(problem_id)
-            self.orchestrator.session.set_problem(
-                prob, pid=problem_id, canonical_pid=canonical_pid
-            )
-            self.orchestrator.session.set_agent(self.orchestrator.agent_name)
-            
-            # Re-deploy application
-            prob.app.deploy()
-            
-            # Re-inject fault
-            prob.inject_fault()
-            
-            # Start workload
-            if inspect.iscoroutinefunction(prob.start_workload):
-                await prob.start_workload()
+        session_obj = getattr(self.orchestrator, "session", None)
+        problem_id = getattr(session_obj, "problem_id", None) or getattr(session_obj, "pid", None)
+        if not problem_id:
+            return getattr(self.orchestrator.session, "problem", None)
 
-            else:
-                new_session = session_cls()
-        except TypeError:
-            new_session = session_cls()
-            if results_dir is not None and hasattr(new_session, "results_dir"):
-                new_session.results_dir = results_dir
+        registry = getattr(self.orchestrator, "probs", None)
+        if registry is None:
+            prob = getattr(session_obj, "problem", None)
+            canonical_pid = getattr(session_obj, "canonical_pid", None)
+        else:
+            prob = registry.get_problem_instance(problem_id)
+            canonical_pid = registry.get_canonical_id(problem_id)
 
+        new_session = Session(results_dir=self.orchestrator.results_dir)
+        new_session.set_problem(prob, pid=problem_id, canonical_pid=canonical_pid)
+        new_session.set_agent(self.orchestrator.agent_name)
         self.orchestrator.session = new_session
 
-        if problem:
-            new_session.set_problem(problem, pid=problem_id)
-
-        if hasattr(new_session, "set_agent"):
-            new_session.set_agent(self.orchestrator.agent_name)
-
-        return problem
+        return prob
 
     async def _deploy_problem(self, problem):
         """Deploy application, inject the fault, and start workloads."""
