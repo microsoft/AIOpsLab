@@ -67,7 +67,7 @@ class TaskActions:
 
     @staticmethod
     @action
-    def exec_shell(command: str) -> str:
+    def exec_shell(command: str, timeout: int = 30) -> str:
         """
         Execute any shell command in a predefined debugging environment.
         Note: this is NOT A STATEFUL OR INTERACTIVE shell session. So you cannot
@@ -75,6 +75,7 @@ class TaskActions:
 
         Args:
             command (str): The command to execute.
+            timeout (int): Timeout in seconds for the command execution. Default is 30.
 
         Returns:
             str: The output of the command.
@@ -85,7 +86,7 @@ class TaskActions:
         if "docker logs -f" in command:
             return "Error: Cannot use `docker logs -f`. Use `docker logs` instead."
 
-        return Shell.exec(command)
+        return Shell.exec(command, timeout=timeout)
 
     @staticmethod
     @read
