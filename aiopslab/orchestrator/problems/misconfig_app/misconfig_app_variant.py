@@ -26,6 +26,10 @@ from aiopslab.session import SessionItem
 from aiopslab.paths import TARGET_MICROSERVICES
 
 from .helpers import get_frontend_url
+from .misconfig_app_hotel_res import (
+    evaluate_misconfig_app_analysis_solution,
+    evaluate_misconfig_app_mitigation,
+)
 
 
 class MisconfigAppVariantBase(VariantProblemMixin):
@@ -253,7 +257,7 @@ class MisconfigAppVariantAnalysis(MisconfigAppVariantBase, AnalysisTask):
 
     def eval(self, soln: Any, trace: list[SessionItem], duration: float):
         print("== Evaluation ==")
-        self.evaluate_variant_analysis(soln)
+        evaluate_misconfig_app_analysis_solution(self, soln)
         return super().eval(soln, trace, duration)
 
 
@@ -276,4 +280,6 @@ class MisconfigAppVariantMitigation(MisconfigAppVariantBase, MitigationTask):
 
     def eval(self, soln: Any, trace: list[SessionItem], duration: float):
         print("== Evaluation ==")
-        return super().eval(soln, trace, duration)
+        super().eval(soln, trace, duration)
+        evaluate_misconfig_app_mitigation(self)
+        return self.results

@@ -12,8 +12,10 @@ from aiopslab.orchestrator.problems.revoke_auth import *
 from aiopslab.orchestrator.problems.storage_user_unregistered import *
 from aiopslab.orchestrator.problems.misconfig_app import *
 from aiopslab.orchestrator.problems.misconfig_app.misconfig_app_variant import (
+    MisconfigAppVariantAnalysis,
     MisconfigAppVariantDetection,
     MisconfigAppVariantLocalization,
+    MisconfigAppVariantMitigation,
 )
 from aiopslab.orchestrator.problems.scale_pod import *
 from aiopslab.orchestrator.problems.scale_pod.scale_pod_variant import (
@@ -33,13 +35,17 @@ from aiopslab.orchestrator.problems.pod_failure.pod_failure_variant import (
 )
 from aiopslab.orchestrator.problems.pod_kill import *
 from aiopslab.orchestrator.problems.pod_kill.pod_kill_variant import (
+    PodKillVariantAnalysis,
     PodKillVariantDetection,
     PodKillVariantLocalization,
+    PodKillVariantMitigation,
 )
 from aiopslab.orchestrator.problems.network_loss import *
 from aiopslab.orchestrator.problems.network_loss.network_loss_variant import (
+    NetworkLossVariantAnalysis,
     NetworkLossVariantDetection,
     NetworkLossVariantLocalization,
+    NetworkLossVariantMitigation,
 )
 from aiopslab.orchestrator.problems.network_delay import *
 from aiopslab.orchestrator.problems.network_delay.network_delay_variant import (
@@ -64,8 +70,10 @@ from aiopslab.orchestrator.problems.redeploy_without_pv import *
 from aiopslab.orchestrator.problems.wrong_bin_usage import *
 from aiopslab.orchestrator.problems.operator_misoperation import *
 from aiopslab.orchestrator.problems.operator_misoperation.operator_misoperation_variant import (
+    K8SOperatorMisoperationVariantAnalysis,
     K8SOperatorMisoperationVariantDetection,
     K8SOperatorMisoperationVariantLocalization,
+    K8SOperatorMisoperationVariantMitigation,
 )
 from aiopslab.orchestrator.problems.flower_node_stop import *
 from aiopslab.orchestrator.problems.flower_model_misconfig import *
@@ -394,6 +402,18 @@ class ProblemRegistry:
             "misconfig_app_hotel_res-localization-1": lambda: MisconfigAppVariantLocalization(
                 faulty_service="geo", config_type="env", enable_variants=True
             ),
+            "misconfig_app_hotel_res-analysis": lambda: MisconfigAppVariantAnalysis(
+                enable_variants=True
+            ),
+            "misconfig_app_hotel_res-analysis-1": lambda: MisconfigAppVariantAnalysis(
+                faulty_service="geo", config_type="env", enable_variants=True
+            ),
+            "misconfig_app_hotel_res-mitigation": lambda: MisconfigAppVariantMitigation(
+                enable_variants=True
+            ),
+            "misconfig_app_hotel_res-mitigation-1": lambda: MisconfigAppVariantMitigation(
+                faulty_service="geo", config_type="env", enable_variants=True
+            ),
             # Scale pod (Social Network)
             "scale_pod_zero_social_net-detection": lambda: ScalePodVariantDetection(
                 enable_variants=True
@@ -433,6 +453,18 @@ class ProblemRegistry:
             "pod_kill_hotel_res-localization-1": lambda: PodKillVariantLocalization(
                 faulty_service="user", duration="100s", enable_variants=True
             ),
+            "pod_kill_hotel_res-analysis": lambda: PodKillVariantAnalysis(
+                enable_variants=True
+            ),
+            "pod_kill_hotel_res-analysis-1": lambda: PodKillVariantAnalysis(
+                faulty_service="user", duration="100s", enable_variants=True
+            ),
+            "pod_kill_hotel_res-mitigation": lambda: PodKillVariantMitigation(
+                enable_variants=True
+            ),
+            "pod_kill_hotel_res-mitigation-1": lambda: PodKillVariantMitigation(
+                faulty_service="user", duration="100s", enable_variants=True
+            ),
             # Network loss (Hotel Reservation)
             "network_loss_hotel_res-detection": lambda: NetworkLossVariantDetection(
                 enable_variants=True
@@ -444,6 +476,18 @@ class ProblemRegistry:
                 enable_variants=True
             ),
             "network_loss_hotel_res-localization-1": lambda: NetworkLossVariantLocalization(
+                faulty_service="user", loss_rate=0.1, enable_variants=True
+            ),
+            "network_loss_hotel_res-analysis": lambda: NetworkLossVariantAnalysis(
+                enable_variants=True
+            ),
+            "network_loss_hotel_res-analysis-1": lambda: NetworkLossVariantAnalysis(
+                faulty_service="user", loss_rate=0.1, enable_variants=True
+            ),
+            "network_loss_hotel_res-mitigation": lambda: NetworkLossVariantMitigation(
+                enable_variants=True
+            ),
+            "network_loss_hotel_res-mitigation-1": lambda: NetworkLossVariantMitigation(
                 faulty_service="user", loss_rate=0.1, enable_variants=True
             ),
             # Network delay (Hotel Reservation)
@@ -486,6 +530,12 @@ class ProblemRegistry:
                         fault_type="overload_replicas", enable_variants=True
                     ),
                     "operator_overload_replicas-localization-1": lambda: K8SOperatorMisoperationVariantLocalization(
+                        fault_type="overload_replicas", enable_variants=True
+                    ),
+                    "operator_overload_replicas-analysis": lambda: K8SOperatorMisoperationVariantAnalysis(
+                        fault_type="overload_replicas", enable_variants=True
+                    ),
+                    "operator_overload_replicas-mitigation": lambda: K8SOperatorMisoperationVariantMitigation(
                         fault_type="overload_replicas", enable_variants=True
                     ),
                 }
