@@ -30,8 +30,10 @@ from aiopslab.orchestrator.problems.container_kill.container_kill_variant import
 )
 from aiopslab.orchestrator.problems.pod_failure import *
 from aiopslab.orchestrator.problems.pod_failure.pod_failure_variant import (
+    PodFailureVariantAnalysis,
     PodFailureVariantDetection,
     PodFailureVariantLocalization,
+    PodFailureVariantMitigation,
 )
 from aiopslab.orchestrator.problems.pod_kill import *
 from aiopslab.orchestrator.problems.pod_kill.pod_kill_variant import (
@@ -196,6 +198,8 @@ class ProblemRegistry:
             # Pod failure
             "pod_failure_hotel_res-detection-1": PodFailureDetection,
             "pod_failure_hotel_res-localization-1": PodFailureLocalization,
+            "pod_failure_hotel_res-analysis-1": PodFailureAnalysis,
+            "pod_failure_hotel_res-mitigation-1": PodFailureMitigation,
             # Pod kill
             "pod_kill_hotel_res-detection-1": PodKillDetection,
             "pod_kill_hotel_res-localization-1": PodKillLocalization,
@@ -438,6 +442,18 @@ class ProblemRegistry:
                 enable_variants=True
             ),
             "pod_failure_hotel_res-localization-1": lambda: PodFailureVariantLocalization(
+                faulty_service="user", enable_variants=True
+            ),
+            "pod_failure_hotel_res-analysis": lambda: PodFailureVariantAnalysis(
+                enable_variants=True
+            ),
+            "pod_failure_hotel_res-analysis-1": lambda: PodFailureVariantAnalysis(
+                faulty_service="user", enable_variants=True
+            ),
+            "pod_failure_hotel_res-mitigation": lambda: PodFailureVariantMitigation(
+                enable_variants=True
+            ),
+            "pod_failure_hotel_res-mitigation-1": lambda: PodFailureVariantMitigation(
                 faulty_service="user", enable_variants=True
             ),
             # Pod kill (Hotel Reservation)

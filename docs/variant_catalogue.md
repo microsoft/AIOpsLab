@@ -74,17 +74,18 @@ curriculum authors can quickly inspect the grading logic.
   using the `pod_failure` scenario.
 - **Variant coverage**: [`PodFailureVariantBase`](../aiopslab/orchestrator/problems/pod_failure/pod_failure_variant.py)
   rotates the affected Hotel Reservation service.
-- **Analysis expectations**: variant RCA expects
+- **Analysis expectations**: both static and variant RCAs expect
   `system_level="Virtualization"` / `fault_type="Operation Error"`.
-- **Mitigation checks**: variant mitigation relies on the mixin's `pods_ready`
-  expectation; there is no bespoke static mitigation task yet.
+- **Mitigation checks**: the static task polls until every pod in the namespace
+  reports ready via `kubectl`, while the variant mitigation relies on the
+  mixin's `pods_ready` expectation for the affected service.
 
 | Role | Static task | Variant task | Evaluation focus |
 | --- | --- | --- | --- |
 | Detection | [`PodFailureDetection`](../aiopslab/orchestrator/problems/pod_failure/pod_failure.py) | [`PodFailureVariantDetection`](../aiopslab/orchestrator/problems/pod_failure/pod_failure_variant.py) | Case-insensitive `"Yes"`. |
 | Localization | [`PodFailureLocalization`](../aiopslab/orchestrator/problems/pod_failure/pod_failure.py) | [`PodFailureVariantLocalization`](../aiopslab/orchestrator/problems/pod_failure/pod_failure_variant.py) | Requires the failed service name. |
-| Analysis | – | [`PodFailureVariantAnalysis`](../aiopslab/orchestrator/problems/pod_failure/pod_failure_variant.py) | Uses mixin metadata (`Virtualization` / `Operation Error`). |
-| Mitigation | – | [`PodFailureVariantMitigation`](../aiopslab/orchestrator/problems/pod_failure/pod_failure_variant.py) | Uses `pods_ready` for the affected service. |
+| Analysis | [`PodFailureAnalysis`](../aiopslab/orchestrator/problems/pod_failure/pod_failure.py) | [`PodFailureVariantAnalysis`](../aiopslab/orchestrator/problems/pod_failure/pod_failure_variant.py) | Validates `Virtualization` / `Operation Error`. |
+| Mitigation | [`PodFailureMitigation`](../aiopslab/orchestrator/problems/pod_failure/pod_failure.py) | [`PodFailureVariantMitigation`](../aiopslab/orchestrator/problems/pod_failure/pod_failure_variant.py) | Static task polls for all pods in the namespace; variant uses `pods_ready`. |
 
 ## Hotel Reservation pod kill
 
