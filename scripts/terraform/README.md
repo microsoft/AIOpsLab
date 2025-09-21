@@ -1,88 +1,163 @@
+## Setting up AIOpsLab using Terraform and Ansible
 
-## Setting up AIOpsLab using Terraform
-
-This guide outlines the steps for establishing a secure connection to your Azure environment using a VPN and then provisioning resources with Terraform. This will create a two-node Kubernetes cluster with one controller and one worker node.
+This guide outlines the automated steps for provisioning Azure infrastructure using Terraform and configuring AIOpsLab using Ansible. The process has been significantly streamlined to reduce manual steps.
 
 **NOTE**: This will incur cloud costs as resources are created on Azure.
 
-**Prerequisites:**
+### Prerequisites
 
-- **Azure VPN Connection:** Set up a secure connection to your Azure environment using a VPN client.
-- **Working directory:** AIOpsLab/scripts/terraform/
-- **Privileges:** The user should have the privileges to create resources (SSH keys, VM, network interface, network interface security group (if required), public IP, subnet, virtual network) in the selected resource group.
-- **Azure CLI:** Follow the official [Microsoft documentation](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) for installing the Azure CLI for your operating system: 
-- **Install and initialize Terraform:**
-  
-     a. Download and install Terraform from the [official HashiCorp website](https://developer.hashicorp.com/terraform/install);
-  
-     b. To make the initial dependency selections that will initialize the dependency lock file, run:
-   
-      terraform init
-  
-**Steps:**
-   
+- **Azure CLI:** Follow the official [Microsoft documentation](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) for installing the Azure CLI
+- **Terraform:** Download and install from the [official HashiCorp website](https://developer.hashicorp.com/terraform/install)
+- **Ansible:** Install using your package manager (e.g., `sudo apt install ansible` on Ubuntu)
+- **Python 3.11+** with PyYAML: `pip install PyYAML`
+- **Azure VPN Connection:** Set up a secure connection to your Azure environment using a VPN client
+- **Privileges:** The user should have privileges to create resources (SSH keys, VMs, networking, storage) in Azure
+
+### Quick Start (Recommended)
+
 1. **Authenticate with Azure CLI**
-
-   Open a terminal window and run the following command to log in to Azure:
-
    ```shell
    az login
+   az account set --subscription "<your-subscription-id>"
    ```
 
-2. **Select subscription**
+2. **Navigate to the Terraform directory**
+   ```shell
+   cd AIOpsLab/scripts/terraform/
+   ```
 
-   The output of az login will have a list of subscriptions you have access to. Copy the value in the "id" column of the subscription you want to work with:
+3. **Initialize Terraform**
+   ```shell
+   terraform init
+   ```
+
+4. **Run the simplified deployment script**
+   ```shell
+   python deploy.py
+   ```
    
+   The script will prompt you for:
+   - Resource group name
+   - Resource name prefix  
+   - Azure region (default: westus2)
+   - Whether to create a new resource group
+
+5. **Wait for completion**
+   The script will automatically:
+   - Provision Azure infrastructure using Terraform
+   - Generate Ansible inventory from Terraform outputs
+   - Install and configure Kubernetes using Ansible
+   - Set up AIOpsLab on the controller node
+   - Display SSH connection information
+
+### Advanced Usage
+
+For more control over the deployment process, use the unified deployment tool directly:
+
+```shell
+# Deploy with specific parameters
+python deploy_unified.py deploy \
+  --resource-group "my-aiopslab-rg" \
+  --prefix "aiopslab" \
+  --location "westus2" \
+  --create-resource-group
+
+# Destroy infrastructure
+python deploy_unified.py destroy \
+  --resource-group "my-aiopslab-rg" \
+  --prefix "aiopslab"
+
+# Use configuration file
+cp config.yml.example config.yml
+# Edit config.yml with your settings
+python deploy_unified.py deploy --config config.yml
+```
+
+### Manual Steps (Legacy Process)
+
+If you prefer the manual approach or need to troubleshoot, you can still use the individual components:
+
+1. **Create Terraform plan**
    ```shell
-   az account set --subscription "<id>"
+   terraform plan -out main.tfplan \
+     -var "resource_group_name=<rg>" \
+     -var "resource_name_prefix=<prefix>"
    ```
-3. **Verify the plan**
 
-   *Note*: The SSH port of the VMs is open to the public. Please update the NSG resource in the main.tf file to restrict incoming traffic. Use the source_address_prefix attribute to specify allowed sources (e.g., source_address_prefix = "CorpNetPublic").
-
-   Create and save the plan by passing the required variables
-
-   a) _resource_group_name_ (rg): the resource group where the resources would be created.
-
-   b) _resource_prefix_name_ (prefix): a prefix for all the resources created using the Terraform script.
-
-   ```shell
-   terraform plan -out main.tfplan -var " resource_group_name=<rg>" -var "resource_name_prefix=<prefix>"
-   ```
-5. **Apply the saved plan**
-
-   Note: Verify the plan from the previous step before applying it.
-
+2. **Apply the plan**
    ```shell
    terraform apply "main.tfplan"
    ```
-   
-6. **Setup AIOpsLab**
-    Run the below script to setup AIOpsLab on the newly provisioned resources
 
-    ```shell
-    python deploy.py
-    ```
-   On successful execution, the script outputs the SSH commands to login to the controller and worker node. Please save it.
-
-   Please activate virtual environment before running any scripts and add the path to `wrk2` executable to PATH:
-
-   ```
-   azureuser@kubeController:~/AIOpsLab$ source .venv/bin/activate
-   (.venv) azureuser@kubeController:~/AIOpsLab/clients$ export PATH="$PATH:/home/azureuser/AIOpsLab/TargetMicroservices/wrk2"
+3. **Generate Ansible inventory**
+   ```shell
+   # The unified script does this automatically, but you can generate manually:
+   terraform output -json > outputs.json
+   # Then create inventory.yml based on the outputs
    ```
 
-**How to destroy the resources using Terraform?**
+4. **Run Ansible playbooks**
+   ```shell
+   cd ../ansible/
+   ansible-playbook -i inventory.yml setup_common.yml
+   ansible-playbook -i inventory.yml remote_setup_controller_worker.yml
+   ```
 
-1. Before deleting the resources, run the below command to create and save a plan (use the values previous used for resource_group_name and resource_name_prefix)
-   
-    ```shell
-    terraform plan -destroy -out main.destroy.tfplan -var "resource_group_name=<rg>" -var "resource_name_prefix=<prefix>"
-    ```
+### Post-Deployment
 
-2. Once the plan is verified, remove the resources using the below command:
+After successful deployment:
 
-    ```shell
-    terraform destroy main.destroy.tfplan
-    ```
+1. **SSH into the controller node**
+   ```shell
+   ssh -i vm_1_private_key.pem azureuser@<controller-public-ip>
+   ```
 
+2. **Activate the AIOpsLab environment**
+   ```shell
+   cd ~/AIOpsLab
+   source .venv/bin/activate
+   ```
+
+3. **Verify Kubernetes cluster**
+   ```shell
+   kubectl get nodes
+   ```
+
+### Cleanup
+
+To destroy the infrastructure:
+
+```shell
+# Using the unified tool
+python deploy_unified.py destroy --resource-group "my-aiopslab-rg" --prefix "aiopslab"
+
+# Or manually
+terraform destroy -auto-approve
+```
+
+### Security Notes
+
+- The SSH port of the VMs is open to the public by default. Update the NSG resources in main.tf to restrict incoming traffic using the `source_address_prefix` attribute (e.g., `source_address_prefix = "CorpNetPublic"`)
+- SSH private keys are generated automatically and stored locally. Keep them secure and delete them after use if not needed
+- Consider using Azure Key Vault for production deployments
+
+### Troubleshooting
+
+- **SSH connectivity issues**: Wait a few minutes after deployment for VMs to fully initialize
+- **Ansible playbook failures**: Check that all VMs are accessible and have the correct SSH keys
+- **Terraform state issues**: Use `terraform refresh` to update state if resources were modified outside Terraform
+- **Kubernetes issues**: SSH into nodes and check service status with `systemctl status kubelet`
+
+### What's Automated
+
+The enhanced deployment process now automates:
+- ✅ Azure resource provisioning (VMs, networking, storage)
+- ✅ SSH key generation and management
+- ✅ Ansible inventory generation from Terraform outputs
+- ✅ Kubernetes cluster setup and configuration
+- ✅ AIOpsLab installation and configuration
+- ✅ Network connectivity validation
+- ✅ Error handling and progress reporting
+- ✅ Infrastructure cleanup/destruction
+
+This reduces the manual steps from ~15-20 individual commands to a single deployment command!

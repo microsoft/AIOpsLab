@@ -28,6 +28,14 @@ terraform.tfstate.lock.hcl
 # Sensitive files
 .env
 
-
-# keys
+# Keys and sensitive data
 *.pem
+*.key
+vm_*_private_key.*
+
+# Configuration files with sensitive data
+config.yml
+outputs.json
+
+# Generated Ansible inventory
+inventory_generated.yml
