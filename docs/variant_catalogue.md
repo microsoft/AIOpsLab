@@ -93,17 +93,19 @@ curriculum authors can quickly inspect the grading logic.
   with the `pod_kill` experiment (duration is variant-controlled).
 - **Variant coverage**: [`PodKillVariantBase`](../aiopslab/orchestrator/problems/pod_kill/pod_kill_variant.py)
   varies both the target service and the kill duration.
-- **Analysis expectations**: mixin metadata records
-  `system_level="Virtualization"` / `fault_type="Operation Error"`.
-- **Mitigation checks**: variant mitigation uses the `pods_ready`
-  expectation for the chosen service.
+- **Analysis expectations**: the static task enforces the
+  `system_level="Virtualization"` / `fault_type="Operation Error"`
+  pairing; the variant metadata records the same requirement.
+- **Mitigation checks**: static mitigation polls until the affected
+  service's pods report Ready; the variant mitigation continues to rely
+  on the mixin's `pods_ready` expectation.
 
 | Role | Static task | Variant task | Evaluation focus |
 | --- | --- | --- | --- |
 | Detection | [`PodKillDetection`](../aiopslab/orchestrator/problems/pod_kill/pod_kill.py) | [`PodKillVariantDetection`](../aiopslab/orchestrator/problems/pod_kill/pod_kill_variant.py) | Case-insensitive `"Yes"`. |
 | Localization | [`PodKillLocalization`](../aiopslab/orchestrator/problems/pod_kill/pod_kill.py) | [`PodKillVariantLocalization`](../aiopslab/orchestrator/problems/pod_kill/pod_kill_variant.py) | Requires the killed service name. |
-| Analysis | – | [`PodKillVariantAnalysis`](../aiopslab/orchestrator/problems/pod_kill/pod_kill_variant.py) | Validates `Virtualization` / `Operation Error`. |
-| Mitigation | – | [`PodKillVariantMitigation`](../aiopslab/orchestrator/problems/pod_kill/pod_kill_variant.py) | Ensures pods become ready again. |
+| Analysis | [`PodKillAnalysis`](../aiopslab/orchestrator/problems/pod_kill/pod_kill.py) | [`PodKillVariantAnalysis`](../aiopslab/orchestrator/problems/pod_kill/pod_kill_variant.py) | Validates `Virtualization` / `Operation Error`. |
+| Mitigation | [`PodKillMitigation`](../aiopslab/orchestrator/problems/pod_kill/pod_kill.py) | [`PodKillVariantMitigation`](../aiopslab/orchestrator/problems/pod_kill/pod_kill_variant.py) | Ensures pods become ready again. |
 
 ## Hotel Reservation network loss
 
