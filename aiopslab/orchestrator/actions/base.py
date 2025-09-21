@@ -80,11 +80,16 @@ class TaskActions:
         Returns:
             str: The output of the command.
         """
-        if "kubectl edit" in command or "edit svc" in command:
-            return "Error: Cannot use `kubectl edit`. Use `kubectl patch` instead."
-        
-        if "docker logs -f" in command:
-            return "Error: Cannot use `docker logs -f`. Use `docker logs` instead."
+        BLOCK_LIST: dict[str, str] = {
+            "kubectl edit": "Error: Cannot use `kubectl edit`. Use `kubectl patch` instead.",
+            "edit svc": "Error: Cannot use `kubectl edit`. Use `kubectl patch` instead.",
+            "kubectl port-forward": "Error: Cannot use `kubectl port-forward` because it is an interactive command.",
+            "docker logs -f": "Error: Cannot use `docker logs -f`. Use `docker logs` instead.",
+            "kubectl logs -f": "Error: Cannot use `kubectl logs -f`. Use `kubectl logs` instead.",
+        }
+        for pattern, error in BLOCK_LIST.items():
+            if pattern in command:
+                return error
 
         return Shell.exec(command, timeout=timeout)
 
@@ -255,3 +260,4 @@ class TaskActions:
         # except requests.RequestException as e:
         #     print(f"An error occurred: {e}")
         #     return []
+
