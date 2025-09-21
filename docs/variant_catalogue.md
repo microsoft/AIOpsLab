@@ -113,17 +113,17 @@ curriculum authors can quickly inspect the grading logic.
   simulating packet loss via `inject_network_loss`.
 - **Variant coverage**: [`NetworkLossVariantBase`](../aiopslab/orchestrator/problems/network_loss/network_loss_variant.py)
   picks the affected service and loss rate.
-- **Analysis expectations**: variant RCA expects
+- **Analysis expectations**: static and variant RCA expect
   `system_level="Application"` / `fault_type="Network/Storage Issue"`.
-- **Mitigation checks**: variant mitigation relies on `pods_ready` for the
-  targeted service.
+- **Mitigation checks**: static and variant mitigation rely on `pods_ready`
+  for the targeted service.
 
 | Role | Static task | Variant task | Evaluation focus |
 | --- | --- | --- | --- |
 | Detection | [`NetworkLossDetection`](../aiopslab/orchestrator/problems/network_loss/network_loss.py) | [`NetworkLossVariantDetection`](../aiopslab/orchestrator/problems/network_loss/network_loss_variant.py) | Case-insensitive `"Yes"`. |
 | Localization | [`NetworkLossLocalization`](../aiopslab/orchestrator/problems/network_loss/network_loss.py) | [`NetworkLossVariantLocalization`](../aiopslab/orchestrator/problems/network_loss/network_loss_variant.py) | Requires the degraded service name. |
-| Analysis | – | [`NetworkLossVariantAnalysis`](../aiopslab/orchestrator/problems/network_loss/network_loss_variant.py) | Validates `Application` / `Network/Storage Issue`. |
-| Mitigation | – | [`NetworkLossVariantMitigation`](../aiopslab/orchestrator/problems/network_loss/network_loss_variant.py) | Checks that pods for the affected service are ready. |
+| Analysis | [`NetworkLossAnalysis`](../aiopslab/orchestrator/problems/network_loss/network_loss.py) | [`NetworkLossVariantAnalysis`](../aiopslab/orchestrator/problems/network_loss/network_loss_variant.py) | Validates `Application` / `Network/Storage Issue`. |
+| Mitigation | [`NetworkLossMitigation`](../aiopslab/orchestrator/problems/network_loss/network_loss.py) | [`NetworkLossVariantMitigation`](../aiopslab/orchestrator/problems/network_loss/network_loss_variant.py) | Checks that pods for the affected service are ready. |
 
 ## Hotel Reservation network delay
 
