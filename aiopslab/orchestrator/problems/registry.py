@@ -202,6 +202,8 @@ class ProblemRegistry:
             # Network loss
             "network_loss_hotel_res-detection-1": NetworkLossDetection,
             "network_loss_hotel_res-localization-1": NetworkLossLocalization,
+            "network_loss_hotel_res-analysis-1": NetworkLossAnalysis,
+            "network_loss_hotel_res-mitigation-1": NetworkLossMitigation,
             # Network delay
             "network_delay_hotel_res-detection-1": NetworkDelayDetection,
             "network_delay_hotel_res-localization-1": NetworkDelayLocalization,
