@@ -199,6 +199,8 @@ class ProblemRegistry:
             # Pod kill
             "pod_kill_hotel_res-detection-1": PodKillDetection,
             "pod_kill_hotel_res-localization-1": PodKillLocalization,
+            "pod_kill_hotel_res-analysis-1": PodKillAnalysis,
+            "pod_kill_hotel_res-mitigation-1": PodKillMitigation,
             # Network loss
             "network_loss_hotel_res-detection-1": NetworkLossDetection,
             "network_loss_hotel_res-localization-1": NetworkLossLocalization,
