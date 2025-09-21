@@ -15,6 +15,11 @@ from aiopslab.service.shell import Shell
 from aiopslab.observer.metric_api import PrometheusAPI
 from aiopslab.observer.trace_api import TraceAPI
 
+from aiopslab.orchestrator.actions.log_deduplication import dedup
+
+import re
+
+LOG_COMMAND_PATTERN: str = r'\b(?:kubectl\s+logs|docker\s+logs)\b(?:[^\n]*)'
 
 class TaskActions:
     """Base class for task actions."""
@@ -62,7 +67,7 @@ class TaskActions:
 
         print(logs)
         logs = "\n".join(logs.split("\n"))
-
+        logs = dedup(logs) 
         return logs
 
     @staticmethod
@@ -91,7 +96,14 @@ class TaskActions:
             if pattern in command:
                 return error
 
-        return Shell.exec(command, timeout=timeout)
+        result = Shell.exec(command) 
+
+        if re.search(LOG_COMMAND_PATTERN, command):
+            result = dedup(result)
+
+        print(result)
+
+        return result
 
     @staticmethod
     @read
