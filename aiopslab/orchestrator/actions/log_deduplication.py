@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import os
 import re
 import sys
 from pathlib import Path
@@ -60,7 +61,7 @@ def group_consecutive_lines(lines, threshold):
     groups = [[lines[0]]]
     for line in lines[1:]:
         d = edit_distance(line, groups[-1][-1])
-        if d < threshold:
+        if d <= threshold:
             groups[-1].append(line)
         else:
             groups.append([line])
