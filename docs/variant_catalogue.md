@@ -149,17 +149,18 @@ curriculum authors can quickly inspect the grading logic.
   drives Chaos Mesh to terminate the selected container.
 - **Variant coverage**: [`ContainerKillVariantBase`](../aiopslab/orchestrator/problems/container_kill/container_kill_variant.py)
   enumerates service/container pairs across the application.
-- **Analysis expectations**: variant RCA expects
+- **Analysis expectations**: both static and variant RCAs expect
   `system_level="Virtualization"` / `fault_type="Operation Error"`.
-- **Mitigation checks**: variant mitigation uses `pods_ready` for the affected
-  service.
+- **Mitigation checks**: the static task polls until the affected service's pods
+  are ready again, while the variant metadata uses the mixin's `pods_ready`
+  expectation for that service.
 
 | Role | Static task | Variant task | Evaluation focus |
 | --- | --- | --- | --- |
 | Detection | [`ContainerKillDetection`](../aiopslab/orchestrator/problems/container_kill/container_kill.py) | [`ContainerKillVariantDetection`](../aiopslab/orchestrator/problems/container_kill/container_kill_variant.py) | Case-insensitive `"Yes"`. |
 | Localization | [`ContainerKillLocalization`](../aiopslab/orchestrator/problems/container_kill/container_kill.py) | [`ContainerKillVariantLocalization`](../aiopslab/orchestrator/problems/container_kill/container_kill_variant.py) | Requires the affected service (static) or service/container (variant metadata). |
-| Analysis | – | [`ContainerKillVariantAnalysis`](../aiopslab/orchestrator/problems/container_kill/container_kill_variant.py) | Validates `Virtualization` / `Operation Error`. |
-| Mitigation | – | [`ContainerKillVariantMitigation`](../aiopslab/orchestrator/problems/container_kill/container_kill_variant.py) | Uses `pods_ready` checks. |
+| Analysis | [`ContainerKillAnalysis`](../aiopslab/orchestrator/problems/container_kill/container_kill.py) | [`ContainerKillVariantAnalysis`](../aiopslab/orchestrator/problems/container_kill/container_kill_variant.py) | Validates `Virtualization` / `Operation Error`. |
+| Mitigation | [`ContainerKillMitigation`](../aiopslab/orchestrator/problems/container_kill/container_kill.py) | [`ContainerKillVariantMitigation`](../aiopslab/orchestrator/problems/container_kill/container_kill_variant.py) | Confirms the targeted service's pods return to ready state. |
 
 ## TiDB operator misoperation
 

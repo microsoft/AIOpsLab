@@ -25,8 +25,10 @@ from aiopslab.orchestrator.problems.scale_pod.scale_pod_variant import (
 from aiopslab.orchestrator.problems.assign_non_existent_node import *
 from aiopslab.orchestrator.problems.container_kill import *
 from aiopslab.orchestrator.problems.container_kill.container_kill_variant import (
+    ContainerKillVariantAnalysis,
     ContainerKillVariantDetection,
     ContainerKillVariantLocalization,
+    ContainerKillVariantMitigation,
 )
 from aiopslab.orchestrator.problems.pod_failure import *
 from aiopslab.orchestrator.problems.pod_failure.pod_failure_variant import (
@@ -194,7 +196,13 @@ class ProblemRegistry:
             "assign_to_non_existent_node_social_net-mitigation-1": AssignNonExistentNodeSocialNetMitigation,
             # Chaos mesh container kill
             "container_kill-detection": ContainerKillDetection,
+            "container_kill-detection-1": ContainerKillDetection,
             "container_kill-localization": ContainerKillLocalization,
+            "container_kill-localization-1": ContainerKillLocalization,
+            "container_kill-analysis": ContainerKillAnalysis,
+            "container_kill-analysis-1": ContainerKillAnalysis,
+            "container_kill-mitigation": ContainerKillMitigation,
+            "container_kill-mitigation-1": ContainerKillMitigation,
             # Pod failure
             "pod_failure_hotel_res-detection-1": PodFailureDetection,
             "pod_failure_hotel_res-localization-1": PodFailureLocalization,
@@ -531,7 +539,37 @@ class ProblemRegistry:
                 faulty_container="hotel-reserv-geo",
                 enable_variants=True,
             ),
+            "container_kill-detection-1": lambda: ContainerKillVariantDetection(
+                faulty_service="geo",
+                faulty_container="hotel-reserv-geo",
+                enable_variants=True,
+            ),
             "container_kill-localization": lambda: ContainerKillVariantLocalization(
+                faulty_service="geo",
+                faulty_container="hotel-reserv-geo",
+                enable_variants=True,
+            ),
+            "container_kill-localization-1": lambda: ContainerKillVariantLocalization(
+                faulty_service="geo",
+                faulty_container="hotel-reserv-geo",
+                enable_variants=True,
+            ),
+            "container_kill-analysis": lambda: ContainerKillVariantAnalysis(
+                faulty_service="geo",
+                faulty_container="hotel-reserv-geo",
+                enable_variants=True,
+            ),
+            "container_kill-analysis-1": lambda: ContainerKillVariantAnalysis(
+                faulty_service="geo",
+                faulty_container="hotel-reserv-geo",
+                enable_variants=True,
+            ),
+            "container_kill-mitigation": lambda: ContainerKillVariantMitigation(
+                faulty_service="geo",
+                faulty_container="hotel-reserv-geo",
+                enable_variants=True,
+            ),
+            "container_kill-mitigation-1": lambda: ContainerKillVariantMitigation(
                 faulty_service="geo",
                 faulty_container="hotel-reserv-geo",
                 enable_variants=True,
