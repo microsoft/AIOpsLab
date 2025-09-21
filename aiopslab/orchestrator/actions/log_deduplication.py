@@ -26,6 +26,7 @@ def edit_distance(a: str, b: str):
                 prev[i-1] + cost    # substitution
             ))
         prev = curr
+    # print("Edit dis: ", prev[-1])
     return prev[-1]
 
 # -------------------------------
@@ -121,7 +122,7 @@ def group_consecutive_blocks(blocks, threshold):
     groups = [[blocks[0]]]
     for blk in blocks[1:]:
         d = edit_distance(block_text(blk), block_text(groups[-1][-1]))
-        if d < threshold:
+        if d <= threshold:
             groups[-1].append(blk)
         else:
             groups.append([blk])
@@ -209,11 +210,11 @@ def dedup(text: str, threshold: int = LOG_DEDUP_EDIT_DISTANCE, timestamp_regex: 
     pass2_out, groups2 = pass2(pass1_out, threshold, ts_rx)
 
     # Debug info to stderr (optional)
-    print(
-        f"Pass1 groups: {groups1} | After Pass1 lines: {len(pass1_out)} | "
-        f"Pass2 groups: {groups2} | Final lines: {len(pass2_out)}",
-        file=sys.stderr,
-    )
+    # print(
+    #     f"Pass1 groups: {groups1} | After Pass1 lines: {len(pass1_out)} | "
+    #     f"Pass2 groups: {groups2} | Final lines: {len(pass2_out)}",
+    #     file=sys.stderr,
+    # )
 
     return "\n".join(pass2_out)
 
