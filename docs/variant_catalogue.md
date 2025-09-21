@@ -194,7 +194,9 @@ Variant mode is layered on top of a much broader pool of static incidents. The
   replicas (invalid tolerations, storage class, update strategy, security
   context) that can be re-enabled as those exercises mature.
 - **Chaos experiments without variants (yet)**: container/pod failure, network
-  loss/delay and kernel fault prototypes that can still be run in static mode.
+  loss/delay (the network delay static track now includes RCA validation of
+  `Application` / `Network/Storage Issue` and a pods-ready mitigation gate) and
+  kernel fault prototypes that can still be run in static mode.
 - **Application-specific outages**: Astronomy Shop feature-flag incidents,
   Payment Service/Recommendation Service failures, Kafka queue saturation and
   Flower platform experiments (`flower_*`).

@@ -205,6 +205,8 @@ class ProblemRegistry:
             # Network delay
             "network_delay_hotel_res-detection-1": NetworkDelayDetection,
             "network_delay_hotel_res-localization-1": NetworkDelayLocalization,
+            "network_delay_hotel_res-analysis-1": NetworkDelayAnalysis,
+            "network_delay_hotel_res-mitigation-1": NetworkDelayMitigation,
             # No operation
             "noop_detection_hotel_reservation-1": lambda: NoOpDetection(
                 app_name="hotel"
