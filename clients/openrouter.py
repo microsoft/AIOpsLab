@@ -184,7 +184,7 @@ if __name__ == "__main__":
 
     if args.enable_problem_variants:
         # Variant Mode: Get Variant Problems:
-        problems = ProblemRegistry(variant_mode=args.enable_problem_variants)
+        problems = ProblemRegistry(variant_mode=args.enable_problem_variants).get_problem_ids()
     else:
         # Static Mode: Get All Problems
         problems = ProblemRegistry().PROBLEM_REGISTRY
