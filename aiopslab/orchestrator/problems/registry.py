@@ -337,7 +337,7 @@ class ProblemRegistry:
     def _resolve_variant_mode(self, override: str | None) -> str:
         """Resolve variant mode from override or environment variables."""
         if override:
-            mode = override.lower()
+            mode = str(override).lower()
         else:
             env_mode = os.getenv("AIOPSLAB_PROBLEM_VARIANT_MODE")
             if env_mode:
