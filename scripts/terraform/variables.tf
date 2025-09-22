@@ -4,6 +4,12 @@ variable "prefix" {
   default     = "aiopslab"
 }
 
+variable "resource_group_name" {
+  type        = string
+  description = "The name of the existing Azure Resource Group to deploy resources into."
+  default     = "aiopslab-rg"
+}
+
 variable "location" {
   type        = string
   description = "The Azure region to deploy the resources in."

@@ -1,33 +1,32 @@
-resource "azurerm_resource_group" "rg" {
-  name     = "${var.prefix}-rg"
-  location = var.location
+data "azurerm_resource_group" "rg" {
+  name = var.resource_group_name
 }
 
 resource "azurerm_virtual_network" "vnet" {
   name                = "${var.prefix}-vnet"
   address_space       = ["10.0.0.0/16"]
-  location            = var.location
-  resource_group_name = azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
 }
 
 resource "azurerm_subnet" "subnet" {
   name                 = "${var.prefix}-subnet"
-  resource_group_name  = azurerm_resource_group.rg.name
+  resource_group_name  = data.azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.1.0/24"]
 }
 
 resource "azurerm_public_ip_prefix" "ip_prefix" {
   name                = "${var.prefix}-pip-prefix"
-  location            = var.location
-  resource_group_name = azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
   prefix_length       = 28
 }
 
 resource "azurerm_network_security_group" "nsg" {
   name                = "${var.prefix}-nsg"
-  location            = var.location
-  resource_group_name = azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
 
   security_rule {
     name                       = "SSH"
@@ -44,8 +43,8 @@ resource "azurerm_network_security_group" "nsg" {
 
 resource "azurerm_network_interface" "controller" {
   name                = "${var.prefix}-controller-nic"
-  location            = var.location
-  resource_group_name = azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
 
   ip_configuration {
     name                          = "internal"
@@ -57,8 +56,8 @@ resource "azurerm_network_interface" "controller" {
 
 resource "azurerm_public_ip" "controller" {
   name                = "${var.prefix}-controller-pip"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = var.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
   allocation_method   = "Static"
   ip_version          = "IPv4"
 }
@@ -70,8 +69,8 @@ resource "azurerm_network_interface_security_group_association" "controller" {
 
 resource "azurerm_linux_virtual_machine" "controller" {
   name                = "${var.prefix}-controller"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = var.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
   size                = var.vm_size
   admin_username      = var.admin_username
   network_interface_ids = [
@@ -101,8 +100,8 @@ resource "azurerm_linux_virtual_machine" "controller" {
 resource "azurerm_network_interface" "workers" {
   for_each = toset([for i in range(var.worker_vm_count) : "worker-${i+1}"])
   name                = "${var.prefix}-${each.key}-nic"
-  location            = var.location
-  resource_group_name = azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
 
   ip_configuration {
     name                          = "internal"
@@ -115,8 +114,8 @@ resource "azurerm_network_interface" "workers" {
 resource "azurerm_public_ip" "workers" {
   for_each = toset([for i in range(var.worker_vm_count) : "worker-${i+1}"])
   name                = "${var.prefix}-${each.key}-pip"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = var.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
   allocation_method   = "Static"
   ip_version          = "IPv4"
 }
@@ -130,8 +129,8 @@ resource "azurerm_network_interface_security_group_association" "workers" {
 resource "azurerm_linux_virtual_machine" "workers" {
   for_each = toset([for i in range(var.worker_vm_count) : "worker-${i+1}"])
   name                = "${var.prefix}-${each.key}"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = var.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
   size                = var.vm_size
   admin_username      = var.admin_username
   network_interface_ids = [
