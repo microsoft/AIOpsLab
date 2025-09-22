@@ -114,10 +114,11 @@ class K8STargetPortMisconfigVariantBase(VariantProblemMixin):
         print(f"Current variant: {self.get_variant_summary()}")
 
         injector = VirtualizationFaultInjector(namespace=self.namespace)
-        injector._inject(
-            fault_type="misconfig_k8s",
+        # Use the concrete injector API rather than FaultInjector._inject kwargs
+        injector.inject_misconfig_k8s(
             microservices=[self.faulty_service],
-            wrong_port=self.wrong_port,
+            from_port=9090,
+            to_port=self.wrong_port,
         )
         print(
             f"Service: {self.faulty_service} | Wrong Port: {self.wrong_port} | Namespace: {self.namespace}\n"
@@ -126,9 +127,10 @@ class K8STargetPortMisconfigVariantBase(VariantProblemMixin):
     def recover_fault(self):
         print("== Fault Recovery ==")
         injector = VirtualizationFaultInjector(namespace=self.namespace)
-        injector._recover(
-            fault_type="misconfig_k8s",
+        injector.recover_misconfig_k8s(
             microservices=[self.faulty_service],
+            from_port=self.wrong_port,
+            to_port=9090,
         )
         print(f"Service: {self.faulty_service} | Namespace: {self.namespace}\n")
 
