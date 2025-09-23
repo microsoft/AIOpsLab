@@ -19,7 +19,12 @@ from aiopslab.orchestrator.actions.log_deduplication import dedup
 
 import re
 
-LOG_COMMAND_PATTERN: str = r'\b(?:kubectl\s+logs|docker\s+logs)\b(?:[^\n]*)'
+LOG_COMMAND_PATTERN: str = (
+    r"\b(?:"
+    r"kubectl\s+(?:logs|get\s+events|describe|get\s+\S+\s+-w)"  # logs/events/describe/watch
+    r"|docker\s+(?:logs|events)"                               # docker logs/events
+    r")\b(?:[^\n]*)"
+)
 
 class TaskActions:
     """Base class for task actions."""
