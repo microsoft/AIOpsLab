@@ -13,6 +13,24 @@ class ResponseParser:
     def __init__(self):
         pass
 
+    def validate(self, response: str):
+        actions = re.findall(r"```\s*\n(.*?)\n```", response, re.DOTALL)
+        if len(actions) != 1:
+            raise ResponseParsingError("""
+Format validation failure. Only have one pair of three ticks in your block and check the ticks. 
+Correct example 1:
+I should run:
+```
+ls
+```
+
+Correct example 2:
+Check k8s info 
+```
+kubectl get services --all-namespaces
+```
+            """)
+
     def parse(self, response: str) -> dict:
         """Parses the response string to extract the API name and arguments.
 
@@ -22,6 +40,7 @@ class ResponseParser:
         Returns:
             dict: The parsed API name and arguments.
         """
+        self.validate(response)
         code_block = self.extract_codeblock(response)
         context = self.extract_context(response)
         api_name = self.parse_api_name(code_block)
