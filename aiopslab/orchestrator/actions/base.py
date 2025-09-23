@@ -15,7 +15,7 @@ from aiopslab.service.shell import Shell
 from aiopslab.observer.metric_api import PrometheusAPI
 from aiopslab.observer.trace_api import TraceAPI
 
-from aiopslab.orchestrator.actions.log_deduplication import dedup
+from aiopslab.orchestrator.actions.log_deduplication import greedy_compress_lines 
 
 import re
 
@@ -72,7 +72,7 @@ class TaskActions:
 
         print(logs)
         logs = "\n".join(logs.split("\n"))
-        logs = dedup(logs) 
+        logs = greedy_compress_lines(logs) 
         return logs
 
     @staticmethod
@@ -104,7 +104,7 @@ class TaskActions:
         result = Shell.exec(command) 
 
         if re.search(LOG_COMMAND_PATTERN, command):
-            result = dedup(result)
+            result = greedy_compress_lines(result)
 
         print(result)
 
