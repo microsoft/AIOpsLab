@@ -22,6 +22,37 @@ class ResponseParser:
         Returns:
             dict: The parsed API name and arguments.
         """
+        def fix_backticks_and_newlines(s: str) -> str:
+           """
+           Fixes backticks (`` -> ```) and ensures proper newlines after the opening
+           and before the closing triple backticks.
+
+           Example: 
+                Before fix:
+                 ``exec_shell("kubectl get pods -n test-social-network")```
+                After fix:
+                ```
+                exec_shell("kubectl get pods -n test-social-network")
+                ```
+
+           Sometimes LLM generates response with incorrect format. This is a temporary patch. 
+           In the future should use structured output to define the response json schema 
+           """
+           # Step 1: Fix backticks
+           s = s.replace("``", "```")
+           while "````" in s:
+               s = s.replace("````", "```")
+
+           # Step 2: Ensure newline after opening ```
+           s = re.sub(r"```(?!\n)", "```\n", s)
+
+           # Step 3: Ensure newline before closing ```
+           s = re.sub(r"(?<!\n)```", "\n```", s)
+
+           return s
+
+        # Apply fixer before extracting
+        response = fix_backticks_and_newlines(response)
         code_block = self.extract_codeblock(response)
         context = self.extract_context(response)
         api_name = self.parse_api_name(code_block)
