@@ -185,9 +185,11 @@ if __name__ == "__main__":
     if args.enable_problem_variants:
         # Variant Mode: Get Variant Problems:
         problems = ProblemRegistry(variant_mode=args.enable_problem_variants).get_problem_ids()
+        print("Use variant mode to run tasks")
     else:
         # Static Mode: Get All Problems
         problems = ProblemRegistry().PROBLEM_REGISTRY
+        print("Use standard mode to run tasks")
 
     # Filter problems if specific IDs requested
     if args.problem_ids:
