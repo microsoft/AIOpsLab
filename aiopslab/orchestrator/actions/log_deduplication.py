@@ -106,14 +106,20 @@ def greedy_compress_pass(
 def greedy_compress_lines(
     raw_str: str, 
     ts_rx: re.Pattern[str] = DEFAULT_TS_RX, 
-    window_size: int = 2
 ) -> str:
     """
     Run greedy dedup with passes from block_size=1 up to block_size=window_size.
+    window_size = LOG_TRIM if LOG_TRIM is int or trimming is disabled  
     """
-    enabled = os.environ.get("LOG_TRIM")
-    if not enabled:
+    log_trim = None
+    try:
+        value = os.environ.get("LOG_TRIM")
+        log_trim = int(value) if value is not None else None
+    except ValueError:
+        log_trim = None
+    if not log_trim:
         return raw_str
+    window_size = log_trim
     lines = raw_str.splitlines()
     result = lines[:]
     for size in range(1, window_size + 1):
