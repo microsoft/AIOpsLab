@@ -55,11 +55,10 @@ class Shell:
 
             if out.returncode != 0:
                 error_message = out.stderr.decode("utf-8")
-                print(f"[ERROR] Command execution failed: {error_message}")
+                error_message = f"[ERROR] Command execution failed: {error_message}"
                 return error_message
             else:
                 output_message = out.stdout.decode("utf-8") + out.stderr.decode("utf-8")
-                print(output_message)
                 return output_message
 
         except Exception as e:
@@ -89,7 +88,6 @@ class Shell:
                 return error_message
             else:
                 output_message = stdout.read().decode("utf-8")
-                print(output_message)
                 return output_message
 
         except Exception as e:
@@ -116,11 +114,9 @@ class Shell:
 
             if out.stderr or out.returncode != 0:
                 error_message = out.stderr.decode("utf-8")
-                print(f"[ERROR] Docker command execution failed: {error_message}")
-                return error_message
+                return f"[ERROR] Docker command execution failed: {error_message}"
             else:
                 output_message = out.stdout.decode("utf-8")
-                print(output_message)
                 return output_message
 
         except Exception as e:
