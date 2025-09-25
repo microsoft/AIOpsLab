@@ -6,6 +6,9 @@
 import os
 import pandas as pd
 from datetime import datetime, timedelta
+import tiktoken
+enc = tiktoken.encoding_for_model("gpt-4")
+
 from aiopslab.utils.actions import action, read, write
 from aiopslab.service.kubectl import KubeCtl
 from aiopslab.service.dock import Docker
@@ -190,8 +193,14 @@ class TaskActions:
 
         try:
             df_traces = pd.read_csv(file_path)
-
-            return df_traces.to_string(index=False)
+            traces: str = df_traces.to_string(index=False) 
+            
+            token_count: int = len(enc.encode(traces))
+    
+            if token_count > 5000:
+                return "Trace content too big, use exec_shell to search info from the trace file instead"
+            
+            return traces
 
         except Exception as e:
             return f"Failed to read traces: {str(e)}"
