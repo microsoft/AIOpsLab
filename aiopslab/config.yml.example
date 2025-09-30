@@ -13,3 +13,8 @@ qualitative_eval: false
 
 # Flag to enable/disable printing the session
 print_session: false
+
+# Batch mode settings
+batch_mode: false  # Optimizes for running multiple problems sequentially:
+# - Caches Docker images locally to avoid re-pulling
+# - Keeps infrastructure (OpenEBS, Prometheus) running between problems

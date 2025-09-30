@@ -4,7 +4,6 @@
 import os
 import json
 import yaml
-import time
 from subprocess import CalledProcessError
 from aiopslab.service.helm import Helm
 from aiopslab.service.kubectl import KubeCtl
