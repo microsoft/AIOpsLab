@@ -21,13 +21,13 @@ Format validation failure. Only have one pair of three ticks in your block and c
 Correct example 1:
 I should run:
 ```
-ls
+exec_shell("ls")
 ```
 
 Correct example 2:
 Check k8s info 
 ```
-kubectl get services --all-namespaces
+exec_shell("kubectl get services --all-namespaces")
 ```
             """)
 
