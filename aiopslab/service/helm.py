@@ -4,7 +4,6 @@
 """Interface for helm operations"""
 
 import subprocess
-import time
 
 from aiopslab.service.kubectl import KubeCtl
 
@@ -191,21 +190,20 @@ class Helm:
             print(f"Helm repo {name} added successfully: {output.decode('utf-8')}")
 
     @staticmethod
-    def status(**args) -> str:
-        """Get the status of a Helm release
-
+    def status(release_name: str, namespace: str) -> str:
+        """Get the status of a Helm release.
+        
         Args:
-            release_name (str): Name of the release
-            namespace (str): Namespace of the release
-
+            release_name (str): Name of the release.
+            namespace (str): Namespace of the release.
+        
         Returns:
-            str: Status output from Helm
-
+            str: Status output from Helm.
+        
         Raises:
-            Exception: If the helm status command fails
+            ValueError: If either parameter is missing.
+            Exception: If the helm status command fails.
         """
-        release_name = args.get("release_name")
-        namespace = args.get("namespace")
 
         if not release_name or not namespace:
             raise ValueError("Both release_name and namespace must be provided")
@@ -218,7 +216,7 @@ class Helm:
 
         if process.returncode != 0:
             # helm status failed
-            raise Exception(f"Failed to get status for release {release_name}: {error.decode('utf-8')}")
+            raise RuntimeError(f"Failed to get status for release {release_name}: {error.decode('utf-8')}")
 
         return output.decode("utf-8").strip()
 

@@ -4,7 +4,7 @@
 import os
 import json
 import yaml
-import time
+import logging
 from subprocess import CalledProcessError
 from aiopslab.service.helm import Helm
 from aiopslab.service.kubectl import KubeCtl
@@ -121,6 +121,7 @@ class Prometheus:
             if "No resources found" in result or "Error" in result:
                 return False
         except CalledProcessError as e:
+            logging.exception(f"Unexpected error while checking if the PersistentVolumeClaim exists: {e}")
             return False
         return True
 
@@ -133,5 +134,6 @@ class Prometheus:
                     status_value = line.split(":", 1)[1].strip().lower()
                     return status_value == "deployed"
             return False
-        except Exception:
+        except Exception as e:
+            logging.exception(f"Unexpected error while checking Prometheus status: {e}")
             return False
