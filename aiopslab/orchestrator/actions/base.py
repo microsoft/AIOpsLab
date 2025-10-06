@@ -61,7 +61,6 @@ class TaskActions:
                 return "Error: Your service/namespace does not exist. Use kubectl to check."
 
         print(logs)
-        logs = "\n".join(logs.split("\n"))
 
         return logs
 
