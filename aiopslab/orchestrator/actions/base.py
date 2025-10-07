@@ -70,9 +70,9 @@ class TaskActions:
             except Exception as e:
                 return "Error: Your service/namespace does not exist. Use kubectl to check."
 
-        logs = "\n".join(logs.split("\n"))
         logs = greedy_compress_lines(logs) 
         print(logs)
+
         return logs
 
     @staticmethod
