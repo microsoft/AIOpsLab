@@ -15,6 +15,16 @@ from aiopslab.service.shell import Shell
 from aiopslab.observer.metric_api import PrometheusAPI
 from aiopslab.observer.trace_api import TraceAPI
 
+from aiopslab.orchestrator.actions.log_deduplication import greedy_compress_lines 
+
+import re
+
+LOG_COMMAND_PATTERN: str = (
+    r"\b(?:"
+    r"kubectl\s+(?:logs|get\s+events|describe|get\s+\S+\s+-w)"  # logs/events/describe/watch
+    r"|docker\s+(?:logs|events)"                               # docker logs/events
+    r")\b(?:[^\n]*)"
+)
 
 class TaskActions:
     """Base class for task actions."""
@@ -60,6 +70,7 @@ class TaskActions:
             except Exception as e:
                 return "Error: Your service/namespace does not exist. Use kubectl to check."
 
+        logs = greedy_compress_lines(logs) 
         print(logs)
 
         return logs
@@ -90,7 +101,14 @@ class TaskActions:
             if pattern in command:
                 return error
 
-        return Shell.exec(command, timeout=timeout)
+        result = Shell.exec(command) 
+
+        if re.search(LOG_COMMAND_PATTERN, command):
+            result = greedy_compress_lines(result)
+
+        print(result)
+
+        return result
 
     @staticmethod
     @read
