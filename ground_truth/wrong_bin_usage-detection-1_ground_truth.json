@@ -1,0 +1,117 @@
+{
+  "problem_id": "wrong_bin_usage-detection-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all pods in the namespace to verify components are running and identify targets for deeper inspection.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "List all services to review exposed ports and ensure service objects exist.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Check service endpoints to confirm pods are correctly backing services.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List deployments to verify availability and locate specific deployment objects.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation frontend-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect frontend logs to observe user-facing errors indicating backend profile service issues.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation frontend-7fc7ddc9db-55xlh --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7fc7ddc9db-55xlh",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 60
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation consul-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Review Consul logs to confirm service registration and health queries behavior.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation consul-78c8d79bb-d5jmk --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "78c8d79bb-d5jmk",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 58
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation search-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check search service logs to verify it initializes and registers correctly, narrowing the issue scope.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation search-5c64c8f5bc-5kvr2 --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5c64c8f5bc-5kvr2",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 58
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation profile-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Examine profile service logs revealing it runs geo binary (cmd/geo), indicating wrong binary usage.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation profile-5fc7b778f5-2ccj5 --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5fc7b778f5-2ccj5",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy profile -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Inspect profile deployment spec to confirm container command is set to \"geo\" (definitive wrong binary configuration).",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl get deploy profile -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc profile -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Validate profile service configuration and ports to rule out service misconfiguration as the cause.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl get svc profile -n test-hotel-reservation -o yaml\")"
+    }
+  ]
+}

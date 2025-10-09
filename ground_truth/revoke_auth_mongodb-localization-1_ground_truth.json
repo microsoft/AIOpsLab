@@ -1,0 +1,93 @@
+{
+  "problem_id": "revoke_auth_mongodb-localization-1",
+  "key_commands": [
+    {
+      "command": "submit([\"mongodb-geo\"])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the identified faulty component responsible for the issue.",
+      "sequence_number": 1,
+      "original_command": "submit([\"mongodb-geo\"])"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Retrieve ConfigMaps to find revoke scripts (failure-admin-geo) that remove readWrite on geo-db.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get configmap -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/mongodb-geo\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect mongodb-geo deployment logs to confirm authorization errors when geo connects.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/mongodb-geo\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation mongodb-profile -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check another MongoDB deployment as a control to compare configurations.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation mongodb-profile -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation mongodb-geo -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Examine the mongodb-geo deployment to see auth settings and mounted ConfigMaps related to scripts.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation mongodb-geo -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation geo -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Review the geo deployment configuration for environment and runtime setup.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation geo -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation geo-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Describe the geo pod to confirm crash state and recent restarts.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation geo-84fbc958c7-p4td2\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-p4td2",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 63
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect geo service pod logs to see the runtime error indicating MongoDB authorization failure.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-84fbc958c7-p4td2\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-p4td2",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 55
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "List all pods in the namespace to identify failing components.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "problem_id": "k8s_target_port-misconfig-analysis-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List all pods in the namespace to verify component readiness and establish baseline status.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "List services and ports to identify the exposed port for user-service and other services.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network -o name | xargs -I{} sh -c 'echo {}; kubectl logs -n test-social-network {} --tail=200 2>/dev/null | egrep -i \\\"error|fail|exception|timeout|refus|unavail\\\" || true'\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Scan all pod logs for recent errors to surface connection refusals pointing to user-service reachability issues.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network -o name | xargs -I{} sh -c 'echo {}; kubectl logs -n test-social-network {} --tail=200 2>/dev/null | egrep -i \\\"error|fail|exception|timeout|refus|unavail\\\" || true'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-social-network user-service -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Inspect the user-service Endpoints to confirm backend IPs and actual target port, revealing the port mismatch (port 9999 under name \"9090\").",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-social-network user-service -o yaml\")"
+    },
+    {
+      "command": "submit({\"system_level\": \"Virtualization\", \"fault_type\": \"Misconfiguration\"})",
+      "type": "execute_command",
+      "importance_score": 8,
+      "description": "Submit the final analysis identifying a misconfiguration as the root cause.",
+      "sequence_number": 5,
+      "original_command": "submit({\"system_level\": \"Virtualization\", \"fault_type\": \"Misconfiguration\"})"
+    }
+  ]
+}

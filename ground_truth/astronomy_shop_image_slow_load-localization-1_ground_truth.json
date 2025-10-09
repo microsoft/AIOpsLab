@@ -1,0 +1,13 @@
+{
+  "problem_id": "astronomy_shop_image_slow_load-localization-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the astronomy-shop namespace to quickly identify any unhealthy services that could be related to image loading issues.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    }
+  ]
+}

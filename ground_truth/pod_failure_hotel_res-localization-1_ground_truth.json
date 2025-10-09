@@ -1,0 +1,37 @@
+{
+  "problem_id": "pod_failure_hotel_res-localization-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Lists all pods in the test-hotel-reservation namespace to identify failing components.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod user-<POD_SUFFIX> -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspects the failing user pod to determine the root cause (RunContainerError due to missing executable).",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod user-66d5d6f874-465dq -n test-hotel-reservation\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "66d5d6f874-465dq",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 38
+        }
+      ]
+    },
+    {
+      "command": "submit([\"user\"])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submits the identified faulty component (user) as the root cause.",
+      "sequence_number": 3,
+      "original_command": "submit([\"user\"])"
+    }
+  ]
+}

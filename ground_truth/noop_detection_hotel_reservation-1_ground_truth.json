@@ -1,0 +1,85 @@
+{
+  "problem_id": "noop_detection_hotel_reservation-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the test-hotel-reservation namespace to verify workload health and readiness.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List services in the namespace to confirm service endpoints and ports.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get events -n test-hotel-reservation --sort-by=.metadata.creationTimestamp\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Review chronological Kubernetes events to detect provisioning or startup issues.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get events -n test-hotel-reservation --sort-by=.metadata.creationTimestamp\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/frontend --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect frontend deployment logs; identify consul connection errors and subsequent successful serving state.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/frontend --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/consul --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Check Consul logs to verify agent startup, leadership, and service registration health.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/consul --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/search --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Validate search service successfully registers with Consul and is operational.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/search --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/recommendation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Validate recommendation service DB init and successful registration with Consul.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/recommendation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/geo --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Confirm geo service initializes DB and registers in Consul.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/geo --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/profile --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Confirm profile service initializes cache/DB and registers in Consul.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/profile --tail=200\")"
+    },
+    {
+      "command": "submit(\"No\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the final decision that no anomalies are detected based on collected evidence.",
+      "sequence_number": 10,
+      "original_command": "submit(\"No\")"
+    }
+  ]
+}

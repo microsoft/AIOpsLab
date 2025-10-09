@@ -1,0 +1,37 @@
+{
+  "problem_id": "k8s_target_port-misconfig-detection-3",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to check current workload health and readiness states.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "List all services and their ports to inspect for possible targetPort/port mismatches.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get events -n test-social-network --sort-by=.metadata.creationTimestamp\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Review chronological Kubernetes events to surface warnings/errors that may indicate misconfigurations or runtime issues.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get events -n test-social-network --sort-by=.metadata.creationTimestamp\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "List ConfigMaps in the namespace to verify presence of configuration dependencies referenced by workloads.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get configmap -n test-social-network\")"
+    }
+  ]
+}

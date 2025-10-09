@@ -1,0 +1,125 @@
+{
+  "problem_id": "pod_kill_hotel_res-detection-1",
+  "key_commands": [
+    {
+      "command": "submit(\"No\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the final decision indicating no anomalies detected.",
+      "sequence_number": 1,
+      "original_command": "submit(\"No\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs deploy/frontend -n test-hotel-reservation --tail=100\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Re-check frontend logs to confirm stabilized state after initial errors.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs deploy/frontend -n test-hotel-reservation --tail=100\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs deploy/reservation -n test-hotel-reservation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Verify reservation service DB/memcache init and Consul registration.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs deploy/reservation -n test-hotel-reservation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs deploy/geo -n test-hotel-reservation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Verify geo service DB connectivity and Consul registration.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs deploy/geo -n test-hotel-reservation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs deploy/rate -n test-hotel-reservation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Verify rate service DB/memcache init and Consul registration.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs deploy/rate -n test-hotel-reservation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs deploy/profile -n test-hotel-reservation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Verify profile service DB connectivity and Consul registration.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs deploy/profile -n test-hotel-reservation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs deploy/recommendation -n test-hotel-reservation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Verify recommendation service startup and Consul registration.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs deploy/recommendation -n test-hotel-reservation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs deploy/search -n test-hotel-reservation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Verify search service initialization and successful Consul registration.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs deploy/search -n test-hotel-reservation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get events -n test-hotel-reservation --sort-by=.lastTimestamp | tail -n 50\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Fetch recent namespace events to identify the PodChaos pod-kill operation and related pod lifecycle events.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl get events -n test-hotel-reservation --sort-by=.lastTimestamp | tail -n 50\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs deploy/consul -n test-hotel-reservation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Check Consul logs to confirm agent health and service registration behavior.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl logs deploy/consul -n test-hotel-reservation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs deploy/user -n test-hotel-reservation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Review the user service logs to confirm restart behavior and recent startup after a kill event.",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl logs deploy/user -n test-hotel-reservation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs deploy/frontend -n test-hotel-reservation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Review frontend logs for errors and connectivity to dependencies (e.g., Consul).",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl logs deploy/frontend -n test-hotel-reservation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Inspect deployment readiness and replica counts for anomalies.",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc,endpoints -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Check services and endpoints to verify service exposure and backing pod endpoints.",
+      "sequence_number": 14,
+      "original_command": "exec_shell(\"kubectl get svc,endpoints -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "List all pods in the namespace to observe current status and potential restarts.",
+      "sequence_number": 15,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    }
+  ]
+}

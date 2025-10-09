@@ -1,0 +1,45 @@
+{
+  "problem_id": "k8s_target_port-misconfig-analysis-3",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "List pods in the namespace to verify workloads are running and identify services to investigate.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List services and their exposed ports to choose the target service for deeper inspection.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect service endpoints and backend ports; reveals post-storage-service routing to port 9999, indicating a potential targetPort mismatch.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy post-storage-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Examine deployment spec to confirm container is listening on port 9090.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get deploy post-storage-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc post-storage-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Inspect service spec to identify targetPort set to 9999, confirming the targetPort misconfiguration versus containerPort 9090.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get svc post-storage-service -n test-social-network -o yaml\")"
+    }
+  ]
+}

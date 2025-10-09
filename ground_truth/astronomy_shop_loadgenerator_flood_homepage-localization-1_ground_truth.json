@@ -1,0 +1,171 @@
+{
+  "problem_id": "astronomy_shop_loadgenerator_flood_homepage-localization-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "List all pods in the astronomy-shop namespace to identify any pods with restarts or abnormal states.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Check current logs of the fraud-detection pod for errors or crash clues.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-sw6lf --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-sw6lf",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-<POD_SUFFIX> -<REPLICA_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Inspect logs from the previous container instance to capture crash information before restart.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-sw6lf --previous --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-sw6lf",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 73
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Describe the fraud-detection pod to view container states, exit codes (137), resource limits, and restart/backoff events.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-65868bcdb5-sw6lf\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-sw6lf",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 67
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop checkout-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Review checkout service logs to rule out broader system issues.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop checkout-5bc54f8cd8-ckhgx --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5bc54f8cd8-ckhgx",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 52
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop payment-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check payment service logs to confirm it is operating normally and isolate the fault to another service.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop payment-7597577cb5-d5v7j --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7597577cb5-d5v7j",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 51
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pod -n astronomy-shop fraud-detection-<POD_SUFFIX> -o jsonpath='{.status.containerStatuses[0].lastState.terminated.reason} {.status.containerStatuses[0].lastState.terminated.exitCode} {.status.containerStatuses[0].state.terminated.reason} {.status.containerStatuses[0].state.terminated.exitCode}\\n'\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Extract termination reasons and exit codes from the fraud-detection pod to verify crash type (Error 137).",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get pod -n astronomy-shop fraud-detection-65868bcdb5-sw6lf -o jsonpath='{.status.containerStatuses[0].lastState.terminated.reason} {.status.containerStatuses[0].lastState.terminated.exitCode} {.status.containerStatuses[0].state.terminated.reason} {.status.containerStatuses[0].state.terminated.exitCode}\\n'\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-sw6lf",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 62
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pod -n astronomy-shop fraud-detection-<POD_SUFFIX> -o jsonpath='{.status.containerStatuses[0].lastState.terminated.reason} {.status.containerStatuses[0].lastState.terminated.signal} {.status.containerStatuses[0].lastState.terminated.exitCode} {.status.containerStatuses[0].state.terminated.reason} {.status.containerStatuses[0].state.terminated.signal} {.status.containerStatuses[0].state.terminated.exitCode} {.status.containerStatuses[0].lastState.terminated.finishedAt}\\n'\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Further detail termination info including signals and timestamp for the fraud-detection pod crash.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl get pod -n astronomy-shop fraud-detection-65868bcdb5-sw6lf -o jsonpath='{.status.containerStatuses[0].lastState.terminated.reason} {.status.containerStatuses[0].lastState.terminated.signal} {.status.containerStatuses[0].lastState.terminated.exitCode} {.status.containerStatuses[0].state.terminated.reason} {.status.containerStatuses[0].state.terminated.signal} {.status.containerStatuses[0].state.terminated.exitCode} {.status.containerStatuses[0].lastState.terminated.finishedAt}\\n'\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-sw6lf",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 62
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop frontend-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Validate frontend service health to ensure homepage availability, isolating issue away from frontend.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop frontend-7d6b77c58-zww6x --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7d6b77c58-zww6x",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 52
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get events -n astronomy-shop --sort-by=.lastTimestamp\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Review recent namespace events to corroborate back-off restarts and container failures for fraud-detection.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl get events -n astronomy-shop --sort-by=.lastTimestamp\")"
+    },
+    {
+      "command": "submit([\"fraud<REPLICA_SUFFIX>\"])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the identified faulty component based on evidence of repeated crashes (exit code 137) and back-off.",
+      "sequence_number": 11,
+      "original_command": "submit([\"fraud-detection\"])",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 14
+        }
+      ]
+    }
+  ]
+}

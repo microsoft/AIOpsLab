@@ -1,0 +1,101 @@
+{
+  "problem_id": "k8s_target_port-misconfig-detection-2",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get svc user-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 1,
+      "description": "Retrieve user-service Service manifest for comparison and cross-validation of port configuration patterns.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get svc user-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap text-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Fetch the text-service ConfigMap contents to validate service-specific configuration references.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get configmap text-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "List all ConfigMaps in the namespace to verify presence of required configurations.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get configmap -n test-social-network -o wide\")"
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 6,
+      "description": "Submit detection result indicating an anomaly (Service targetPort misconfiguration).",
+      "sequence_number": 4,
+      "original_command": "submit(\"Yes\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs deploy/nginx-thrift -n test-social-network --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Check frontend gateway logs for potential client-side or routing issues.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs deploy/nginx-thrift -n test-social-network --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs deploy/text-service -n test-social-network --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Check text-service logs for runtime errors; supports diagnosis though not core to mismatch detection.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs deploy/text-service -n test-social-network --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy text-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Examine text-service Deployment; shows containerPort is 9090, evidencing a targetPort mismatch.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get deploy text-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc text-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Examine text-service Service spec; confirms targetPort is set to 8080.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl get svc text-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect resolved service endpoints and backend ports; reveals text-service routing to port 8080.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy,svc,ingress -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Summarize deployments and services to see declared service ports and selectors.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl get deploy,svc,ingress -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get events -n test-social-network --sort-by=.metadata.creationTimestamp\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Review recent cluster events for any warnings or anomalies.",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl get events -n test-social-network --sort-by=.metadata.creationTimestamp\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "List all pods in the namespace to verify workloads are running.",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    }
+  ]
+}

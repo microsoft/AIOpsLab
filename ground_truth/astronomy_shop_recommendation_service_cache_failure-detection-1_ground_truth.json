@@ -1,0 +1,125 @@
+{
+  "problem_id": "astronomy_shop_recommendation_service_cache_failure-detection-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Lists all pods in the astronomy-shop namespace to identify any failing components.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-<POD_SUFFIX>; echo '---LOGS (current)---'; kubectl logs -n astronomy-shop fraud-detection-6586<POD_SUFFIX>ll-containers=true --tail=200; echo '---LOGS (previous)---'; kubectl logs -n astronomy-shop fraud-detection-65868bcd<POD_SUFFIX>ous --all-containers=true --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Attempts a combined pod describe and retrieval of current/previous logs for initial triage of the failing fraud-detection pod.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-65868bcdb5-xm872; echo '---LOGS (current)---'; kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-xm872 --all-containers=true --tail=200; echo '---LOGS (previous)---'; kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-xm872 --previous --all-containers=true --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-xm872",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 67
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-xm872",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 161
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-xm872",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 289
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Describes the failing pod to inspect container states, exit codes, resource limits, and events indicating BackOff and exit code 137.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-65868bcdb5-xm872\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-xm872",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 67
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Fetches recent logs from the fraud-detection pod to check runtime errors; confirms default container and guides further log scoping.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-xm872 --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-xm872",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-<POD_SUFFIX> -c fraud<REPLICA_SUF<REPLICA_SUFFIX>evious --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Retrieves logs from the previously terminated fraud-detection container to gather crash context.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-xm872 -c fraud-detection --previous --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-xm872",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 80
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 92
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop payment-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Checks logs of another service (payment) as a baseline to compare health and systemic impact.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop payment-7597577cb5-567lc --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7597577cb5-567lc",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 51
+        }
+      ]
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submits the final determination that an anomaly is present.",
+      "sequence_number": 7,
+      "original_command": "submit(\"Yes\")"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "problem_id": "container_kill-detection-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to spot anomalies such as restarts; identifies the geo pod with a recent restart.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-<POD_SUFFIX> -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Fetch logs from the previous instance of the geo container to investigate the cause of the prior termination.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-84fbc958c7-d9d9q --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-d9d9q",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 55
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 69
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation geo-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Describe the geo pod to inspect detailed state; shows Last State Terminated with Exit Code 137 indicating a container kill.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation geo-84fbc958c7-d9d9q\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-d9d9q",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 63
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get events -n test-hotel-reservation --sort-by=.lastTimestamp\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Retrieve recent namespace events; confirms podchaos/container-kill was applied to the geo pod, directly evidencing the anomaly.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get events -n test-hotel-reservation --sort-by=.lastTimestamp\")"
+    }
+  ]
+}

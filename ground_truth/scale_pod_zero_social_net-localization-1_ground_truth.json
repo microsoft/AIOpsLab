@@ -1,0 +1,61 @@
+{
+  "problem_id": "scale_pod_zero_social_net-localization-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Lists all pods in the test-social-network namespace to spot anomalies; reveals user-service pod terminating.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n test-social-network user-service-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Describes the specific user-service pod to see detailed state and termination context.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod -n test-social-network user-service-6d5985bd55-dcwpl\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "6d5985bd55-dcwpl",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 69
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Lists deployments and their readiness; indicates user-service has zero replicas/availability.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe deploy -n test-social-network user-service; kubectl get rs -n test-social-network | grep user-service; kubectl get hpa -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Attempts deeper diagnosis by describing the user-service deployment and checking ReplicaSets/HPAs to understand scaling behavior.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl describe deploy -n test-social-network user-service; kubectl get rs -n test-social-network | grep user-service; kubectl get hpa -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy user-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Fetches full deployment spec for user-service; confirms spec.replicas is 0 (root cause).",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get deploy user-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "submit([\"user-service\"])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submits the localized faulty component (user-service) as the root cause due to replicas scaled to zero.",
+      "sequence_number": 6,
+      "original_command": "submit([\"user-service\"])"
+    }
+  ]
+}

@@ -1,0 +1,273 @@
+{
+  "problem_id": "astronomy_shop_ad_service_manual_gc-localization-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop <POD_SUFFIX>-54<POD_SUFFIX>-tail=200\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Check frontend-proxy (Envoy) logs for proxy-level issues",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop frontend-proxy-548b4649d7-zf48s --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "frontend-proxy",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 43
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "548b4649d7-zf48s",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 58
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl exec -n astronomy-shop frontend-<POD_SUFFIX> -- sh -c 'apk add --no-cache curl >/dev/null 2>&1 || true; for svc in cart ad checkout; do echo Testing $svc; curl -sS -m 3 http://$svc:8080/ || echo failed; echo; done'\")",
+      "type": "execute_command",
+      "importance_score": 3,
+      "description": "Attempt in-pod HTTP probes from frontend to backend services (installation of curl attempted)",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl exec -n astronomy-shop frontend-7d6b77c58-zrrcw -- sh -c 'apk add --no-cache curl >/dev/null 2>&1 || true; for svc in cart ad checkout; do echo Testing $svc; curl -sS -m 3 http://$svc:8080/ || echo failed; echo; done'\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7d6b77c58-zrrcw",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 52
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pod frontend-<POD_SUFFIX> -n astronomy-shop -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Inspect frontend pod configuration (service addresses and OTEL settings)",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get pod frontend-7d6b77c58-zrrcw -n astronomy-shop -o yaml\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7d6b77c58-zrrcw",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 37
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop frontend-<POD_SUFFIX> --tail=50\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Re-check recent frontend errors for persistent connectivity failures",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop frontend-7d6b77c58-zrrcw --tail=50\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7d6b77c58-zrrcw",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 52
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop cart-<POD_SUFFIX> -c cart --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Fetch logs from the cart container specifically to validate normal operation",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop cart-6fd857c656-js2hf -c cart --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "6fd857c656-js2hf",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 48
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop -l opentelemetry.io/name=cart -o jsonpath=\\'{.items[*].metadata.name} {.items[*].metadata.labels}\\'\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "List cart pods via label selector to confirm label consistency with Service selectors.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop -l opentelemetry.io/name=cart -o jsonpath=\\'{.items[*].metadata.name} {.items[*].metadata.labels}\\'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pod checkout-<POD_SUFFIX> -n astronomy-shop -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Inspect checkout pod configuration and status details",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get pod checkout-5bc54f8cd8-92x8c -n astronomy-shop -o yaml\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5bc54f8cd8-92x8c",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 37
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pod ad-<POD_SUFFIX> -n astronomy-shop -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Inspect ad pod configuration and lastState for restart/termination clues",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl get pod ad-94bd576b5-ktlqr -n astronomy-shop -o yaml\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-ktlqr",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 31
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe svc -n astronomy-shop cart\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Describe cart service to confirm selectors, ports, and active endpoints",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl describe svc -n astronomy-shop cart\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop checkout-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Fetch checkout service logs for error indications",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop checkout-5bc54f8cd8-92x8c --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5bc54f8cd8-92x8c",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 52
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pod cart-<POD_SUFFIX> -n astronomy-shop -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Inspect cart pod specification and status for configuration and readiness details",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl get pod cart-6fd857c656-js2hf -n astronomy-shop -o yaml\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "6fd857c656-js2hf",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 33
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n astronomy-shop ad cart checkout -o wide\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Verify service endpoints resolve to healthy pods and correct ports",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl get endpoints -n astronomy-shop ad cart checkout -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop -l opentelemetry.io/name=cart -o jsonpath='{.items[*].metadata.name} {.items[*].metadata.labels}'\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Query cart pod name and labels for targeting and verification",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop -l opentelemetry.io/name=cart -o jsonpath='{.items[*].metadata.name} {.items[*].metadata.labels}'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop cart-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Check cart service pod logs for errors or readiness",
+      "sequence_number": 14,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop cart-6fd857c656-js2hf --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "6fd857c656-js2hf",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 48
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n astronomy-shop -o wide\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List services and their ClusterIPs/ports to map frontend dependencies to backends",
+      "sequence_number": 15,
+      "original_command": "exec_shell(\"kubectl get svc -n astronomy-shop -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop frontend-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Inspect frontend logs for errors and connectivity issues to backend services",
+      "sequence_number": 16,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop frontend-7d6b77c58-zrrcw --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7d6b77c58-zrrcw",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 52
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop ad-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Fetch current logs for the ad service to verify it is running and listening",
+      "sequence_number": 17,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop ad-94bd576b5-ktlqr\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-ktlqr",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 46
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop ad-<POD_SUFFIX> -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Fetch previous container logs for the ad service to check recent crashes or restarts",
+      "sequence_number": 18,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop ad-94bd576b5-ktlqr --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-ktlqr",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 46
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 60
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "List all pods in the astronomy-shop namespace to assess overall service health and restarts",
+      "sequence_number": 19,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    }
+  ]
+}
