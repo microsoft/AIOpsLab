@@ -1,6 +1,9 @@
 import importlib.util
+import json
 import sys
+import tempfile
 import types
+from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
 
@@ -91,7 +94,6 @@ rl_env_module = _load_module(
 )
 
 ResponseParser = parser_module.ResponseParser
-PowerModel = rl_env_module.PowerModel
 ProblemRLEnvironment = rl_env_module.ProblemRLEnvironment
 RewardConfig = rl_env_module.RewardConfig
 
@@ -184,98 +186,120 @@ def _action(api_call: str) -> str:
     return f"Action:```\n{api_call}\n```"
 
 
+@contextmanager
+def ground_truth_dir(data):
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = Path(tmp)
+        for problem_id, commands in data.items():
+            payload = {"problem_id": problem_id, "key_commands": commands}
+            (directory / f"{problem_id}.json").write_text(
+                json.dumps(payload),
+                encoding="utf-8",
+            )
+        yield directory
+
+
 def test_reset_returns_initial_observation():
     orchestrator = StubOrchestrator()
-    env = ProblemRLEnvironment(orchestrator=orchestrator, max_steps=5)
+    with ground_truth_dir({"problem-1": []}) as gt_dir:
+        env = ProblemRLEnvironment(
+            orchestrator=orchestrator, max_steps=5, ground_truth_dir=gt_dir
+        )
 
-    obs, info = env.reset("problem-1")
+        obs, info = env.reset("problem-1")
 
-    assert "problem-1" in obs["state"]
-    assert obs["actions_left"] == 5
-    assert info["available_actions"] == ["exec_shell", "submit"]
-    assert info["problem_id"] == "problem-1"
+        assert "problem-1" in obs["state"]
+        assert obs["actions_left"] == 5
+        assert info["available_actions"] == ["exec_shell", "submit"]
+        assert info["problem_id"] == "problem-1"
 
 
 def test_step_exec_shell_returns_step_penalty():
     reward_cfg = RewardConfig(step=-0.25)
-    env = ProblemRLEnvironment(
-        orchestrator=StubOrchestrator(), max_steps=3, reward_config=reward_cfg
-    )
-    env.reset("problem-2")
+    orchestrator = StubOrchestrator()
+    with ground_truth_dir({"problem-2": []}) as gt_dir:
+        env = ProblemRLEnvironment(
+            orchestrator=orchestrator,
+            max_steps=3,
+            reward_config=reward_cfg,
+            ground_truth_dir=gt_dir,
+        )
+        env.reset("problem-2")
 
-    obs, reward, done, info = env.step(_action('exec_shell("ls")'))
+        obs, reward, done, info = env.step(_action('exec_shell("ls")'))
 
-    assert "ran: ls" in obs["state"]
-    assert reward == -0.25
-    assert done is False
-    assert info["terminated"] is False
-    assert info["truncated"] is False
+        assert "ran: ls" in obs["state"]
+        assert reward == -0.25
+        assert done is False
+        assert info["terminated"] is False
+        assert info["truncated"] is False
 
 
 def test_power_model_bonus_applied_to_matching_command():
     orchestrator = StubOrchestrator()
-    power_model = PowerModel.from_results(
-        [
-            {
-                "problem_id": "problem-2",
-                "key_commands": [
-                    {
-                        "command": 'exec_shell("ls")',
-                        "importance_score": 6,
-                        "sequence_number": 1,
-                    }
-                ],
-            }
-        ]
-    )
     reward_cfg = RewardConfig(step=-0.25, command_match_multiplier=0.01)
-    env = ProblemRLEnvironment(
-        orchestrator=orchestrator,
-        max_steps=3,
-        reward_config=reward_cfg,
-        power_model=power_model,
-    )
+    commands = [
+        {
+            "command": 'exec_shell("ls")',
+            "importance_score": 6,
+            "sequence_number": 1,
+        }
+    ]
 
-    obs, info = env.reset("problem-2")
-    assert "power_commands" in info
-    assert info["power_commands_remaining"] == ['exec_shell("ls")']
+    with ground_truth_dir({"problem-2": commands}) as gt_dir:
+        env = ProblemRLEnvironment(
+            orchestrator=orchestrator,
+            max_steps=3,
+            reward_config=reward_cfg,
+            ground_truth_dir=gt_dir,
+        )
 
-    _, reward, done, step_info = env.step(_action('exec_shell("ls")'))
+        obs, info = env.reset("problem-2")
+        assert "power_commands" in info
+        assert info["power_commands_remaining"] == ['exec_shell("ls")']
 
-    assert done is False
-    assert reward == -0.25 + 0.06
-    assert step_info["power_commands_remaining"] == []
+        _, reward, done, step_info = env.step(_action('exec_shell("ls")'))
+
+        assert done is False
+        assert reward == -0.25 + 0.06
+        assert step_info["power_commands_remaining"] == []
 
 
 def test_submit_ends_episode_and_records_results():
     orchestrator = StubOrchestrator()
-    env = ProblemRLEnvironment(orchestrator=orchestrator, max_steps=4)
-    env.reset("problem-3")
+    with ground_truth_dir({"problem-3": []}) as gt_dir:
+        env = ProblemRLEnvironment(
+            orchestrator=orchestrator, max_steps=4, ground_truth_dir=gt_dir
+        )
+        env.reset("problem-3")
 
-    env.step(_action('exec_shell("ls")'))
-    obs, reward, done, info = env.step(_action('submit("good")'))
+        env.step(_action('exec_shell("ls")'))
+        obs, reward, done, info = env.step(_action('submit("good")'))
 
-    assert done is True
-    assert reward == env.reward_config.success
-    assert info["terminated"] is True
-    assert info["results"] == {"success": True}
+        assert done is True
+        assert reward == env.reward_config.success
+        assert info["terminated"] is True
+        assert info["results"] == {"success": True}
 
-    problem = orchestrator.session.problem
-    assert problem.recover_calls == 1
-    assert problem.app.cleanup_calls == 1
-    assert len(problem.eval_invocations) == 1
-    assert orchestrator.session.results == {"success": True}
+        problem = orchestrator.session.problem
+        assert problem.recover_calls == 1
+        assert problem.app.cleanup_calls == 1
+        assert len(problem.eval_invocations) == 1
+        assert orchestrator.session.results == {"success": True}
 
 
 def test_timeout_truncates_episode():
     orchestrator = StubOrchestrator()
-    env = ProblemRLEnvironment(orchestrator=orchestrator, max_steps=1)
-    env.reset("problem-4")
+    with ground_truth_dir({"problem-4": []}) as gt_dir:
+        env = ProblemRLEnvironment(
+            orchestrator=orchestrator, max_steps=1, ground_truth_dir=gt_dir
+        )
+        env.reset("problem-4")
 
-    obs, reward, done, info = env.step(_action('exec_shell("status")'))
+        obs, reward, done, info = env.step(_action('exec_shell("status")'))
 
-    assert done is True
-    assert info["truncated"] is True
-    assert reward == env.reward_config.timeout
-    assert info["results"] == {"success": False, "reason": "timeout"}
+        assert done is True
+        assert info["truncated"] is True
+        assert reward == env.reward_config.timeout
+        assert info["results"] == {"success": False, "reason": "timeout"}
 

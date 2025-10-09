@@ -17,9 +17,11 @@ training pipelines.
 from __future__ import annotations
 
 import json
+import os
 import re
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
 from aiopslab.orchestrator.parser import ResponseParser
@@ -165,12 +167,60 @@ class PowerModel:
             mapping.setdefault(problem_id, []).extend(commands)  # type: ignore[arg-type]
         return cls(mapping)
 
-    def start_episode(self, problem_id: str) -> Optional[PowerModelEpisode]:
-        commands = self._commands.get(problem_id)
-        if not commands:
-            return None
+    @classmethod
+    def from_ground_truth_dir(cls, directory: Path) -> "PowerModel":
+        mapping: Dict[str, List[Mapping[str, Any]]] = {}
+        if not directory.exists():
+            raise FileNotFoundError(
+                f"Ground truth directory '{directory}' does not exist."
+            )
+        for json_path in sorted(directory.glob("*.json")):
+            with json_path.open("r", encoding="utf-8") as handle:
+                payload = json.load(handle)
+
+            records: Iterable[Mapping[str, Any]]
+            if isinstance(payload, list):
+                records = payload  # type: ignore[assignment]
+            else:
+                records = [payload]  # type: ignore[list-item]
+
+            for record in records:
+                problem_id = record.get("problem_id")
+                if not problem_id:
+                    continue
+                commands = record.get("key_commands", [])
+                if isinstance(commands, Mapping):
+                    commands = [commands]
+                if isinstance(commands, (str, bytes)):
+                    continue
+                if not isinstance(commands, Iterable):
+                    continue
+                mapping.setdefault(problem_id, []).extend(commands)  # type: ignore[arg-type]
+
+        if not mapping:
+            raise ValueError(
+                f"Ground truth directory '{directory}' does not contain any problem data."
+            )
+
+        return cls(mapping)
+
+    def start_episode(self, problem_id: str) -> PowerModelEpisode:
+        try:
+            commands = self._commands[problem_id]
+        except KeyError as exc:
+            raise KeyError(
+                f"No ground-truth power commands found for problem_id '{problem_id}'."
+            ) from exc
         return PowerModelEpisode(commands)
 
+
+
+DEFAULT_GROUND_TRUTH_DIR = Path(
+    os.environ.get(
+        "AIOPSLAB_GROUND_TRUTH_DIR",
+        str(Path(__file__).resolve().parents[2] / "ground_truth"),
+    )
+)
 
 
 class ProblemRLEnvironment:
@@ -187,7 +237,7 @@ class ProblemRLEnvironment:
         *,
         max_steps: int = 30,
         reward_config: Optional[RewardConfig] = None,
-        power_model: Optional[PowerModel] = None,
+        ground_truth_dir: Optional[os.PathLike[str] | str] = None,
     ) -> None:
         if orchestrator is None:
             from aiopslab.orchestrator.orchestrator import Orchestrator as _Orchestrator
@@ -197,7 +247,12 @@ class ProblemRLEnvironment:
         self.orchestrator = orchestrator
         self.max_steps = max_steps
         self.reward_config = reward_config or RewardConfig()
-        self.power_model = power_model
+        directory = (
+            Path(ground_truth_dir)
+            if ground_truth_dir is not None
+            else DEFAULT_GROUND_TRUTH_DIR
+        )
+        self.power_model = PowerModel.from_ground_truth_dir(directory)
 
         # ``Orchestrator`` expects an agent name for bookkeeping.  RL training
         # loops drive the environment directly, so we inject a lightweight name
@@ -264,8 +319,11 @@ class ProblemRLEnvironment:
         self._actions_catalog = dict(actions)
 
         self._power_episode = None
-        if self.power_model is not None and self.problem_id is not None:
-            self._power_episode = self.power_model.start_episode(self.problem_id)
+        if self.problem_id is not None:
+            try:
+                self._power_episode = self.power_model.start_episode(self.problem_id)
+            except KeyError as exc:  # pragma: no cover - configuration error
+                raise RuntimeError(str(exc)) from exc
 
         # ``init_problem`` creates a fresh session but leaves it idle.
         session = self.orchestrator.session
@@ -544,6 +602,7 @@ class ProblemRLEnvironment:
 __all__ = [
     "PowerCommand",
     "PowerModel",
+    "DEFAULT_GROUND_TRUTH_DIR",
     "ProblemRLEnvironment",
     "RewardConfig",
 ]
