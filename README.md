@@ -215,8 +215,53 @@ AIOpsLab makes it extremely easy to develop and evaluate your agents. You can on
         ```python
         problem_desc, instructs, apis = orch.init_problem("k8s_target_port-misconfig-mitigation-1")
         ```
-    
+
     2. **Set agent context**: Use the problem description, instructions, and APIs available to set context for your agent. (*This step depends on your agent's design and is left to the user*)
+
+### Running problems as a reinforcement-learning environment
+
+To integrate AIOpsLab problems with reinforcement-learning pipelines, use the
+`ProblemRLEnvironment` wrapper. It mirrors the familiar `reset`/`step` API and
+returns structured observations that include the task description,
+instructions, and latest environment response. Rewards are configurable via
+`RewardConfig`, and every environment instance automatically loads the
+"power-model" command traces recorded for each problem from the
+[`ground_truth/`](ground_truth/) directory. When your agent replays a command
+from the ground-truth trace it receives an importance-weighted bonus, guiding
+exploration toward proven investigation paths.
+
+```python
+from aiopslab.orchestrator import ProblemRLEnvironment, RewardConfig
+
+env = ProblemRLEnvironment(
+    max_steps=5,
+    reward_config=RewardConfig(step=-0.1, command_match_multiplier=0.01),
+)
+observation, info = env.reset("container_kill-detection")
+
+while True:
+    action = policy(observation, info)  # your RL policy
+    observation, reward, done, info = env.step(action)
+    if done:
+        break
+
+env.close()
+```
+
+The default observation is a dictionary containing:
+
+- `state`: concatenated task description, instructions, and most recent
+  environment message.
+- `actions_left`: remaining steps before a timeout penalty is applied.
+- `last_action` / `last_response`: previous interaction details.
+
+The accompanying `info` payload exposes the available API names and their
+descriptions as well as termination metadata (e.g., whether the episode ended
+due to a valid submission or a timeout). The remaining high-value commands from
+the ground-truth trace are included too, allowing training loops to introspect
+which investigative steps are still pending. Set the
+`AIOPSLAB_GROUND_TRUTH_DIR` environment variable if you need to point the
+environment at an alternative repository of ground-truth traces.
 
 
     3. **Start the problem**: Start the problem by calling the `start_problem` method. You can specify the maximum number of steps too:
