@@ -77,7 +77,7 @@ If you're running VLLM and the LLM agent locally, Privoxy will by default proxy 
 
 ```bash
 export no_proxy=localhost
-``` 
+```
 
 After finishing cluster creation, proceed to the next "Update `config.yml`" step.
 
@@ -265,7 +265,7 @@ environment at an alternative repository of ground-truth traces.
 
 
     3. **Start the problem**: Start the problem by calling the `start_problem` method. You can specify the maximum number of steps too:
-
+    
         ```python
         import asyncio
         asyncio.run(orch.start_problem(max_steps=30))
@@ -306,7 +306,7 @@ To add a new application to AIOpsLab with Helm, you need to:
 
     ```python
     from aiopslab.service.apps.base import Application
-
+    
     class MyApp(Application):
         def __init__(self):
             super().__init__("<path to app metadata JSON>")
@@ -376,7 +376,7 @@ See a full example of a problem [here](/aiopslab/orchestrator/problems/k8s_targe
 
     ```python
     from aiopslab.generators.fault.inject_virtual import *
-
+    
     inj = VirtualizationFaultInjector(testbed="<namespace>")
     inj.inject_fault(microservices=["<service-name>"], fault_type="misconfig")
     ```
@@ -399,6 +399,22 @@ See a full example of a problem [here](/aiopslab/orchestrator/problems/k8s_targe
     > Relevant Code: [aiopslab/orchestrator/evaluators/](/aiopslab/orchestrator/evaluators/)
 
 </details>
+
+### How to enable problem sets with variants?
+
+edit `.env` and set ``AIOPSLAB_USE_PROBLEM_VARIANTS=true``
+
+Should make sure the method to choose problem set mode has already implemented.
+```
+    if args.enable_problem_variants:
+        # Variant Mode: Get Variant Problems:
+        problems = ProblemRegistry(variant_mode=args.enable_problem_variants).get_problem_ids()
+        print("Use variant mode to run tasks")
+    else:
+        # Static Mode: Get All Problems
+        problems = ProblemRegistry().PROBLEM_REGISTRY
+        print("Use standard mode to run tasks")
+```
 
 
 

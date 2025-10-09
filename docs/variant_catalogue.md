@@ -74,17 +74,18 @@ curriculum authors can quickly inspect the grading logic.
   using the `pod_failure` scenario.
 - **Variant coverage**: [`PodFailureVariantBase`](../aiopslab/orchestrator/problems/pod_failure/pod_failure_variant.py)
   rotates the affected Hotel Reservation service.
-- **Analysis expectations**: variant RCA expects
+- **Analysis expectations**: both static and variant RCAs expect
   `system_level="Virtualization"` / `fault_type="Operation Error"`.
-- **Mitigation checks**: variant mitigation relies on the mixin's `pods_ready`
-  expectation; there is no bespoke static mitigation task yet.
+- **Mitigation checks**: the static task polls until every pod in the namespace
+  reports ready via `kubectl`, while the variant mitigation relies on the
+  mixin's `pods_ready` expectation for the affected service.
 
 | Role | Static task | Variant task | Evaluation focus |
 | --- | --- | --- | --- |
 | Detection | [`PodFailureDetection`](../aiopslab/orchestrator/problems/pod_failure/pod_failure.py) | [`PodFailureVariantDetection`](../aiopslab/orchestrator/problems/pod_failure/pod_failure_variant.py) | Case-insensitive `"Yes"`. |
 | Localization | [`PodFailureLocalization`](../aiopslab/orchestrator/problems/pod_failure/pod_failure.py) | [`PodFailureVariantLocalization`](../aiopslab/orchestrator/problems/pod_failure/pod_failure_variant.py) | Requires the failed service name. |
-| Analysis | – | [`PodFailureVariantAnalysis`](../aiopslab/orchestrator/problems/pod_failure/pod_failure_variant.py) | Uses mixin metadata (`Virtualization` / `Operation Error`). |
-| Mitigation | – | [`PodFailureVariantMitigation`](../aiopslab/orchestrator/problems/pod_failure/pod_failure_variant.py) | Uses `pods_ready` for the affected service. |
+| Analysis | [`PodFailureAnalysis`](../aiopslab/orchestrator/problems/pod_failure/pod_failure.py) | [`PodFailureVariantAnalysis`](../aiopslab/orchestrator/problems/pod_failure/pod_failure_variant.py) | Validates `Virtualization` / `Operation Error`. |
+| Mitigation | [`PodFailureMitigation`](../aiopslab/orchestrator/problems/pod_failure/pod_failure.py) | [`PodFailureVariantMitigation`](../aiopslab/orchestrator/problems/pod_failure/pod_failure_variant.py) | Static task polls for all pods in the namespace; variant uses `pods_ready`. |
 
 ## Hotel Reservation pod kill
 
@@ -92,17 +93,19 @@ curriculum authors can quickly inspect the grading logic.
   with the `pod_kill` experiment (duration is variant-controlled).
 - **Variant coverage**: [`PodKillVariantBase`](../aiopslab/orchestrator/problems/pod_kill/pod_kill_variant.py)
   varies both the target service and the kill duration.
-- **Analysis expectations**: mixin metadata records
-  `system_level="Virtualization"` / `fault_type="Operation Error"`.
-- **Mitigation checks**: variant mitigation uses the `pods_ready`
-  expectation for the chosen service.
+- **Analysis expectations**: the static task enforces the
+  `system_level="Virtualization"` / `fault_type="Operation Error"`
+  pairing; the variant metadata records the same requirement.
+- **Mitigation checks**: static mitigation polls until the affected
+  service's pods report Ready; the variant mitigation continues to rely
+  on the mixin's `pods_ready` expectation.
 
 | Role | Static task | Variant task | Evaluation focus |
 | --- | --- | --- | --- |
 | Detection | [`PodKillDetection`](../aiopslab/orchestrator/problems/pod_kill/pod_kill.py) | [`PodKillVariantDetection`](../aiopslab/orchestrator/problems/pod_kill/pod_kill_variant.py) | Case-insensitive `"Yes"`. |
 | Localization | [`PodKillLocalization`](../aiopslab/orchestrator/problems/pod_kill/pod_kill.py) | [`PodKillVariantLocalization`](../aiopslab/orchestrator/problems/pod_kill/pod_kill_variant.py) | Requires the killed service name. |
-| Analysis | – | [`PodKillVariantAnalysis`](../aiopslab/orchestrator/problems/pod_kill/pod_kill_variant.py) | Validates `Virtualization` / `Operation Error`. |
-| Mitigation | – | [`PodKillVariantMitigation`](../aiopslab/orchestrator/problems/pod_kill/pod_kill_variant.py) | Ensures pods become ready again. |
+| Analysis | [`PodKillAnalysis`](../aiopslab/orchestrator/problems/pod_kill/pod_kill.py) | [`PodKillVariantAnalysis`](../aiopslab/orchestrator/problems/pod_kill/pod_kill_variant.py) | Validates `Virtualization` / `Operation Error`. |
+| Mitigation | [`PodKillMitigation`](../aiopslab/orchestrator/problems/pod_kill/pod_kill.py) | [`PodKillVariantMitigation`](../aiopslab/orchestrator/problems/pod_kill/pod_kill_variant.py) | Ensures pods become ready again. |
 
 ## Hotel Reservation network loss
 
@@ -110,17 +113,17 @@ curriculum authors can quickly inspect the grading logic.
   simulating packet loss via `inject_network_loss`.
 - **Variant coverage**: [`NetworkLossVariantBase`](../aiopslab/orchestrator/problems/network_loss/network_loss_variant.py)
   picks the affected service and loss rate.
-- **Analysis expectations**: variant RCA expects
+- **Analysis expectations**: static and variant RCA expect
   `system_level="Application"` / `fault_type="Network/Storage Issue"`.
-- **Mitigation checks**: variant mitigation relies on `pods_ready` for the
-  targeted service.
+- **Mitigation checks**: static and variant mitigation rely on `pods_ready`
+  for the targeted service.
 
 | Role | Static task | Variant task | Evaluation focus |
 | --- | --- | --- | --- |
 | Detection | [`NetworkLossDetection`](../aiopslab/orchestrator/problems/network_loss/network_loss.py) | [`NetworkLossVariantDetection`](../aiopslab/orchestrator/problems/network_loss/network_loss_variant.py) | Case-insensitive `"Yes"`. |
 | Localization | [`NetworkLossLocalization`](../aiopslab/orchestrator/problems/network_loss/network_loss.py) | [`NetworkLossVariantLocalization`](../aiopslab/orchestrator/problems/network_loss/network_loss_variant.py) | Requires the degraded service name. |
-| Analysis | – | [`NetworkLossVariantAnalysis`](../aiopslab/orchestrator/problems/network_loss/network_loss_variant.py) | Validates `Application` / `Network/Storage Issue`. |
-| Mitigation | – | [`NetworkLossVariantMitigation`](../aiopslab/orchestrator/problems/network_loss/network_loss_variant.py) | Checks that pods for the affected service are ready. |
+| Analysis | [`NetworkLossAnalysis`](../aiopslab/orchestrator/problems/network_loss/network_loss.py) | [`NetworkLossVariantAnalysis`](../aiopslab/orchestrator/problems/network_loss/network_loss_variant.py) | Validates `Application` / `Network/Storage Issue`. |
+| Mitigation | [`NetworkLossMitigation`](../aiopslab/orchestrator/problems/network_loss/network_loss.py) | [`NetworkLossVariantMitigation`](../aiopslab/orchestrator/problems/network_loss/network_loss_variant.py) | Checks that pods for the affected service are ready. |
 
 ## Hotel Reservation network delay
 
@@ -195,7 +198,9 @@ Variant mode is layered on top of a much broader pool of static incidents. The
   replicas (invalid tolerations, storage class, update strategy, security
   context) that can be re-enabled as those exercises mature.
 - **Chaos experiments without variants (yet)**: container/pod failure, network
-  loss/delay and kernel fault prototypes that can still be run in static mode.
+  loss/delay (the network delay static track now includes RCA validation of
+  `Application` / `Network/Storage Issue` and a pods-ready mitigation gate) and
+  kernel fault prototypes that can still be run in static mode.
 - **Application-specific outages**: Astronomy Shop feature-flag incidents,
   Payment Service/Recommendation Service failures, Kafka queue saturation and
   Flower platform experiments (`flower_*`).

@@ -32,8 +32,10 @@ from aiopslab.orchestrator.problems.container_kill.container_kill_variant import
 )
 from aiopslab.orchestrator.problems.pod_failure import *
 from aiopslab.orchestrator.problems.pod_failure.pod_failure_variant import (
+    PodFailureVariantAnalysis,
     PodFailureVariantDetection,
     PodFailureVariantLocalization,
+    PodFailureVariantMitigation,
 )
 from aiopslab.orchestrator.problems.pod_kill import *
 from aiopslab.orchestrator.problems.pod_kill.pod_kill_variant import (
@@ -204,15 +206,23 @@ class ProblemRegistry:
             # Pod failure
             "pod_failure_hotel_res-detection-1": PodFailureDetection,
             "pod_failure_hotel_res-localization-1": PodFailureLocalization,
+            "pod_failure_hotel_res-analysis-1": PodFailureAnalysis,
+            "pod_failure_hotel_res-mitigation-1": PodFailureMitigation,
             # Pod kill
             "pod_kill_hotel_res-detection-1": PodKillDetection,
             "pod_kill_hotel_res-localization-1": PodKillLocalization,
+            "pod_kill_hotel_res-analysis-1": PodKillAnalysis,
+            "pod_kill_hotel_res-mitigation-1": PodKillMitigation,
             # Network loss
             "network_loss_hotel_res-detection-1": NetworkLossDetection,
             "network_loss_hotel_res-localization-1": NetworkLossLocalization,
+            "network_loss_hotel_res-analysis-1": NetworkLossAnalysis,
+            "network_loss_hotel_res-mitigation-1": NetworkLossMitigation,
             # Network delay
             "network_delay_hotel_res-detection-1": NetworkDelayDetection,
             "network_delay_hotel_res-localization-1": NetworkDelayLocalization,
+            "network_delay_hotel_res-analysis-1": NetworkDelayAnalysis,
+            "network_delay_hotel_res-mitigation-1": NetworkDelayMitigation,
             # No operation
             "noop_detection_hotel_reservation-1": lambda: NoOpDetection(
                 app_name="hotel"
@@ -327,7 +337,7 @@ class ProblemRegistry:
     def _resolve_variant_mode(self, override: str | None) -> str:
         """Resolve variant mode from override or environment variables."""
         if override:
-            mode = override.lower()
+            mode = str(override).lower()
         else:
             env_mode = os.getenv("AIOPSLAB_PROBLEM_VARIANT_MODE")
             if env_mode:
@@ -446,6 +456,18 @@ class ProblemRegistry:
                 enable_variants=True
             ),
             "pod_failure_hotel_res-localization-1": lambda: PodFailureVariantLocalization(
+                faulty_service="user", enable_variants=True
+            ),
+            "pod_failure_hotel_res-analysis": lambda: PodFailureVariantAnalysis(
+                enable_variants=True
+            ),
+            "pod_failure_hotel_res-analysis-1": lambda: PodFailureVariantAnalysis(
+                faulty_service="user", enable_variants=True
+            ),
+            "pod_failure_hotel_res-mitigation": lambda: PodFailureVariantMitigation(
+                enable_variants=True
+            ),
+            "pod_failure_hotel_res-mitigation-1": lambda: PodFailureVariantMitigation(
                 faulty_service="user", enable_variants=True
             ),
             # Pod kill (Hotel Reservation)

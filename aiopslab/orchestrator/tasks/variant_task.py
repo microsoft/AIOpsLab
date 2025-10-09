@@ -17,7 +17,11 @@ class VariantTask(Task):
 
     def __init__(self, variant_generator: Optional[VariantGenerator] = None):
         """Initialize the variant-enabled task."""
-        super().__init__()
+        # Call Task.__init__ directly to avoid invoking sibling Task subclasses
+        # (e.g., DetectionTask.__init__(app)) via MRO in multiple inheritance.
+        # This prevents TypeError when Variant mixins are constructed before
+        # concrete Detection/Localization/Analysis/Mitigation tasks supply `app`.
+        Task.__init__(self)
         self.variant_generator = variant_generator
         self.current_variant: Optional[Dict[str, Any]] = None
         self.variant_history: list[Dict[str, Any]] = []
