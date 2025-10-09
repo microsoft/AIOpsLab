@@ -224,12 +224,36 @@ To integrate AIOpsLab problems with reinforcement-learning pipelines, use the
 `ProblemRLEnvironment` wrapper. It mirrors the familiar `reset`/`step` API and
 returns structured observations that include the task description,
 instructions, and latest environment response. Rewards are configurable via
-`RewardConfig`.
+`RewardConfig`, and you can optionally supply a `PowerModel` with pre-recorded
+"power" command traces so that the environment awards extra bonuses whenever
+your agent replays a high-value investigative step.
 
 ```python
-from aiopslab.orchestrator import ProblemRLEnvironment, RewardConfig
+from aiopslab.orchestrator import PowerModel, ProblemRLEnvironment, RewardConfig
 
-env = ProblemRLEnvironment(max_steps=5, reward_config=RewardConfig(step=-0.1))
+power_model = PowerModel.from_results(
+    [
+        {
+            "problem_id": "container_kill-analysis-1",
+            "key_commands": [
+                {
+                    "command": 'exec_shell("kubectl get pods -n test-hotel-reservation")',
+                    "importance_score": 6,
+                },
+                {
+                    "command": 'submit({"system_level": "Application", "fault_type": "Dependency Problem"})',
+                    "importance_score": 10,
+                },
+            ],
+        }
+    ]
+)
+
+env = ProblemRLEnvironment(
+    max_steps=5,
+    reward_config=RewardConfig(step=-0.1, command_match_multiplier=0.01),
+    power_model=power_model,
+)
 observation, info = env.reset("container_kill-detection")
 
 while True:
@@ -250,7 +274,10 @@ The default observation is a dictionary containing:
 
 The accompanying `info` payload exposes the available API names and their
 descriptions as well as termination metadata (e.g., whether the episode ended
-due to a valid submission or a timeout).
+due to a valid submission or a timeout). When a `PowerModel` is attached the
+`info` dictionary also exposes the remaining high-value commands that have not
+yet been observed, allowing training loops to introspect which investigative
+steps are still pending.
 
 
     3. **Start the problem**: Start the problem by calling the `start_problem` method. You can specify the maximum number of steps too:

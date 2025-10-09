@@ -16,8 +16,11 @@ training pipelines.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
+import json
+import re
+
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
 from aiopslab.orchestrator.parser import ResponseParser
 from aiopslab.session import SessionItem
@@ -52,6 +55,122 @@ class RewardConfig:
     invalid_submission: float = -1.0
     step: float = -0.01
     timeout: float = -0.5
+    command_match_multiplier: float = 0.1
+
+
+@dataclass(frozen=True)
+class PowerCommand:
+    """Representation of a single command from the power model."""
+
+    api_name: str
+    command: str
+    importance_score: float
+    type: str | None = None
+    description: str | None = None
+    sequence_number: int | None = None
+    _pattern: re.Pattern[str] = field(repr=False, compare=False, default=None)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "_pattern", self._build_pattern(self.command))
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "PowerCommand":
+        command = payload.get("command")
+        if not isinstance(command, str):
+            raise ValueError("Power model command entries must include a 'command' string.")
+
+        api_name = command.split("(", 1)[0].strip()
+        importance = float(payload.get("importance_score", 0.0))
+
+        return cls(
+            api_name=api_name,
+            command=command,
+            importance_score=importance,
+            type=payload.get("type"),
+            description=payload.get("description"),
+            sequence_number=payload.get("sequence_number"),
+        )
+
+    @staticmethod
+    def _build_pattern(command: str) -> re.Pattern[str]:
+        inner = command.split("(", 1)[1].rsplit(")", 1)[0] if "(" in command else ""
+        escaped = re.escape(inner)
+        pattern = re.sub(r"\\<[^>]+\\>", ".+", escaped)
+        pattern = pattern.replace(r"\ ", r"\s+")
+        return re.compile(f"^{pattern}$")
+
+    def matches(self, api_name: str, args: Iterable[Any], kwargs: Mapping[str, Any]) -> bool:
+        if api_name != self.api_name:
+            return False
+        formatted = self._format_call(args, kwargs)
+        return bool(self._pattern.fullmatch(formatted))
+
+    @staticmethod
+    def _format_call(args: Iterable[Any], kwargs: Mapping[str, Any]) -> str:
+        parts = [PowerCommand._format_value(arg) for arg in args]
+        for key, value in kwargs.items():
+            parts.append(f"{key}={PowerCommand._format_value(value)}")
+        return ", ".join(parts)
+
+    @staticmethod
+    def _format_value(value: Any) -> str:
+        if isinstance(value, (dict, list)):
+            return json.dumps(value, sort_keys=True)
+        if isinstance(value, str):
+            return json.dumps(value)
+        return repr(value)
+
+
+class PowerModelEpisode:
+    """Stateful matcher that scores commands during an episode."""
+
+    def __init__(self, commands: Iterable[PowerCommand]):
+        self._remaining: List[PowerCommand] = list(commands)
+
+    def score(self, api_name: str, args: Iterable[Any], kwargs: Mapping[str, Any]) -> float:
+        for idx, command in enumerate(self._remaining):
+            if command.matches(api_name, args, kwargs):
+                self._remaining.pop(idx)
+                return command.importance_score
+        return 0.0
+
+    def remaining(self) -> List[str]:
+        return [cmd.command for cmd in self._remaining]
+
+
+class PowerModel:
+    """Container for power model command sequences keyed by problem ID."""
+
+    def __init__(self, data: Mapping[str, Iterable[Mapping[str, Any]]]):
+        self._commands: Dict[str, List[PowerCommand]] = {}
+        for problem_id, commands in data.items():
+            parsed = [PowerCommand.from_dict(cmd) for cmd in commands]
+            parsed.sort(key=lambda cmd: cmd.sequence_number or 0)
+            self._commands[problem_id] = parsed
+
+    @classmethod
+    def from_results(cls, results: Iterable[Mapping[str, Any]]) -> "PowerModel":
+        mapping: Dict[str, List[Mapping[str, Any]]] = {}
+        for record in results:
+            problem_id = record.get("problem_id")
+            if not problem_id:
+                continue
+            commands = record.get("key_commands", [])
+            if isinstance(commands, Mapping):
+                commands = [commands]
+            if isinstance(commands, (str, bytes)):
+                continue
+            if not isinstance(commands, Iterable):
+                continue
+            mapping.setdefault(problem_id, []).extend(commands)  # type: ignore[arg-type]
+        return cls(mapping)
+
+    def start_episode(self, problem_id: str) -> Optional[PowerModelEpisode]:
+        commands = self._commands.get(problem_id)
+        if not commands:
+            return None
+        return PowerModelEpisode(commands)
+
 
 
 class ProblemRLEnvironment:
@@ -68,6 +187,7 @@ class ProblemRLEnvironment:
         *,
         max_steps: int = 30,
         reward_config: Optional[RewardConfig] = None,
+        power_model: Optional[PowerModel] = None,
     ) -> None:
         if orchestrator is None:
             from aiopslab.orchestrator.orchestrator import Orchestrator as _Orchestrator
@@ -77,6 +197,7 @@ class ProblemRLEnvironment:
         self.orchestrator = orchestrator
         self.max_steps = max_steps
         self.reward_config = reward_config or RewardConfig()
+        self.power_model = power_model
 
         # ``Orchestrator`` expects an agent name for bookkeeping.  RL training
         # loops drive the environment directly, so we inject a lightweight name
@@ -96,6 +217,7 @@ class ProblemRLEnvironment:
         self._results: Optional[Dict[str, Any]] = None
         self._problem_desc: Optional[str] = None
         self._instructions: Optional[str] = None
+        self._power_episode: Optional[PowerModelEpisode] = None
 
     # ------------------------------------------------------------------
     # Public API
@@ -141,6 +263,10 @@ class ProblemRLEnvironment:
         self._instructions = instructions
         self._actions_catalog = dict(actions)
 
+        self._power_episode = None
+        if self.power_model is not None and self.problem_id is not None:
+            self._power_episode = self.power_model.start_episode(self.problem_id)
+
         # ``init_problem`` creates a fresh session but leaves it idle.
         session = self.orchestrator.session
         if session is None:
@@ -184,7 +310,7 @@ class ProblemRLEnvironment:
         self._last_action = parsed.get("raw", action)
         self._last_env_response = env_response
 
-        reward, terminated, truncated = self._compute_rewards(env_response)
+        reward, terminated, truncated = self._compute_rewards(parsed, env_response)
         done = terminated or truncated
 
         if done:
@@ -264,7 +390,9 @@ class ProblemRLEnvironment:
 
         return response
 
-    def _compute_rewards(self, env_response: Any) -> Tuple[float, bool, bool]:
+    def _compute_rewards(
+        self, parsed: Dict[str, Any], env_response: Any
+    ) -> Tuple[float, bool, bool]:
         terminated = False
         truncated = False
 
@@ -279,6 +407,12 @@ class ProblemRLEnvironment:
             truncated = True
         else:
             reward = self.reward_config.step
+            if self._power_episode is not None and "api_name" in parsed:
+                api_name = parsed.get("api_name", "")
+                args = parsed.get("args", [])
+                kwargs = parsed.get("kwargs") or {}
+                score = self._power_episode.score(api_name, args, kwargs)
+                reward += score * self.reward_config.command_match_multiplier
 
         return reward, terminated, truncated
 
@@ -386,10 +520,15 @@ class ProblemRLEnvironment:
             "results": self._results if self._results is not None else None,
         }
 
+        if self._power_episode is not None:
+            info["power_commands_remaining"] = self._power_episode.remaining()
+
         if initial:
             info["problem_id"] = self.problem_id
             info["task_description"] = self._problem_desc
             info["instructions"] = self._instructions
+            if self._power_episode is not None:
+                info["power_commands"] = info["power_commands_remaining"]
 
         return info
 
@@ -402,5 +541,10 @@ class ProblemRLEnvironment:
         return str(response)
 
 
-__all__ = ["ProblemRLEnvironment", "RewardConfig"]
+__all__ = [
+    "PowerCommand",
+    "PowerModel",
+    "ProblemRLEnvironment",
+    "RewardConfig",
+]
 

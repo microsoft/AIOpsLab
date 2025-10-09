@@ -91,6 +91,7 @@ rl_env_module = _load_module(
 )
 
 ResponseParser = parser_module.ResponseParser
+PowerModel = rl_env_module.PowerModel
 ProblemRLEnvironment = rl_env_module.ProblemRLEnvironment
 RewardConfig = rl_env_module.RewardConfig
 
@@ -209,6 +210,41 @@ def test_step_exec_shell_returns_step_penalty():
     assert done is False
     assert info["terminated"] is False
     assert info["truncated"] is False
+
+
+def test_power_model_bonus_applied_to_matching_command():
+    orchestrator = StubOrchestrator()
+    power_model = PowerModel.from_results(
+        [
+            {
+                "problem_id": "problem-2",
+                "key_commands": [
+                    {
+                        "command": 'exec_shell("ls")',
+                        "importance_score": 6,
+                        "sequence_number": 1,
+                    }
+                ],
+            }
+        ]
+    )
+    reward_cfg = RewardConfig(step=-0.25, command_match_multiplier=0.01)
+    env = ProblemRLEnvironment(
+        orchestrator=orchestrator,
+        max_steps=3,
+        reward_config=reward_cfg,
+        power_model=power_model,
+    )
+
+    obs, info = env.reset("problem-2")
+    assert "power_commands" in info
+    assert info["power_commands_remaining"] == ['exec_shell("ls")']
+
+    _, reward, done, step_info = env.step(_action('exec_shell("ls")'))
+
+    assert done is False
+    assert reward == -0.25 + 0.06
+    assert step_info["power_commands_remaining"] == []
 
 
 def test_submit_ends_episode_and_records_results():
