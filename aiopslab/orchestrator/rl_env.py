@@ -20,9 +20,12 @@ import json
 import os
 import re
 
+import asyncio
+import inspect
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple
+from uuid import uuid4
 
 from aiopslab.orchestrator.parser import ResponseParser
 from aiopslab.session import SessionItem
@@ -599,11 +602,218 @@ class ProblemRLEnvironment:
         return str(response)
 
 
+@dataclass
+class _EnvironmentHandle:
+    env: ProblemRLEnvironment
+    observation: Dict[str, Any]
+    info: Dict[str, Any]
+    done: bool = False
+
+
+_ENV_REGISTRY: Dict[str, _EnvironmentHandle] = {}
+
+AgentCallable = Callable[[Dict[str, Any], Dict[str, Any]], Any]
+AgentType = AgentCallable | Any
+
+
+def start_rl_environment(
+    problem_id: str,
+    *,
+    max_steps: Optional[int] = None,
+    orchestrator: Optional["Orchestrator"] = None,
+) -> str:
+    """Register a new RL environment instance and return its identifier."""
+
+    env = ProblemRLEnvironment(orchestrator=orchestrator)
+    observation, info = env.reset(problem_id=problem_id, max_steps=max_steps)
+
+    env_id = str(uuid4())
+    _ENV_REGISTRY[env_id] = _EnvironmentHandle(env=env, observation=observation, info=info)
+    return env_id
+
+
+def step_rl_environment(env_id: str, action: Optional[str] = None) -> Dict[str, Any]:
+    """Advance the environment associated with ``env_id`` and return step data."""
+
+    handle = _ENV_REGISTRY.get(env_id)
+    if handle is None:
+        raise KeyError(f"Unknown environment id '{env_id}'.")
+
+    reward = 0.0
+    done = handle.done
+
+    if action is not None:
+        observation, reward, done, info = handle.env.step(action)
+        handle.observation = observation
+        handle.info = info
+        handle.done = done
+
+    observation = handle.observation
+    info = handle.info
+
+    response = {
+        "env_id": env_id,
+        "state": observation.get("state"),
+        "actions_left": observation.get("actions_left"),
+        "actions": info.get("actions"),
+        "reward": reward,
+        "done": done,
+        "problem_id": observation.get("problem_id"),
+        "info": {
+            "llm_response": observation.get("last_response"),
+            "llm_raw_response": info.get("raw_response"),
+            "len": len(info.get("available_actions", [])),
+            "step": info.get("step"),
+            "terminated": info.get("terminated"),
+            "truncated": info.get("truncated"),
+            "results": info.get("results"),
+        },
+    }
+
+    return response
+
+
+def close_rl_environment(env_id: str) -> None:
+    """Close and deregister the environment identified by ``env_id``."""
+
+    handle = _ENV_REGISTRY.pop(env_id, None)
+    if handle is None:
+        return
+    handle.env.close()
+
+
+def register_agent(env_id: str, agent: AgentType) -> None:
+    """Attach an agent to the environment run loop."""
+
+    handle = _ENV_REGISTRY.get(env_id)
+    if handle is None:
+        raise KeyError(f"Unknown environment id '{env_id}'.")
+    if agent is None:
+        raise ValueError("Agent instance must not be None.")
+    handle.agent = agent
+
+
+def unregister_agent(env_id: str) -> None:
+    """Detach any agent currently associated with ``env_id``."""
+
+    handle = _ENV_REGISTRY.get(env_id)
+    if handle is None:
+        raise KeyError(f"Unknown environment id '{env_id}'.")
+    handle.agent = None
+
+
+def agent_step(env_id: str) -> Dict[str, Any]:
+    """Execute a single agent-driven step."""
+
+    handle = _ENV_REGISTRY.get(env_id)
+    if handle is None:
+        raise KeyError(f"Unknown environment id '{env_id}'.")
+    if handle.agent is None:
+        raise ValueError(
+            "No agent registered for this environment. Call register_agent() first."
+        )
+    if handle.done:
+        raise RuntimeError("Environment episode already finished. Call start/reset.")
+
+    observation = handle.observation
+    info = handle.info
+
+    action = _resolve_agent_action(handle.agent, observation, info)
+    if not isinstance(action, str):
+        raise TypeError(
+            "Agent must return a string action compatible with step_rl_environment()."
+        )
+
+    return step_rl_environment(env_id, action)
+
+
+def _resolve_agent_action(
+    agent: AgentType, observation: Dict[str, Any], info: Dict[str, Any]
+) -> Any:
+    if callable(agent):
+        return agent(observation, info)
+
+    act_fn = getattr(agent, "act", None)
+    if callable(act_fn):
+        return act_fn(observation, info)
+
+    get_action = getattr(agent, "get_action", None)
+    if callable(get_action):
+        prompt = observation.get("state") or ""
+        response = get_action(prompt)
+        response = _await_if_needed(response)
+        if isinstance(response, (list, tuple)) and response:
+            return response[0]
+        return response
+
+    raise TypeError(
+        "Agent must be callable or expose an 'act(observation, info)' method."
+    )
+
+
+def _await_if_needed(result: Any) -> Any:
+    if not inspect.isawaitable(result):
+        return result
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(result)
+    raise RuntimeError(
+        "Agent returned an awaitable while an event loop is already running. "
+        "Wrap the agent so it executes synchronously before registering."
+    )
+
+
+def register_llm_agent(
+    env_id: str,
+    agent_name: str,
+    *,
+    agent_kwargs: Optional[Dict[str, Any]] = None,
+) -> Any:
+    """Instantiate and attach an LLM agent from the clients registry.
+
+    The agent is initialized with the problem description, instructions, and
+    API documentation so that it receives the same prompts as the orchestrator
+    CLI flow.
+    """
+
+    handle = _ENV_REGISTRY.get(env_id)
+    if handle is None:
+        raise KeyError(f"Unknown environment id '{env_id}'.")
+
+    from clients.registry import AgentRegistry  # delay import to avoid cycles
+
+    registry = AgentRegistry()
+    agent_cls = registry.get_agent(agent_name)
+    if agent_cls is None:
+        raise ValueError(f"Agent '{agent_name}' is not registered.")
+
+    kwargs = agent_kwargs or {}
+    agent = agent_cls(**kwargs)  # type: ignore[call-arg]
+
+    task_description = handle.info.get("task_description") or ""
+    instructions = handle.info.get("instructions") or ""
+    actions = handle.info.get("actions") or {}
+
+    init_context = getattr(agent, "init_context", None)
+    if callable(init_context):
+        init_context(task_description, instructions, actions)
+
+    register_agent(env_id, agent)
+    return agent
+
+
 __all__ = [
     "PowerCommand",
     "PowerModel",
     "DEFAULT_GROUND_TRUTH_DIR",
     "ProblemRLEnvironment",
     "RewardConfig",
+    "start_rl_environment",
+    "step_rl_environment",
+    "close_rl_environment",
+    "register_agent",
+    "unregister_agent",
+    "agent_step",
+    "register_llm_agent",
 ]
-
