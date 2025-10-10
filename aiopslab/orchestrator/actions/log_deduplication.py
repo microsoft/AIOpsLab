@@ -117,7 +117,7 @@ def greedy_compress_lines(
         log_trim = int(value) if value is not None else None
     except ValueError:
         log_trim = None
-    if not log_trim:
+    if not log_trim or log_trim <= 0:
         return raw_str
     window_size = log_trim
     lines = raw_str.splitlines()
