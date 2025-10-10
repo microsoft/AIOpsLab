@@ -263,6 +263,64 @@ which investigative steps are still pending. Set the
 `AIOPSLAB_GROUND_TRUTH_DIR` environment variable if you need to point the
 environment at an alternative repository of ground-truth traces.
 
+#### Programmatic helpers for managing RL environments
+
+External training loops can import `service.reset_rl_environment` and
+`service.step_rl_environment` to manage a `ProblemRLEnvironment` instance inside
+their process:
+
+```python
+from service import reset_rl_environment, step_rl_environment
+
+handle = reset_rl_environment("misconfig_app_hotel_res-mitigation-1")
+step_zero = step_rl_environment(handle.env_id, step=0)
+
+# execute the first agent action
+step_one = step_rl_environment(
+    handle.env_id,
+    step=1,
+    action="exec",
+    llm_response="analysis",
+    llm_raw_response="analysis",
+)
+```
+
+Calling `step_rl_environment(..., step=0)` returns the initial state without
+executing an action, which makes it easy to bootstrap RL policies. Subsequent
+steps require an action string and return:
+
+```python
+RLEnvironmentStep(
+    state="...",
+    actions_left=3,
+    actions={"exec_shell": "Run shell", "submit": "Submit"},
+    reward=-0.01,
+    info={
+        "llm_response": "...",
+        "llm_raw_response": "...",
+        "len": 4,
+        "environment": {"terminated": False, "truncated": False, "done": False},
+    },
+)
+```
+
+When the environment reports that an episode is finished the helper closes the
+underlying environment and removes it from the internal registry. New episodes
+can be created by calling `reset_rl_environment` again with the desired
+`problem_id`. The helpers are intentionally agent-agnostic—callers are expected
+to supply the policy that chooses actions. If you would like to reuse one of the
+built-in agents, import it from `clients.registry.AgentRegistry` and integrate
+it within your training loop. Because the helpers simply return the observation
+structure, you can plug in any agent by calling `step_rl_environment` with the
+agent's chosen action on each turn.
+
+By default rewards come from the `PowerModel` ground-truth traces bundled with
+the repository. The helper mirrors the environment's reward directly so agents
+benefit from the same reward shaping the research team uses internally. Callers
+can pass a custom `RewardConfig` or override the ground-truth directory via
+`reset_rl_environment(..., reward_config=..., ground_truth_dir=...)` if they wish
+to tweak the reward weights or experiment with alternative traces.
+
 
     3. **Start the problem**: Start the problem by calling the `start_problem` method. You can specify the maximum number of steps too:
     
