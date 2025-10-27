@@ -6,7 +6,7 @@ import os
 import traceback
 from dataclasses import dataclass
 from threading import Lock
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 from uuid import uuid4
 
 if TYPE_CHECKING:  # pragma: no cover - import only for static analysis
@@ -327,3 +327,23 @@ def step_rl_environment(
         reward=reward,
         info=response_info,
     )
+
+
+def get_rl_environment_state(env_id: str) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """Return the cached observation/info for a managed environment."""
+
+    managed = _get_managed_env(env_id)
+    return managed.initial_observation, managed.initial_info
+
+
+def close_rl_environment(env_id: str) -> None:
+    """Terminate and discard a managed RL environment."""
+
+    managed = _get_managed_env(env_id)
+
+    try:
+        managed.env.close()
+    finally:
+        managed.done = True
+        with _RL_ENV_LOCK:
+            _RL_ENVIRONMENTS.pop(env_id, None)

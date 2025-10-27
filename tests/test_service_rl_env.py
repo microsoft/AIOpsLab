@@ -80,6 +80,10 @@ def test_rl_service_reset_and_steps(monkeypatch):
     env_id = handle.env_id
     assert env_id in service._RL_ENVIRONMENTS
 
+    observation, info = service.get_rl_environment_state(env_id)
+    assert observation["state"].startswith("initial state")
+    assert info["actions"] == {"exec": "execute"}
+
     step_zero = service.step_rl_environment(env_id, step=0)
     assert step_zero.state.startswith("initial state")
     assert step_zero.actions_left == 3
@@ -105,5 +109,22 @@ def test_rl_service_reset_and_steps(monkeypatch):
 
     step_two = service.step_rl_environment(env_id, step=2, action="exec")
     assert step_two.info["environment"]["done"] is True
+    assert stub_env.closed is True
+    assert env_id not in service._RL_ENVIRONMENTS
+
+
+def test_close_rl_environment(monkeypatch):
+    stub_env = StubRLEnvironment()
+
+    def _factory(*args, **kwargs):
+        return stub_env
+
+    monkeypatch.setattr(service, "_create_rl_environment", _factory)
+
+    handle = service.reset_rl_environment("prob-1")
+    env_id = handle.env_id
+    assert not stub_env.closed
+
+    service.close_rl_environment(env_id)
     assert stub_env.closed is True
     assert env_id not in service._RL_ENVIRONMENTS
