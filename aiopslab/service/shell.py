@@ -17,7 +17,7 @@ class Shell:
     """
 
     @staticmethod
-    def exec(command: str, input_data=None, cwd=None):
+    def exec(command: str, input_data=None, cwd=None, timeout=30):
         """Execute a shell command on localhost, via SSH, or inside kind's control-plane container."""
         k8s_host = config.get("k8s_host", "localhost")  # Default to localhost
         
@@ -32,15 +32,15 @@ class Shell:
             #     "This may pose safety and security risks when using an AI agent locally. "
             #     "I hope you know what you're doing!!!"
             # )
-            return Shell.local_exec(command, input_data, cwd)
+            return Shell.local_exec(command, input_data, cwd, timeout=timeout)
 
         else:
             k8s_user = config.get("k8s_user")
             ssh_key_path = config.get("ssh_key_path", "~/.ssh/id_rsa")
-            return Shell.ssh_exec(k8s_host, k8s_user, ssh_key_path, command)
+            return Shell.ssh_exec(k8s_host, k8s_user, ssh_key_path, command, timeout=timeout)
 
     @staticmethod
-    def local_exec(command: str, input_data=None, cwd=None):
+    def local_exec(command: str, input_data=None, cwd=None, timeout=30):
         if input_data is not None:
             input_data = input_data.encode("utf-8")
 
@@ -52,12 +52,12 @@ class Shell:
                 stderr=subprocess.PIPE,
                 shell=True,
                 cwd=cwd,
-                timeout=10, # need to account for this properly
+                timeout=timeout,
             )
 
             if out.returncode != 0:
                 error_message = out.stderr.decode("utf-8")
-                print(f"[ERROR] Command execution failed: {error_message}")
+                error_message = f"[ERROR] Command execution failed: {error_message}"
                 return error_message
             else:
                 output_message = out.stdout.decode("utf-8") + out.stderr.decode("utf-8")
@@ -69,15 +69,22 @@ class Shell:
             raise RuntimeError(f"Failed to execute command: {command}\nError: {str(e)}")
 
     @staticmethod
-    def ssh_exec(host: str, user: str, ssh_key_path: str, command: str):
+    def ssh_exec(host: str, user: str, ssh_key_path: str, command: str, timeout=30):
         ssh_key_path = os.path.expanduser(ssh_key_path)
         ssh_client = paramiko.SSHClient()
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         try:
-            ssh_client.connect(hostname=host, username=user, key_filename=ssh_key_path)
+            # Add timeout to SSH connection
+            ssh_client.connect(hostname=host, username=user, key_filename=ssh_key_path, timeout=timeout)
 
-            stdin, stdout, stderr = ssh_client.exec_command(command)
+            # Execute command with timeout
+            stdin, stdout, stderr = ssh_client.exec_command(command, timeout=timeout)
+            
+            # Set timeout on channel to prevent hanging on recv_exit_status
+            stdout.channel.settimeout(timeout)
+            stderr.channel.settimeout(timeout)
+            
             exit_status = stdout.channel.recv_exit_status()
 
             if exit_status != 0:
@@ -96,7 +103,7 @@ class Shell:
             ssh_client.close()
 
     @staticmethod
-    def docker_exec(container_name: str, command: str):
+    def docker_exec(container_name: str, command: str, timeout=30):
         """Execute a command inside a running Docker container."""
         escaped_command = command.replace('"', '\\"')
         
@@ -107,13 +114,13 @@ class Shell:
                 docker_command,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                shell=True
+                shell=True,
+                timeout=timeout
             )
 
-            if out.stderr or out.returncode != 0:
+            if out.returncode != 0:
                 error_message = out.stderr.decode("utf-8")
-                print(f"[ERROR] Docker command execution failed: {error_message}")
-                return error_message
+                return f"[ERROR] Docker command execution failed: {error_message}"
             else:
                 output_message = out.stdout.decode("utf-8")
                 print(f"===== Output Message from docker ====")
