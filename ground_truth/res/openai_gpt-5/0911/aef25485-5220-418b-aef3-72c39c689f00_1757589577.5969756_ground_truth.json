@@ -1,0 +1,157 @@
+{
+  "problem_id": "container_kill-localization",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl -n test-hotel-reservation run tmp-curl --image=radial/busyboxplus:curl --rm -i --restart=Never -- curl -s -D - 'frontend:5000/reservation'\")",
+      "type": "execute_command",
+      "importance_score": 7,
+      "description": "Validate reservation endpoint availability; 400 indicates missing required params but route is present",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl -n test-hotel-reservation run tmp-curl --image=radial/busyboxplus:curl --rm -i --restart=Never -- curl -s -D - 'frontend:5000/reservation'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl -n test-hotel-reservation run tmp-curl --image=radial/busyboxplus:curl --rm -i --restart=Never -- curl -s -D - 'frontend:5000/recommendations?require=rating&lat=37.7749&lon=-122.4194'\")",
+      "type": "execute_command",
+      "importance_score": 9,
+      "description": "Validate correct /recommendations path; returns 400 indicating parameter validation (route exists)",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl -n test-hotel-reservation run tmp-curl --image=radial/busyboxplus:curl --rm -i --restart=Never -- curl -s -D - 'frontend:5000/recommendations?require=rating&lat=37.7749&lon=-122.4194'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl -n test-hotel-reservation run tmp-curl --image=radial/busyboxplus:curl --rm -i --restart=Never -- curl -s -D - 'frontend:5000/recommendation?require=rating&lat=37.7749&lon=-122.4194'\")",
+      "type": "execute_command",
+      "importance_score": 8,
+      "description": "Probe /recommendation path; returns 404 indicating route not present",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl -n test-hotel-reservation run tmp-curl --image=radial/busyboxplus:curl --rm -i --restart=Never -- curl -s -D - 'frontend:5000/recommendation?require=rating&lat=37.7749&lon=-122.4194'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl -n test-hotel-reservation run tmp-curl --image=radial/busyboxplus:curl --rm -i --restart=Never -- curl -s -D - 'frontend:5000/recommend?require=rating&lat=37.7749&lon=-122.4194'\")",
+      "type": "execute_command",
+      "importance_score": 9,
+      "description": "Use a temporary curl pod to test the recommend endpoint via the frontend; reveals 404 indicating potential frontend routing/implementation issue",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl -n test-hotel-reservation run tmp-curl --image=radial/busyboxplus:curl --rm -i --restart=Never -- curl -s -D - 'frontend:5000/recommend?require=rating&lat=37.7749&lon=-122.4194'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/user --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Inspect user service logs for health and registration",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/user --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl -n test-hotel-reservation run tmp-curl --image=radial/busyboxplus:curl --rm -i --restart=Never -- curl -s -D - 'frontend:5000/hotels?inDate=2015-04-09&outDate=2015-04-10&lat=37.7749&lon=-122.4194'\")",
+      "type": "execute_command",
+      "importance_score": 7,
+      "description": "Use a temporary curl pod to test the hotels search endpoint end-to-end via the frontend",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl -n test-hotel-reservation run tmp-curl --image=radial/busyboxplus:curl --rm -i --restart=Never -- curl -s -D - 'frontend:5000/hotels?inDate=2015-04-09&outDate=2015-04-10&lat=37.7749&lon=-122.4194'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/reservation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Inspect reservation service logs for health and registration",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/reservation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl -n test-hotel-reservation run tmp-curl --image=radial/busyboxplus:curl --rm -i --restart=Never -- curl -s -D - frontend:5000/\")",
+      "type": "execute_command",
+      "importance_score": 6,
+      "description": "Launch a temporary curl pod to probe the frontend root endpoint and verify basic HTTP availability",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl -n test-hotel-reservation run tmp-curl --image=radial/busyboxplus:curl --rm -i --restart=Never -- curl -s -D - frontend:5000/\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/rate --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Inspect rate service logs for health and registration",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/rate --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/recommendation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Inspect recommendation service logs to ensure it starts, connects to DB, and registers with Consul",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/recommendation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/profile --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Inspect profile service logs for health and registration",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/profile --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/consul --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Inspect recent logs of the Consul deployment to verify leader election and service registration behavior",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/consul --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/frontend --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect recent logs of the frontend deployment to identify client-side errors and dependency connectivity issues",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/frontend --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/search --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Inspect recent logs of the search deployment to confirm healthy startup and Consul registration",
+      "sequence_number": 14,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/search --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "List services in the namespace to provide context on service endpoints and networking (auxiliary check).",
+      "sequence_number": 15,
+      "original_command": "exec_shell(\"kubectl get svc -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/geo --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Fetch recent logs of the geo deployment to review runtime behavior around the time of the restart.",
+      "sequence_number": 16,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/geo --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod geo-<POD_SUFFIX> -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Describe the specific geo pod to confirm container termination details (Last State exit code 137 indicates container was killed).",
+      "sequence_number": 17,
+      "original_command": "exec_shell(\"kubectl describe pod geo-84fbc958c7-v6gdp -n test-hotel-reservation\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-v6gdp",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 37
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "List all pods in the namespace to identify abnormal statuses and restart counts (shows geo pod has restarted).",
+      "sequence_number": 18,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    }
+  ]
+}

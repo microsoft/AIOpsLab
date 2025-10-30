@@ -1,0 +1,141 @@
+{
+  "problem_id": "astronomy_shop_ad_service_failure-detection",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the astronomy-shop namespace to identify non-running components",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n astronomy-shop && echo '--- describe bad pod' && kubectl describe pod -n astronomy-shop flagd-<POD_SUFFIX> || true && echo '--- logs of bad pod' && kubectl logs -n astronomy-shop flagd-7cd7<POD_SUFFIX>ll-containers=true --tail=200 || true && echo '--- load<REPLICA_SUFFIX> logs tail' && kubectl logs -n astronomy-shop deplo<REPLICA_SUFFIX>erator --tail=200 || true && echo '--- frontend logs tail' && kubectl logs -n astronomy-shop deploy/frontend --tail=200 || true && echo '--- checkout logs tail' && kubectl logs -n astronomy-shop deploy/checkout --tail=200 || true && echo '--- payment logs tail' && kubectl logs -n astronomy-shop deploy/payment --tail=200 || true\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Gather broad diagnostics: deployments, pod description/logs for suspected pod, and key service logs",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get deploy -n astronomy-shop && echo '--- describe bad pod' && kubectl describe pod -n astronomy-shop flagd-7cd7b5cbb8-6pr7j || true && echo '--- logs of bad pod' && kubectl logs -n astronomy-shop flagd-7cd7b5cbb8-6pr7j --all-containers=true --tail=200 || true && echo '--- load-generator logs tail' && kubectl logs -n astronomy-shop deploy/load-generator --tail=200 || true && echo '--- frontend logs tail' && kubectl logs -n astronomy-shop deploy/frontend --tail=200 || true && echo '--- checkout logs tail' && kubectl logs -n astronomy-shop deploy/checkout --tail=200 || true && echo '--- payment logs tail' && kubectl logs -n astronomy-shop deploy/payment --tail=200 || true\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7cd7b5cbb8-6pr7j",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 128
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7cd7b5cbb8-6pr7j",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 223
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-generator",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 290
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-generator",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 357
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop && echo '--- recent events ---' && kubectl get events -n astronomy-shop --sort-by=.metadata.creationTimestamp | tail -n 25 && echo '--- load<REPLICA_SUFFIX> logs ---' && kubectl logs -n astronomy-shop deplo<REPLICA_SUFFIX>erator --tail=150 && echo '--- frontend logs ---' && kubectl logs -n astronomy-shop deploy/frontend --tail=150\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Correlate pod status with recent cluster events and client/frontend logs to surface errors and backoffs",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop && echo '--- recent events ---' && kubectl get events -n astronomy-shop --sort-by=.metadata.creationTimestamp | tail -n 25 && echo '--- load-generator logs ---' && kubectl logs -n astronomy-shop deploy/load-generator --tail=150 && echo '--- frontend logs ---' && kubectl logs -n astronomy-shop deploy/frontend --tail=150\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-generator",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 187
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-generator",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 253
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n astronomy-shop -o wide && echo '--- endpoints checkout ---' && kubectl get endpoints -n astronomy-shop checkout -o wide && echo '--- checkout svc describe ---' && kubectl describe svc -n astronomy-shop checkout && echo '--- checkout logs ---' && kubectl logs -n astronomy-shop deploy/checkout --tail=200 || true && echo '--- fraud<REPLICA_SUFFIX> logs ---' && kubectl logs -n astronomy-shop pod/fraud-detection-<POD_SUFFIX> --tail=200 || true && echo '---<REPLICA_SUFFIX>ection describe ---' && kubectl describe pod -n astronomy-shop fraud-detection-6586<POD_SUFFIX>true\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Inspect service and endpoint configuration alongside relevant pod logs/describes to pinpoint failing backend",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get svc -n astronomy-shop -o wide && echo '--- endpoints checkout ---' && kubectl get endpoints -n astronomy-shop checkout -o wide && echo '--- checkout svc describe ---' && kubectl describe svc -n astronomy-shop checkout && echo '--- checkout logs ---' && kubectl logs -n astronomy-shop deploy/checkout --tail=200 || true && echo '--- fraud-detection logs ---' && kubectl logs -n astronomy-shop pod/fraud-detection-65868bcdb5-d5b89 --tail=200 || true && echo '--- fraud-detection describe ---' && kubectl describe pod -n astronomy-shop fraud-detection-65868bcdb5-d5b89 || true\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-d5b89",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 436
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-d5b89",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 573
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 361
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 486
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc checkout -n astronomy-shop -o wide && kubectl get endpoints checkout -n astronomy-shop -o wide && kubectl describe deploy -n astronomy-shop checkout && kubectl logs -n astronomy-shop deploy/checkout --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Deep-dive into checkout service/endpoints and deployment with logs to validate connectivity issues",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get svc checkout -n astronomy-shop -o wide && kubectl get endpoints checkout -n astronomy-shop -o wide && kubectl describe deploy -n astronomy-shop checkout && kubectl logs -n astronomy-shop deploy/checkout --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n astronomy-shop -o wide && echo '--- endpoints ---' && kubectl get endpoints -n astronomy-shop -o wide && echo '--- checkout logs ---' && kubectl logs -n astronomy-shop deploy/checkout --tail=200 || true && echo '--- fraud<REPLICA_SUFFIX> describe ---' && kubectl describe pod -n astronomy-shop fraud-detection-<POD_SUFFIX> || true\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Validate service exposure and endpoints across namespace; corroborate with checkout logs and fraud-detection describe",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get svc -n astronomy-shop -o wide && echo '--- endpoints ---' && kubectl get endpoints -n astronomy-shop -o wide && echo '--- checkout logs ---' && kubectl logs -n astronomy-shop deploy/checkout --tail=200 || true && echo '--- fraud-detection describe ---' && kubectl describe pod -n astronomy-shop fraud-detection-65868bcdb5-d5b89 || true\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-d5b89",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 335
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 252
+        }
+      ]
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit detection result confirming anomalies are present",
+      "sequence_number": 7,
+      "original_command": "submit(\"Yes\")"
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "problem_id": "revoke_auth_mongodb-localization-2",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to spot failing components and choose next diagnostics.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/rate -<REPLICA_SUFFIX> || kubectl logs -n test-hotel-reservation deploy/rate\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect rate service logs; reveals 'not authorized on rate-db' errors indicating DB auth/permissions issue.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/rate --previous || kubectl logs -n test-hotel-reservation deploy/rate\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 64
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/mongodb-rate --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Check MongoDB (mongodb-rate) logs to confirm authentication/authorization failures linked to the rate-db operations.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/mongodb-rate --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl exec -n test-hotel-reservation deploy/mongodb-rate -- sh -c 'ls -l /docker-entrypoint-initdb.d && echo ==== && for f in /docker-entrypoint-initdb.d/*; do echo \\\"--- $f ---\\\"; cat \\\"$f\\\"; echo; done'\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Attempt to inspect MongoDB init scripts to verify user/role setup; auxiliary verification of auth configuration.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl exec -n test-hotel-reservation deploy/mongodb-rate -- sh -c 'ls -l /docker-entrypoint-initdb.d && echo ==== && for f in /docker-entrypoint-initdb.d/*; do echo \\\"--- $f ---\\\"; cat \\\"$f\\\"; echo; done'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe deploy/rate -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Describe the rate deployment to review configuration and environment; minimal contribution to root-cause.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl describe deploy/rate -n test-hotel-reservation\")"
+    },
+    {
+      "command": "submit([\"mongodb-rate\"])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the identified faulty component (mongodb-rate) as the root cause.",
+      "sequence_number": 6,
+      "original_command": "submit([\"mongodb-rate\"])"
+    }
+  ]
+}

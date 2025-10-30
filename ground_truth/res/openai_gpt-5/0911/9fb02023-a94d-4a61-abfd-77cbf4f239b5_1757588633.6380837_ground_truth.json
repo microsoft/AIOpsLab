@@ -1,0 +1,37 @@
+{
+  "problem_id": "assign_to_non_existent_node_social_net-detection-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the test-social-network namespace to identify any pods not running (e.g., Pending).",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod user-service-<POD_SUFFIX> -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Inspect the Pending pod to find scheduling details, revealing the node selector set to a non-existent node and the FailedScheduling events.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod user-service-5b549cc8dc-pz8ll -n test-social-network\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5b549cc8dc-pz8ll",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 46
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get nodes --show-labels\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "List cluster nodes and their labels to confirm that no node matches the specified node selector label (kubernetes.io/hostname=extra-node).",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get nodes --show-labels\")"
+    }
+  ]
+}

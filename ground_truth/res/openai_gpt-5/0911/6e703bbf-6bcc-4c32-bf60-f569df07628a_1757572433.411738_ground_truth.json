@@ -1,0 +1,85 @@
+{
+  "problem_id": "k8s_target_port-misconfig-detection-3",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all pods in the namespace to verify component health and obtain the exact pod name for further inspection.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all services and their ports to identify the potentially misconfigured service.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Show actual service endpoints to detect port mismatch (post-storage-service endpoints exposing 9999).",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe svc post-storage-service -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Detail the service configuration to confirm TargetPort is set to 9999, indicating a misconfiguration.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl describe svc post-storage-service -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod post-storage-service-<POD_SUFFIX> -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect the workload to verify the container listens on port 9090, confirming mismatch with service targetPort 9999.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl describe pod post-storage-service-9bd8bd979-4gv9l -n test-social-network\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "9bd8bd979-4gv9l",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 54
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap post-storage-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Review service-config to see expected port references (9090) for corroborating evidence.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get configmap post-storage-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network post-storage-service-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check application logs for symptoms stemming from the misconfiguration (connectivity errors).",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network post-storage-service-9bd8bd979-4gv9l --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "9bd8bd979-4gv9l",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 69
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe svc compose-post-service -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Compare with a correctly configured service (9090 -> 9090) to validate expected targetPort behavior.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl describe svc compose-post-service -n test-social-network\")"
+    }
+  ]
+}

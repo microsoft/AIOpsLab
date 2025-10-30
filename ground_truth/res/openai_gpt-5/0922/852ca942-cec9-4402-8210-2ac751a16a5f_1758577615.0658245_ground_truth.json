@@ -1,0 +1,281 @@
+{
+  "problem_id": "astronomy_shop_cart_service_failure-localization-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-<POD_SUFFIX> -<REPLICA_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Check prior container logs for fraud-detection to find earlier failures; low impact on root cause.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-qxl2l --previous --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-qxl2l",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 73
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop email-<POD_SUFFIX> --all-containers=true --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Fetch Email service logs to verify order confirmation emails are being sent successfully.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop email-59d9ffc758-6d4kt --all-containers=true --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "59d9ffc758-6d4kt",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 49
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop shipping-<POD_SUFFIX> --all-containers=true --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Inspect Shipping service logs to confirm quote generation and tracking behavior.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop shipping-7f445d59dc-ss7dv --all-containers=true --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7f445d59dc-ss7dv",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 52
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop accounting-<POD_SUFFIX> --all-containers=true --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Review Accounting service logs to detect Kafka consumer issues like unknown topic or partition errors.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop accounting-567f87bbcd-whfkx --all-containers=true --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "567f87bbcd-whfkx",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 54
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop recommendation-<POD_SUFFIX> --all-containers=true --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Check Recommendation service logs to ensure it is serving requests normally.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop recommendation-7b49c8cb75-rvlnq --all-containers=true --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7b49c8cb75-rvlnq",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 58
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop product-catalog-<POD_SUFFIX> --all-containers=true --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Inspect Product Catalog logs for service health and telemetry export issues.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop product-catalog-6988cd5f49-qp966 --all-containers=true --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "6988cd5f49-qp966",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop payment-<POD_SUFFIX> --all-containers=true --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Fetch Payment service logs to verify gRPC server behavior and transaction processing.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop payment-7597577cb5-v4zd6 --all-containers=true --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7597577cb5-v4zd6",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 51
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop otel-collector-<POD_SUFFIX> --all-containers=true --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect OpenTelemetry Collector logs to validate ingestion/export behavior and identify misconfiguration (gRPC vs HTTP endpoints).",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop otel-collector-758b8784c-bwz68 --all-containers=true --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "758b8784c-bwz68",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 58
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop <POD_SUFFIX>-54<POD_SUFFIX>-all-containers=true --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Review Envoy proxy logs for networking or routing issues impacting frontend requests.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop frontend-proxy-548b4649d7-gg4rv --all-containers=true --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "frontend-proxy",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 43
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "548b4649d7-gg4rv",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 58
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop currency-<POD_SUFFIX> --all-containers=true --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Check currency service logs revealing persistent OTLP gRPC exporter failures to the collector.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop currency-5864f94d89-v4x9m --all-containers=true --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5864f94d89-v4x9m",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 52
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop checkout-<POD_SUFFIX> --all-containers=true --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Inspect checkout service logs to validate its health and connectivity as referenced by frontend errors.",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop checkout-5bc54f8cd8-s29fp --all-containers=true --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5bc54f8cd8-s29fp",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 52
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop cart-<POD_SUFFIX> --all-containers=true --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Inspect cart service logs to determine if it is serving requests and to rule out application-level failures.",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop cart-6fd857c656-td7dz --all-containers=true --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "6fd857c656-td7dz",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 48
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n astronomy-shop -o wide\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Verify service endpoints/backends to confirm pods are registered behind the services and are routable.",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl get endpoints -n astronomy-shop -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n astronomy-shop -o wide\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "List services with cluster IPs to correlate frontend error IPs with target services (e.g., cart and checkout).",
+      "sequence_number": 14,
+      "original_command": "exec_shell(\"kubectl get svc -n astronomy-shop -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-<POD_SUFFIX> --all-containers=true --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Fetch recent logs from the Fraud Detection service to verify Kafka connectivity and initialization.",
+      "sequence_number": 15,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-qxl2l --all-containers=true --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-qxl2l",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop frontend-<POD_SUFFIX> --all-containers=true --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Check frontend logs to identify user-facing errors; reveals ECONNREFUSED to cart/checkout services indicating connectivity issues.",
+      "sequence_number": 16,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop frontend-7d6b77c58-6cbv6 --all-containers=true --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7d6b77c58-6cbv6",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 52
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop ad-<POD_SUFFIX> --all-containers=true --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Fetch recent logs from the Ad service pod to check for startup issues or runtime errors.",
+      "sequence_number": 17,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop ad-94bd576b5-xwb6l --all-containers=true --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-xwb6l",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 46
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the astronomy-shop namespace to assess overall service health and readiness.",
+      "sequence_number": 18,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    }
+  ]
+}

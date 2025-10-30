@@ -1,0 +1,173 @@
+{
+  "problem_id": "network_loss_hotel_res-mitigation",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl run -n test-hotel-reservation tmp-curl-2 --rm -i --restart=Never --image=curlimages/curl -- curl -v http://frontend:5000/hotels?inDate=2015-04-09&outDate=2015-04-10&lat=37.7749&lon=-122.4194 || true\")",
+      "type": "execute_command",
+      "importance_score": 8,
+      "description": "Ephemeral curl pod with verbose output to confirm HTTP status and headers for the hotels API request.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl run -n test-hotel-reservation tmp-curl-2 --rm -i --restart=Never --image=curlimages/curl -- curl -v http://frontend:5000/hotels?inDate=2015-04-09&outDate=2015-04-10&lat=37.7749&lon=-122.4194 || true\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/user --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Verify user service initialization and Consul registration.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/user --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation search -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Inspect search deployment spec for configuration validation.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation search -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/reservation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Verify reservation service initialization and Consul registration.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/reservation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation frontend -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Inspect frontend deployment spec (ports, image, resources) for configuration issues.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation frontend -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl run -n test-hotel-reservation tmp-curl-verify --rm -i --restart=Never --image=curlimages/curl -- sh -lc 'curl -sS \\\"http://frontend:5000/hotels?inDate=2015-04-09&outDate=2015-04-10&lat=37.7749&lon=-122.4194\\\" | head -c 500 || true'\")",
+      "type": "execute_command",
+      "importance_score": 6,
+      "description": "Post-mitigation verification using ephemeral curl pod to ensure API responds with data.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl run -n test-hotel-reservation tmp-curl-verify --rm -i --restart=Never --image=curlimages/curl -- sh -lc 'curl -sS \\\"http://frontend:5000/hotels?inDate=2015-04-09&outDate=2015-04-10&lat=37.7749&lon=-122.4194\\\" | head -c 500 || true'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/rate --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Verify rate service DB/memcached connectivity and registration in Consul.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/rate --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl delete networkchaos loss -n test-hotel-reservation\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Remove the active NetworkChaos fault (packet loss) to restore network connectivity.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl delete networkchaos loss -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/geo --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Verify geo service DB connectivity and Consul registration.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/geo --tail=200\")"
+    },
+    {
+      "command": "submit()",
+      "type": "execute_command",
+      "importance_score": 5,
+      "description": "Submit the mitigation solution for evaluation.",
+      "sequence_number": 10,
+      "original_command": "submit()"
+    },
+    {
+      "command": "exec_shell(\"kubectl get networkchaos -A -o wide\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Identify active NetworkChaos experiments across all namespaces to confirm ongoing fault.",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl get networkchaos -A -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get events -n test-hotel-reservation --sort-by=.metadata.creationTimestamp | tail -n 50\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Review recent namespace events; reveals Chaos Mesh NetworkChaos activity causing packet loss.",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl get events -n test-hotel-reservation --sort-by=.metadata.creationTimestamp | tail -n 50\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/profile --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Verify profile service DB/memcached connectivity and registration in Consul.",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/profile --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl run -n test-hotel-reservation tmp-curl --rm -i --restart=Never --image=curlimages/curl -- curl -sS http://frontend:5000/hotels?inDate=2015-04-09&outDate=2015-04-10&lat=37.7749&lon=-122.4194 || true\")",
+      "type": "execute_command",
+      "importance_score": 5,
+      "description": "Ephemeral curl pod to reproduce/verify functional API behavior for hotels query.",
+      "sequence_number": 14,
+      "original_command": "exec_shell(\"kubectl run -n test-hotel-reservation tmp-curl --rm -i --restart=Never --image=curlimages/curl -- curl -sS http://frontend:5000/hotels?inDate=2015-04-09&outDate=2015-04-10&lat=37.7749&lon=-122.4194 || true\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/recommendation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Verify recommendation service DB connectivity and registration in Consul.",
+      "sequence_number": 15,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/recommendation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl run -n test-hotel-reservation tmp-shell --rm -i --restart=Never --image=curlimages/curl -- curl -sS http://frontend:5000/health || true\")",
+      "type": "execute_command",
+      "importance_score": 5,
+      "description": "Ephemeral curl pod to probe frontend health endpoint from inside the cluster.",
+      "sequence_number": 16,
+      "original_command": "exec_shell(\"kubectl run -n test-hotel-reservation tmp-shell --rm -i --restart=Never --image=curlimages/curl -- curl -sS http://frontend:5000/health || true\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/search --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Verify search service startup and registration in Consul.",
+      "sequence_number": 17,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/search --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/consul --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Inspect Consul logs to understand service discovery and potential connectivity problems.",
+      "sequence_number": 18,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/consul --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/frontend --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Check frontend logs for errors indicating upstream connectivity issues.",
+      "sequence_number": 19,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/frontend --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "List services to confirm service endpoints and ports.",
+      "sequence_number": 20,
+      "original_command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "List pods in the namespace to assess overall workload health and readiness.",
+      "sequence_number": 21,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    }
+  ]
+}

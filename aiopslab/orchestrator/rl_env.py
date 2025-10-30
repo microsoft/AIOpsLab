@@ -324,9 +324,27 @@ class ProblemRLEnvironment:
         self._power_episode = None
         if self.problem_id is not None:
             try:
+                # Try exact problem_id first
                 self._power_episode = self.power_model.start_episode(self.problem_id)
-            except KeyError as exc:  # pragma: no cover - configuration error
-                raise RuntimeError(str(exc)) from exc
+            except KeyError:
+                # Fallback: try canonical problem id to reuse shared traces
+                canonical_id = None
+                try:
+                    probs = getattr(self.orchestrator, "probs", None)
+                    if probs is not None and hasattr(probs, "get_canonical_id"):
+                        canonical_id = probs.get_canonical_id(self.problem_id)
+                except Exception:
+                    canonical_id = None
+
+                if canonical_id and canonical_id != self.problem_id:
+                    try:
+                        self._power_episode = self.power_model.start_episode(canonical_id)
+                    except KeyError as exc2:  # pragma: no cover - configuration error
+                        raise RuntimeError(str(exc2)) from exc2
+                else:
+                    raise RuntimeError(
+                        f"No ground-truth power commands found for problem_id '{self.problem_id}'."
+                    )
 
         # ``init_problem`` creates a fresh session but leaves it idle.
         session = self.orchestrator.session

@@ -1,0 +1,69 @@
+{
+  "problem_id": "assign_to_non_existent_node_social_net-mitigation",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to identify any pods in Pending state.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod user-service-<POD_SUFFIX> -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect the Pending pod to see scheduling events and detect nodeSelector/taint issues.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod user-service-5b549cc8dc-4cx9c -n test-social-network\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5b549cc8dc-4cx9c",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 46
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get nodes --show-labels\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Check available node labels to verify whether the target node label exists.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get nodes --show-labels\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy user-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Fetch deployment spec to confirm the nodeSelector causing unschedulability.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get deploy user-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl patch deployment user-service -n test-social-network --type=json -p='[{\\\"op\\\":\\\"remove\\\",\\\"path\\\":\\\"/spec/template/spec/nodeSelector\\\"}]'\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Remove the nodeSelector from the deployment to allow scheduling on available nodes.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl patch deployment user-service -n test-social-network --type=json -p='[{\\\"op\\\":\\\"remove\\\",\\\"path\\\":\\\"/spec/template/spec/nodeSelector\\\"}]'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Verify that a new pod is scheduled and running on an available node.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "List services to confirm service exposure post-mitigation.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network\")"
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "problem_id": "wrong_bin_usage-mitigation-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation -o jsonpath='{range .items[*]}{.metadata.name}{\\\"\\\\t\\\"}{.spec.template.spec.containers[0].command[0]}{\\\"\\\\n\\\"}{end}'\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Audit all deployments to verify each container command, confirming profile now runs 'profile'",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation -o jsonpath='{range .items[*]}{.metadata.name}{\\\"\\\\t\\\"}{.spec.template.spec.containers[0].command[0]}{\\\"\\\\n\\\"}{end}'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation -o jsonpath=\\'{range .items[*]}{.metadata.name}{\\\\\"\\\\\\\\t\\\\\"}{.spec.template.spec.containers[0].command[0]}{\\\\\"\\\\\\\\n\\\\\"}{end}\\'\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all deployments and their container commands to validate the fix and check for other misconfigurations.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation -o jsonpath=\\'{range .items[*]}{.metadata.name}{\\\\\"\\\\\\\\t\\\\\"}{.spec.template.spec.containers[0].command[0]}{\\\\\"\\\\\\\\n\\\\\"}{end}\\'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl rollout status deployment/profile -n test-hotel-reservation && kubectl logs -n test-hotel-reservation deployment/profile --tail=100\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Wait for rollout to complete and verify profile service starts correctly via logs",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl rollout status deployment/profile -n test-hotel-reservation && kubectl logs -n test-hotel-reservation deployment/profile --tail=100\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl patch deployment profile -n test-hotel-reservation --type='json' -p='[{\\\"op\\\":\\\"replace\\\",\\\"path\\\":\\\"/spec/template/spec/containers/0/command\\\",\\\"value\\\":[\\\"profile\\\"]}]'\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Fix the profile deployment by replacing the container command to run the correct binary",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl patch deployment profile -n test-hotel-reservation --type='json' -p='[{\\\"op\\\":\\\"replace\\\",\\\"path\\\":\\\"/spec/template/spec/containers/0/command\\\",\\\"value\\\":[\\\"profile\\\"]}]'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl patch deployment profile -n test-hotel-reservation --type=\\'json\\' -p=\\'[{\\\\\"op\\\\\":\\\\\"replace\\\\\",\\\\\"path\\\\\":\\\\\"/spec/template/spec/containers/0/command\\\\\",\\\\\"value\\\\\":[\\\\\"profile\\\\\"]}]\\'\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Patch the profile deployment to set the correct container command to run the profile binary.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl patch deployment profile -n test-hotel-reservation --type=\\'json\\' -p=\\'[{\\\\\"op\\\\\":\\\\\"replace\\\\\",\\\\\"path\\\\\":\\\\\"/spec/template/spec/containers/0/command\\\\\",\\\\\"value\\\\\":[\\\\\"profile\\\\\"]}]\\'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deployment search geo -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Compare search and geo deployments to understand correct command configuration",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get deployment search geo -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deployment profile -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Examine profile deployment spec to confirm misconfigured container command",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get deployment profile -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/profile --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect profile service logs; reveals it is running the wrong binary",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/profile --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/search --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Verify search service behavior and registration for comparison",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/search --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/consul --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check Consul agent logs to rule out service discovery issues",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/consul --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/frontend --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Inspect frontend logs to observe user-facing errors and guide investigation",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/frontend --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "List services and cluster IPs/ports for context on service exposure",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List all pods in the namespace to assess overall workload status",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    }
+  ]
+}

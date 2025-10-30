@@ -1,0 +1,151 @@
+{
+  "problem_id": "astronomy_shop_recommendation_service_cache_failure-localization-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "List all pods in the astronomy-shop namespace to identify unhealthy components.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-<POD_SUFFIX> --all-containers=true -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Attempt to fetch previous logs from all containers in the fraud-detection pod to inspect last crash.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-fkdtk --all-containers=true --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-fkdtk",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 95
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-<POD_SUFFIX> --all-containers=true\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Fetch current logs from all containers in the fraud-detection pod to examine init and startup behavior.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-fkdtk --all-containers=true\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-fkdtk",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Describe the fraud-detection pod to see container states, resource limits, and recent events.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-65868bcdb5-fkdtk\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-fkdtk",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 67
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-<POD_SUFFIX> -c fraud<REPLICA_SUF<REPLICA_SUFFIX>evious\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Fetch previous logs for the fraud-detection application container to capture prior crash output.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-fkdtk -c fraud-detection --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-fkdtk",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 80
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 92
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pod -n astronomy-shop fraud-detection-<POD_SUFFIX> -o json\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Retrieve full pod JSON for fraud-detection to inspect spec, environment, and detailed status fields.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get pod -n astronomy-shop fraud-detection-65868bcdb5-fkdtk -o json\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-fkdtk",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 62
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get events -n astronomy-shop --sort-by=.lastTimestamp | tail -n 100\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Query recent namespace events to correlate restarts and errors across resources.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get events -n astronomy-shop --sort-by=.lastTimestamp | tail -n 100\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl top pod -n astronomy-shop -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Attempt to check live resource usage per container (useful for diagnosing OOM or throttling).",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl top pod -n astronomy-shop --containers\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-containers",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 47
+        }
+      ]
+    },
+    {
+      "command": "submit([\"fraud<REPLICA_SUFFIX>\"])",
+      "type": "execute_command",
+      "importance_score": 9,
+      "description": "Submit the suspected faulty component to the orchestrator for evaluation.",
+      "sequence_number": 9,
+      "original_command": "submit([\"fraud-detection\"])",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 14
+        }
+      ]
+    }
+  ]
+}

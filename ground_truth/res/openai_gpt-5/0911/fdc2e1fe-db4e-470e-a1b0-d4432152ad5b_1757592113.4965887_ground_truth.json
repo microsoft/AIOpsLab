@@ -1,0 +1,125 @@
+{
+  "problem_id": "network_loss_hotel_res-detection-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/geo --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Fetches recent logs from the geo service for anomalies.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/geo --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/rate --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Fetches recent logs from the rate service for anomalies.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/rate --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/reservation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Fetches recent logs from the reservation service for anomalies.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/reservation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/user --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Fetches recent logs from the user service for anomalies.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/user --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/recommendation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Fetches recent logs from the recommendation service for anomalies.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/recommendation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/profile --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Fetches recent logs from the profile service for anomalies.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/profile --tail=200\")"
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 8,
+      "description": "Submit the anomaly detection result indicating an issue was found.",
+      "sequence_number": 7,
+      "original_command": "submit(\"Yes\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/search --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Fetches recent logs from the search service for anomalies.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/search --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get networkchaos -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Directly confirm active Chaos Mesh experiments; shows a 'loss' NetworkChaos with 200s duration.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl get networkchaos -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/consul --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Fetches recent logs from the Consul deployment to verify service discovery health.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/consul --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get events -n test-hotel-reservation --sort-by=.metadata.creationTimestamp\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Review chronological Kubernetes events to detect injected faults; reveals NetworkChaos applied to the user pod.",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl get events -n test-hotel-reservation --sort-by=.metadata.creationTimestamp\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/frontend --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Fetches recent logs from the frontend deployment for error signals.",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/frontend --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Inspect service endpoints to confirm backing pod IPs and ports are correctly registered.",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List services and cluster IPs/ports to verify service exposure and networking configuration.",
+      "sequence_number": 14,
+      "original_command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all pods in the hotel reservation namespace to establish baseline health and readiness.",
+      "sequence_number": 15,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    }
+  ]
+}

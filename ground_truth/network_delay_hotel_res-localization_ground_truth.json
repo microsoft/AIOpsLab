@@ -1,0 +1,189 @@
+{
+  "problem_id": "network_delay_hotel_res-localization",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get svc,endpoints -n test-hotel-reservation | sed -n '1p;/mongodb-profile/p;/profile/p;/mongodb-user/p;/user/p'\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Consolidated services and endpoints view for related components; confirms user endpoints remain empty while DB endpoints exist.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get svc,endpoints -n test-hotel-reservation | sed -n '1p;/mongodb-profile/p;/profile/p;/mongodb-user/p;/user/p'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation profile-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Confirm the profile service successfully connects to its DB as a baseline comparison.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation profile-8b6dd7c6c-rw78q --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "8b6dd7c6c-rw78q",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy profile -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check a healthy peer service's deployment for comparison of patterns and env.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get deploy profile -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl exec -n test-hotel-reservation mongodb-user-<POD_SUFFIX> -- mongo --host mongodb-user --port 27017 --eval 'db.runCommand({ ping: 1 })' --quiet\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Run a MongoDB ping via the Service DNS to confirm the database is reachable within the cluster.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl exec -n test-hotel-reservation mongodb-user-969c6c449-xlsvg -- mongo --host mongodb-user --port 27017 --eval 'db.runCommand({ ping: 1 })' --quiet\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "969c6c449-xlsvg",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 64
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl exec -n test-hotel-reservation profile-<POD_SUFFIX> -- sh -c 'apk add --no-cache busybox-extras >/dev/null 2>&1 || true; nc -vz -w 2 mongodb-user 27017 || (echo trying_busybox_telnet && telnet mongodb-user 27017 </dev/null | head -n1 || true)'\")",
+      "type": "execute_command",
+      "importance_score": 7,
+      "description": "Attempt in-pod network connectivity test from profile service to mongodb-user:27017 using nc/telnet (installs tools if missing).",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl exec -n test-hotel-reservation profile-8b6dd7c6c-rw78q -- sh -c 'apk add --no-cache busybox-extras >/dev/null 2>&1 || true; nc -vz -w 2 mongodb-user 27017 || (echo trying_busybox_telnet && telnet mongodb-user 27017 </dev/null | head -n1 || true)'\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "8b6dd7c6c-rw78q",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get networkpolicy -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Check for NetworkPolicies that might restrict traffic between services; none found indicates no policy-based blocking.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get networkpolicy -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pod -n test-hotel-reservation -o wide | sed -n '1p;/mongodb-user/p;/user-/p'\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Show pod IPs and node placements for mongodb-user and user pods to aid network path analysis.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get pod -n test-hotel-reservation -o wide | sed -n '1p;/mongodb-user/p;/user-/p'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation user-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Describe the user pod to view status, restart reasons, and recent events (CrashLoopBackOff).",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation user-66d5d6f874-7n9xl\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "66d5d6f874-7n9xl",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 64
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc mongodb-user -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Validate the mongodb-user Service configuration, ports, and selector mapping.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl get svc mongodb-user -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy mongodb-user -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Review MongoDB user deployment configuration to ensure proper setup and hostname.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl get deploy mongodb-user -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy user -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Examine the user deployment configuration for image, command, and environment details.",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl get deploy user -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation user-<POD_SUFFIX> --tail=200 --since=2m\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Retrieve the most recent logs from the user pod to confirm recurring connection failures.",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation user-66d5d6f874-7n9xl --tail=200 --since=2m\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "66d5d6f874-7n9xl",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 56
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation mongodb-user-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect MongoDB user database pod logs to verify it is running and accepting connections.",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation mongodb-user-969c6c449-xlsvg --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "969c6c449-xlsvg",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 64
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc,endpoints -n test-hotel-reservation | sed -n '1p;/mongodb-user/p;/user/p'\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Check Services and Endpoints for mongodb-user and user to verify service discovery and endpoint readiness.",
+      "sequence_number": 14,
+      "original_command": "exec_shell(\"kubectl get svc,endpoints -n test-hotel-reservation | sed -n '1p;/mongodb-user/p;/user/p'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation user-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Fetch recent logs from the user service pod to identify failure symptoms (e.g., no reachable servers).",
+      "sequence_number": 15,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation user-66d5d6f874-7n9xl --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "66d5d6f874-7n9xl",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 56
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to determine overall service health and identify failing components.",
+      "sequence_number": 16,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    }
+  ]
+}

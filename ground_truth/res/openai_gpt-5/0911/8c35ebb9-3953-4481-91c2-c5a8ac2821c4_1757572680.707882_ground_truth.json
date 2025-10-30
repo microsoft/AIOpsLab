@@ -1,0 +1,77 @@
+{
+  "problem_id": "k8s_target_port-misconfig-localization-3",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all pods in the namespace to confirm component readiness and identify targets for deeper inspection",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List services and their ports to spot potential service port/targetPort issues",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/nginx-thrift --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Check frontend gateway logs for request errors indicating downstream connection problems",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/nginx-thrift --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network -o name | xargs -I {} sh -lc 'echo === {}; kubectl logs -n test-social-network {} --tail=400 --all<REPLICA_SUFFIX> | egrep -i \\\"error|exception|fail|panic|refused|timeout\\\" || true'\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Aggregate recent error logs across all pods to pinpoint failing interactions and implicated services",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network -o name | xargs -I {} sh -lc 'echo === {}; kubectl logs -n test-social-network {} --tail=400 --all-containers | egrep -i \\\"error|exception|fail|panic|refused|timeout\\\" || true'\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-containers",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 150
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-social-network post-storage-service -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect the endpoints of post-storage-service to verify the discovered backend port wiring",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-social-network post-storage-service -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe svc -n test-social-network post-storage-service && kubectl describe pod -n test-social-network post-storage-service-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Correlate service TargetPort (9999) with pod container port (9090) to confirm targetPort misconfiguration root cause",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl describe svc -n test-social-network post-storage-service && kubectl describe pod -n test-social-network post-storage-service-9bd8bd979-lrfz5\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "9bd8bd979-lrfz5",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 145
+        }
+      ]
+    },
+    {
+      "command": "submit([\"post-storage-service\"])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the identified faulty component to complete the localization task",
+      "sequence_number": 7,
+      "original_command": "submit([\"post-storage-service\"])"
+    }
+  ]
+}

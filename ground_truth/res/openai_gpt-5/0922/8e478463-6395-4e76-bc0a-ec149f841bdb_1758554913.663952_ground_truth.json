@@ -1,0 +1,117 @@
+{
+  "problem_id": "user_unregistered_mongodb-localization-2",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to identify failing components.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod rate-<POD_SUFFIX> -n test-hotel-reservation && kubectl logs rate-7bdc<POD_SUFFIX>test-hotel-reservation -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect the failing rate pod details and retrieve previous container logs to understand crash/backoff behavior.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod rate-7bdc978679-xts2d -n test-hotel-reservation && kubectl logs rate-7bdc978679-xts2d -n test-hotel-reservation --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-xts2d",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 38
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-xts2d",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 102
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 138
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs rate-<POD_SUFFIX> -n test-hotel-reservation -c hotel-reserv-rate --tail=200 -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Fetch current logs from the rate service container showing SASL authentication failures against MongoDB.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs rate-7bdc978679-xts2d -n test-hotel-reservation -c hotel-reserv-rate --tail=200 --timestamps\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-xts2d",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 30
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-timestamps",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 102
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs mongodb-rate-<POD_SUFFIX> -n test-hotel-reservation --tail=200 -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Check MongoDB rate pod logs revealing 'UserNotFound' for admin, indicating missing admin user and root cause.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs mongodb-rate-56cc8659c9-ctpml -n test-hotel-reservation --tail=200 --timestamps\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "56cc8659c9-ctpml",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 38
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-timestamps",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 89
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy rate -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Review the rate deployment spec to understand its configuration and environment.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get deploy rate -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy mongodb-rate -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Review the MongoDB rate deployment to verify authentication and mounted ConfigMaps related to initialization/failure scripts.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get deploy mongodb-rate -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap -n test-hotel-reservation mongo-rate-script -o yaml && kubectl get configmap -n test-hotel-reservation failure-admin-rate -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect ConfigMaps to confirm scripts that create or remove the admin user, explaining the missing admin and auth errors.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get configmap -n test-hotel-reservation mongo-rate-script -o yaml && kubectl get configmap -n test-hotel-reservation failure-admin-rate -o yaml\")"
+    },
+    {
+      "command": "submit([\"mongodb-rate\"])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the identified faulty component as mongodb-rate.",
+      "sequence_number": 8,
+      "original_command": "submit([\"mongodb-rate\"])"
+    }
+  ]
+}

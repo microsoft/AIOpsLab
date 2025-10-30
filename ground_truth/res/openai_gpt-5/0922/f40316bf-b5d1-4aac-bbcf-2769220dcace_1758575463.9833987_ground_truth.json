@@ -1,0 +1,103 @@
+{
+  "problem_id": "astronomy_shop_ad_service_high_cpu-detection-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "List all pods in the astronomy-shop namespace to quickly identify pods with errors or restarts.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect detailed pod information and events for the failed fraud-detection pod, including exit codes and BackOff.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-65868bcdb5-2xm4r\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-2xm4r",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 67
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-<POD_SUFFIX> -c fraud<REPLICA_SUF<REPLICA_SUFFIX>evious\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Retrieve logs from the previous crash of the fraud-detection container to gather failure evidence.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-2xm4r -c fraud-detection --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-2xm4r",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 80
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 92
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pod -n astronomy-shop fraud-detection-<POD_SUFFIX> -o json\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Fetch the pod specification and status in JSON to verify restart counts and container states programmatically.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get pod -n astronomy-shop fraud-detection-65868bcdb5-2xm4r -o json\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-2xm4r",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 62
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-<POD_SUFFIX> -c fraud<REPLICA_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Check recent logs of the currently running fraud-detection container to confirm ongoing behavior.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-2xm4r -c fraud-detection --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-2xm4r",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 80
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get events -n astronomy-shop --sort-by=.lastTimestamp | tail -n 50\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Review recent namespace events to corroborate warnings like BackOff and restarts across services, supporting anomaly detection.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get events -n astronomy-shop --sort-by=.lastTimestamp | tail -n 50\")"
+    }
+  ]
+}

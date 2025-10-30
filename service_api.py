@@ -158,7 +158,10 @@ class ChatCompletionConfig(BaseModel):
 
 
 class EchoServerConfig(BaseModel):
-    url: AnyHttpUrl = Field(..., description="Endpoint that receives completed rollouts for Echo training.")
+    url: AnyHttpUrl = Field(
+        ...,
+        description="Base URL for the Echo job callback server (e.g. http://127.0.0.1:8098).",
+    )
     api_key: Optional[str] = Field(
         default=None,
         description="Optional bearer token used when contacting the Echo server.",
@@ -302,6 +305,8 @@ class _TrainingJob:
     error: Optional[str] = None
     results: List[JobRunResult] = field(default_factory=list)
     task: Optional[asyncio.Task] = None
+    echo_client: Optional[_EchoJobClient] = None
+    echo_job_id: Optional[str] = None
 
     def status_payload(self) -> JobStatusResponse:
         return JobStatusResponse(
@@ -324,6 +329,67 @@ _TRAINING_JOBS_LOCK = asyncio.Lock()
 
 def _create_action_provider(config: ChatCompletionConfig) -> _ActionProvider:
     return _OpenAIActionProvider(config)
+
+
+def _create_echo_client(config: EchoServerConfig) -> "_EchoJobClient":
+    return _EchoJobClient(config)
+
+
+class _EchoJobClient:
+    """Thin HTTP client used to interact with the Echo job lifecycle API."""
+
+    def __init__(self, config: EchoServerConfig) -> None:
+        self._config = config
+        self._base_url = str(config.url).rstrip("/")
+        headers = {"Content-Type": "application/json"}
+        headers.update(config.extra_headers)
+        if config.api_key:
+            headers.setdefault("Authorization", f"Bearer {config.api_key}")
+        self._headers = headers
+
+    async def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        json_payload: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        if not path.startswith("/"):
+            path = "/" + path
+        url = f"{self._base_url}{path}"
+        async with httpx.AsyncClient(timeout=self._config.timeout) as client:
+            kwargs: Dict[str, Any] = {"headers": self._headers}
+            if json_payload is not None:
+                kwargs["json"] = json_payload
+            response = await client.request(method, url, **kwargs)
+        response.raise_for_status()
+        if not response.content:
+            return {}
+        try:
+            return response.json()
+        except ValueError:
+            return {}
+
+    async def create_job(self, problems: Sequence["ProblemRunPayload"]) -> Dict[str, Any]:
+        payload = {
+            "problems": [
+                {"id": problem.problem_id, "runs": problem.runs}
+                for problem in problems
+            ]
+        }
+        return await self._request("POST", "/jobs", json_payload=payload)
+
+    async def post_event(self, job_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        return await self._request("POST", f"/jobs/{job_id}/events", json_payload=payload)
+
+    async def get_status(self, job_id: str) -> Dict[str, Any]:
+        return await self._request("GET", f"/jobs/{job_id}/status")
+
+    async def get_results(self, job_id: str) -> Dict[str, Any]:
+        return await self._request("GET", f"/jobs/{job_id}/results")
+
+    async def get_events(self, job_id: str) -> Dict[str, Any]:
+        return await self._request("GET", f"/jobs/{job_id}/events")
 
 
 def _dump_json(payload: Any) -> str:
@@ -373,42 +439,43 @@ def _extract_action_text(message: str) -> str:
     return cleaned
 
 
-async def _send_to_echo_server(
-    config: Optional[EchoServerConfig],
-    job: _TrainingJob,
-    run_result: JobRunResult,
-) -> Optional[str]:
-    if config is None:
-        return None
-
-    headers = {"Content-Type": "application/json"}
-    headers.update(config.extra_headers)
-    if config.api_key:
-        headers.setdefault("Authorization", f"Bearer {config.api_key}")
-
-    payload = {
-        "job_id": job.job_id,
-        "problem_id": run_result.problem_id,
-        "run_index": run_result.run_index,
+def _build_run_payload(run_result: JobRunResult) -> Dict[str, Any]:
+    return {
+        "run_id": run_result.run_id,
         "env_id": run_result.env_id,
         "total_reward": run_result.total_reward,
         "done": run_result.done,
-        "trajectory": [step.model_dump() for step in run_result.steps],
+        "steps": [step.model_dump() for step in run_result.steps],
     }
 
-    try:
-        async with httpx.AsyncClient(timeout=config.timeout) as client:
-            response = await client.post(str(config.url), json=payload, headers=headers)
-            response.raise_for_status()
-    except Exception as exc:  # pragma: no cover - exercised via monkeypatch in tests
-        logger.exception("Failed to push rollout to Echo server", exc_info=exc)
-        return str(exc)
 
+def _build_partial_results(job: _TrainingJob) -> List[Dict[str, Any]]:
+    return [
+        {
+            "problem_id": result.problem_id,
+            "run_index": result.run_index,
+            "payload": _build_run_payload(result),
+        }
+        for result in job.results
+    ]
+
+
+async def _post_echo_event(job: _TrainingJob, payload: Dict[str, Any]) -> Optional[str]:
+    if job.echo_client is None or job.echo_job_id is None:
+        return None
+    try:
+        await job.echo_client.post_event(job.echo_job_id, payload)
+    except Exception as exc:  # pragma: no cover - exercised via monkeypatch in tests
+        logger.exception("Failed to post event to Echo server", exc_info=exc)
+        return str(exc)
     return None
 
 
 async def _run_training_job(job: _TrainingJob) -> None:
     job.status = "running"
+    init_error = await _post_echo_event(job, {"event": "initializing"})
+    if init_error:
+        job.echo_failures += 1
     sem = asyncio.Semaphore(job.request.concurrency)
     tasks = []
     for problem in job.request.problems:
@@ -433,8 +500,18 @@ async def _run_training_job(job: _TrainingJob) -> None:
     if errors:
         job.status = "failed"
         job.error = "; ".join(errors)
+        failure_payload: Dict[str, Any] = {"event": "job_failed", "reason": job.error}
+        partial = _build_partial_results(job)
+        if partial:
+            failure_payload["partial"] = partial
+        err = await _post_echo_event(job, failure_payload)
+        if err:
+            job.echo_failures += 1
     else:
         job.status = "succeeded"
+        err = await _post_echo_event(job, {"event": "job_finished"})
+        if err:
+            job.echo_failures += 1
 
 
 async def _run_single_episode(
@@ -469,6 +546,17 @@ async def _run_single_episode(
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": _format_observation_message(observation, info)},
             ]
+
+            start_error = await _post_echo_event(
+                job,
+                {
+                    "event": "run_started",
+                    "problem_id": problem.problem_id,
+                    "run_index": run_index,
+                },
+            )
+            if start_error:
+                job.echo_failures += 1
 
             action_provider = _create_action_provider(job.request.chat)
 
@@ -522,7 +610,15 @@ async def _run_single_episode(
                 done=done,
             )
 
-            echo_error = await _send_to_echo_server(job.request.echo, job, run_result)
+            echo_error = await _post_echo_event(
+                job,
+                {
+                    "event": "run_finished",
+                    "problem_id": problem.problem_id,
+                    "run_index": run_index,
+                    "payload": _build_run_payload(run_result),
+                },
+            )
             if echo_error:
                 job.echo_failures += 1
                 run_result.echo_post_status = f"error: {echo_error}"
@@ -639,7 +735,37 @@ async def start_training_job(payload: BatchRunRequest) -> JobStatusResponse:
     if total_runs <= 0:
         raise HTTPException(status_code=400, detail="At least one episode must be requested.")
 
-    job = _TrainingJob(job_id=uuid4().hex, request=payload, total_runs=total_runs)
+    job_id = uuid4().hex
+    echo_client: Optional[_EchoJobClient] = None
+    if payload.echo is not None:
+        try:
+            echo_client = _create_echo_client(payload.echo)
+            creation = await echo_client.create_job(payload.problems)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=502,
+                detail=f"Failed to register job with Echo server: {exc}",
+            ) from exc
+
+        remote_job_id = creation.get("job_id")
+        if not remote_job_id:
+            raise HTTPException(status_code=502, detail="Echo server response did not include a job_id.")
+        job_id = str(remote_job_id)
+        expected_runs = creation.get("expected_runs")
+        if expected_runs is not None and expected_runs != total_runs:
+            logger.warning(
+                "Echo server expected %s runs but request specified %s; continuing.",
+                expected_runs,
+                total_runs,
+            )
+
+    job = _TrainingJob(
+        job_id=job_id,
+        request=payload,
+        total_runs=total_runs,
+        echo_client=echo_client,
+        echo_job_id=job_id if echo_client is not None else None,
+    )
     async with _TRAINING_JOBS_LOCK:
         _TRAINING_JOBS[job.job_id] = job
 

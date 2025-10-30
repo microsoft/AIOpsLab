@@ -1,0 +1,199 @@
+{
+  "problem_id": "astronomy_shop_payment_service_failure-localization",
+  "key_commands": [
+    {
+      "command": "submit([\"fraud<REPLICA_SUFFIX>\"])",
+      "type": "execute_command",
+      "importance_score": 9,
+      "description": "Submit the identified faulty component(s) to the orchestrator for evaluation.",
+      "sequence_number": 1,
+      "original_command": "submit([\"fraud-detection\"])",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 14
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop -o wide\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Re-check pods with node and IP info; surfaces CrashLoopBackOff status changes (e.g., fraud-detection).",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/frontend --since=2m\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Tail recent frontend logs for up-to-the-minute error context.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/frontend --since=2m\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/fraud<REPLICA_SUFFIX> -c<REPLICA_SUF<REPLICA_SUFFIX>n --previous\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Retrieve previous container logs to verify recent crashes/restarts of fraud-detection.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/fraud-detection -c fraud-detection --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 55
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 74
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 86
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/fraud<REPLICA_SUFFIX> --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Fetch default fraud-detection logs; preliminary view before targeting the app container.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/fraud-detection --since=10m\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 55
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/fraud<REPLICA_SUFFIX> -c<REPLICA_SUFFIX>ection --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check fraud-detection service application container logs for issues.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/fraud-detection -c fraud-detection --since=10m\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 55
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 74
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/<POD_SUFFIX> --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Inspect frontend-proxy (Envoy) logs for proxy-level anomalies.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/frontend-proxy --since=10m\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "frontend-proxy",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 50
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/ad --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check ad service logs; used as a reference for non-failing service behavior.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/ad --since=10m\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/payment --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Review payment service logs to determine if payment is healthy or failing.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/payment --since=10m\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/checkout --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Fetch default checkout logs to prompt specifying the correct container.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/checkout --since=10m\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/checkout -c checkout --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Inspect checkout service logs (app container) to validate downstream config and connectivity, including payment.",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/checkout -c checkout --since=10m\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/cart --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Fetch default cart pod logs (before specifying container) for initial signal.",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/cart --since=10m\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/cart -c cart --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Check cart service application container logs to confirm it is serving requests.",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/cart -c cart --since=10m\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/frontend --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Inspect frontend logs; reveals ECONNREFUSED to specific service ClusterIPs (e.g., cart).",
+      "sequence_number": 14,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/frontend --since=10m\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n astronomy-shop cart ad -o wide\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Check endpoints for cart and ad services to verify backing pod IPs and readiness.",
+      "sequence_number": 15,
+      "original_command": "exec_shell(\"kubectl get endpoints -n astronomy-shop cart ad -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n astronomy-shop -o wide\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "List services with ClusterIP and ports to correlate frontend errors with service addresses.",
+      "sequence_number": 16,
+      "original_command": "exec_shell(\"kubectl get svc -n astronomy-shop -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the astronomy-shop namespace to assess overall service health and statuses.",
+      "sequence_number": 17,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "total_problems": 87,
+  "total_commands": 757,
+  "probe_commands": 671,
+  "execute_commands": 86,
+  "commands_with_placeholders": 255,
+  "total_placeholders_used": 344,
+  "placeholder_types": {
+    "k8s_replicaset_suffix": 81,
+    "k8s_pod_suffix": 263
+  },
+  "avg_commands_per_problem": 8.7,
+  "avg_importance_score": 6.32,
+  "importance_score_distribution": {
+    "1": 5,
+    "2": 24,
+    "3": 71,
+    "4": 83,
+    "5": 96,
+    "6": 140,
+    "7": 97,
+    "8": 62,
+    "9": 95,
+    "10": 84
+  },
+  "command_type_distribution": {
+    "probe_command": 671,
+    "execute_command": 86,
+    "probe_percentage": 88.64,
+    "execute_percentage": 11.36
+  },
+  "problems_by_command_count": {
+    "19": 1,
+    "7": 12,
+    "15": 2,
+    "9": 7,
+    "5": 6,
+    "4": 9,
+    "8": 10,
+    "14": 2,
+    "3": 4,
+    "17": 3,
+    "13": 4,
+    "16": 3,
+    "10": 6,
+    "6": 9,
+    "11": 3,
+    "12": 3,
+    "18": 1,
+    "2": 1,
+    "21": 1
+  },
+  "timestamp": "2025-09-30T17:54:12.518075",
+  "min_importance_score": 1,
+  "max_importance_score": 10,
+  "min_commands_per_problem": 2,
+  "max_commands_per_problem": 21,
+  "placeholder_coverage": 33.69
+}

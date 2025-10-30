@@ -54,6 +54,51 @@ class StubActionProvider:
         return f"```python\nexec_shell(\"cmd-{idx}\")\n```"
 
 
+class StubEchoClient:
+    def __init__(self, job_id: str = "echo-job-123") -> None:
+        self.job_id = job_id
+        self.created_jobs: list[list[tuple[str, int]]] = []
+        self.events: list[dict[str, object]] = []
+        self.status_payload: dict[str, object] = {"job_id": job_id, "state": "pending"}
+        self.expected_runs = 0
+
+    async def create_job(self, problems):
+        job_spec: list[tuple[str, int]] = []
+        self.expected_runs = 0
+        for problem in problems:
+            pid = getattr(problem, "problem_id", None) or getattr(problem, "id", None)
+            runs = getattr(problem, "runs", 0)
+            job_spec.append((pid, runs))
+            self.expected_runs += runs
+        self.created_jobs.append(job_spec)
+        self.status_payload["expected_runs"] = self.expected_runs
+        return {"job_id": self.job_id, "expected_runs": self.expected_runs}
+
+    async def post_event(self, job_id: str, payload: dict):
+        assert job_id == self.job_id
+        self.events.append(payload)
+        event = payload.get("event")
+        if event == "job_finished":
+            self.status_payload["state"] = "done"
+        elif event == "job_failed":
+            self.status_payload["state"] = "failed"
+            if "reason" in payload:
+                self.status_payload["failure_reason"] = payload["reason"]
+        return {"status": "ok"}
+
+    async def get_status(self, job_id: str):
+        assert job_id == self.job_id
+        return dict(self.status_payload)
+
+    async def get_results(self, job_id: str):
+        assert job_id == self.job_id
+        return {"job_id": self.job_id, "runs": []}
+
+    async def get_events(self, job_id: str):
+        assert job_id == self.job_id
+        return {"events": list(self.events)}
+
+
 class FailingActionProvider:
     async def generate(self, messages):
         raise RuntimeError("model failure")
@@ -79,20 +124,22 @@ def client(monkeypatch):
 
     monkeypatch.setattr(service, "_create_rl_environment", _factory)
 
-    sent_payloads: list[dict] = []
+    echo_clients: list[StubEchoClient] = []
 
-    async def _send(config, job, run_result):
-        sent_payloads.append({"job_id": job.job_id, "run": run_result})
-        return None
+    def _make_echo_client(config):
+        client_id = f"echo-job-{len(echo_clients) + 1}"
+        client = StubEchoClient(job_id=client_id)
+        echo_clients.append(client)
+        return client
 
-    monkeypatch.setattr(service_api, "_send_to_echo_server", _send)
+    monkeypatch.setattr(service_api, "_create_echo_client", _make_echo_client)
 
     test_client = TestClient(service_api.app)
-    return test_client, envs, sent_payloads
+    return test_client, envs, echo_clients
 
 
 def test_training_job_executes_and_records_results(client, monkeypatch):
-    test_client, envs, sent_payloads = client
+    test_client, envs, echo_clients = client
     providers: list[StubActionProvider] = []
 
     def _make_provider(config):
@@ -106,17 +153,21 @@ def test_training_job_executes_and_records_results(client, monkeypatch):
         "problems": [{"problem_id": "prob-1", "runs": 1}],
         "concurrency": 1,
         "chat": {"api_key": "test", "model": "gpt-test"},
-        "echo": {"url": "https://echo.example/rollouts"},
+        "echo": {"url": "http://echo.example"},
     }
 
     response = test_client.post("/echo/jobs", json=payload)
     assert response.status_code == 200
     job_id = response.json()["job_id"]
+    assert job_id == "echo-job-1"
+    assert echo_clients and echo_clients[0].job_id == job_id
 
     job = service_api._TRAINING_JOBS[job_id]
     if job.task is not None:
         job.task.cancel()
         job.task = None
+    if echo_clients:
+        echo_clients[0].events.clear()
 
     asyncio.run(service_api._run_training_job(job))
 
@@ -140,13 +191,28 @@ def test_training_job_executes_and_records_results(client, monkeypatch):
     assert run["steps"][1]["action"].startswith("```")
     assert run["steps"][2]["actions_left"] == 0
 
-    assert len(sent_payloads) == 1
+    events = echo_clients[0].events
+    assert [evt["event"] for evt in events] == [
+        "initializing",
+        "run_started",
+        "run_finished",
+        "job_finished",
+    ]
+    finished = events[2]
+    assert finished["problem_id"] == "prob-1"
+    assert finished["run_index"] == 0
+    payload_dict = finished["payload"]
+    assert payload_dict["done"] is True
+    assert len(payload_dict["steps"]) == 3
+    assert payload_dict["steps"][1]["action"].startswith("```python")
+    assert payload_dict["total_reward"] == pytest.approx(3.0)
+
     assert providers and len(providers[0].messages) == 2
     assert envs and envs[0].closed is True
 
 
 def test_training_job_failure_reports_error(client, monkeypatch):
-    test_client, envs, sent_payloads = client
+    test_client, envs, echo_clients = client
 
     def _make_provider(config):
         return FailingActionProvider()
@@ -184,4 +250,4 @@ def test_training_job_failure_reports_error(client, monkeypatch):
     assert results["runs"] == []
 
     assert envs and envs[0].closed is True
-    assert sent_payloads == []
+    assert echo_clients == []

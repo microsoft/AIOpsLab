@@ -1,0 +1,99 @@
+{
+  "problem_id": "user_unregistered_mongodb-localization-2",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the test-hotel-reservation namespace to identify failing components.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation pod/rate-<POD_SUFFIX> -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Attempt to fetch previous logs of the crashing rate pod to investigate the cause of restarts.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation pod/rate-7bdc978679-95g2q --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-95g2q",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 60
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 74
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation rate-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect detailed pod status and events for the rate pod to confirm CrashLoopBackOff and recent failures.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation rate-7bdc978679-95g2q\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-95g2q",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 64
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation rate-<POD_SUFFIX> hotel-reserv-rate\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Retrieve current container logs from the rate pod, revealing MongoDB SASL authentication failures.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation rate-7bdc978679-95g2q hotel-reserv-rate\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-95g2q",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 56
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation pod/mongodb-rate-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Check MongoDB rate database logs to verify auth configuration and observe authentication attempts/failures from the rate service.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation pod/mongodb-rate-56cc8659c9-kc5lj\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "56cc8659c9-kc5lj",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 68
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation rate -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Fetch the rate deployment spec to validate environment configuration and confirm missing DB auth credentials.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation rate -o yaml\")"
+    },
+    {
+      "command": "submit([\"rate\"])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the identified faulty component (rate) as the root cause.",
+      "sequence_number": 7,
+      "original_command": "submit([\"rate\"])"
+    }
+  ]
+}

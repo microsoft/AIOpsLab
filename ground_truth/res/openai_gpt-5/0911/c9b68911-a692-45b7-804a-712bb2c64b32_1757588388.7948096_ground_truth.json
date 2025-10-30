@@ -1,0 +1,37 @@
+{
+  "problem_id": "scale_pod_zero_social_net-mitigation-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to assess current workload state and notice missing user-service pods.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect deployments to confirm user-service has zero replicas (0/0), identifying the root cause.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl scale deploy/user-service -n test-social-network --replicas=1 && kubectl rollout status deploy/user-service -n test-social-network\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Scale user-service to 1 replica and wait for the deployment rollout to complete, directly resolving the issue.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl scale deploy/user-service -n test-social-network --replicas=1 && kubectl rollout status deploy/user-service -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network -l app=user-service -o wide\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Verify that the user-service pod is now running and obtain its details after scaling.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network -l app=user-service -o wide\")"
+    }
+  ]
+}

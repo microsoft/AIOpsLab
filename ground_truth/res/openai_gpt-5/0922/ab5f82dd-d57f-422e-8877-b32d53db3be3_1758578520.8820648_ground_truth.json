@@ -1,0 +1,195 @@
+{
+  "problem_id": "astronomy_shop_image_slow_load-detection-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the astronomy-shop namespace to get an overview of service health and restarts.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get events -n astronomy-shop --sort-by=.metadata.creationTimestamp\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Review chronological cluster events for warnings such as BackOff and probe failures indicating anomalies.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get events -n astronomy-shop --sort-by=.metadata.creationTimestamp\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop ad-<POD_SUFFIX> --tail=200 -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Fetch recent logs from the ad service pod to check for runtime errors correlated with restarts.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop ad-94bd576b5-gsz5t --tail=200 --timestamps\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-gsz5t",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 46
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-timestamps",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 71
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-<POD_SUFFIX> --tail=200 -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Attempt to read current logs from the fraud-detection pod for error signals.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-f2ph2 --tail=200 --timestamps\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-f2ph2",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-timestamps",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 84
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-<POD_SUFFIX> -<REPLICA_SU<REPLICA_SUFFIX>estamps --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Attempt to fetch logs from the previous container instance of fraud-detection to investigate restarts.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-f2ph2 --previous --timestamps --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-f2ph2",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 73
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-timestamps",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 84
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Describe the fraud-detection pod to inspect container states, exit codes, resource limits, and BackOff events.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-65868bcdb5-f2ph2\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-f2ph2",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 67
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop ad-<POD_SUFFIX> -<REPLICA_SU<REPLICA_SUFFIX>estamps --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Fetch logs from the previous ad container instance to correlate with restart/back-off behavior.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop ad-94bd576b5-gsz5t --previous --timestamps --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-gsz5t",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 46
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 60
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-timestamps",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 71
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n astronomy-shop ad-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Describe the ad pod to confirm restart history, exit code 137, and resource settings indicating anomalies.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl describe pod -n astronomy-shop ad-94bd576b5-gsz5t\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-gsz5t",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 54
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-<POD_SUFFIX> -c fraud<REPLICA_SUF<REPLICA_SU<REPLICA_SUFFIX> --timestamps --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Target previous logs for the fraud-detection main container to capture failure context prior to restarts.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-f2ph2 -c fraud-detection --previous --timestamps --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-f2ph2",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 80
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 92
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-timestamps",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 103
+        }
+      ]
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the final decision indicating anomalies were detected based on evidence gathered.",
+      "sequence_number": 10,
+      "original_command": "submit(\"Yes\")"
+    }
+  ]
+}

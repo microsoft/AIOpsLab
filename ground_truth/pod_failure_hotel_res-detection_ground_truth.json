@@ -1,0 +1,47 @@
+{
+  "problem_id": "pod_failure_hotel_res-detection",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "List all pods in the test-hotel-reservation namespace to quickly identify the failing pod (user) with RunContainerError.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod user-<POD_SUFFIX> -n test-hotel-reservation; echo '---LOGS (current)---'; kubectl logs user-66d5<POD_SUFFIX>test-hotel-reservation --all-containers=true; echo '---LOGS (previous)---'; kubectl logs user-66d5d6f8<POD_SUFFIX>-hotel-reservation --all-containers=true -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Describe the failing pod and retrieve current and previous logs to diagnose the CrashLoopBackOff and identify the root cause (executable not found).",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod user-66d5d6f874-slrgw -n test-hotel-reservation; echo '---LOGS (current)---'; kubectl logs user-66d5d6f874-slrgw -n test-hotel-reservation --all-containers=true; echo '---LOGS (previous)---'; kubectl logs user-66d5d6f874-slrgw -n test-hotel-reservation --all-containers=true --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "66d5d6f874-slrgw",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 38
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "66d5d6f874-slrgw",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 129
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "66d5d6f874-slrgw",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 243
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 297
+        }
+      ]
+    }
+  ]
+}

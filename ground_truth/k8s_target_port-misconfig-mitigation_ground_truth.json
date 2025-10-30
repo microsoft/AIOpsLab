@@ -1,0 +1,69 @@
+{
+  "problem_id": "k8s_target_port-misconfig-mitigation",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "List all pods in the namespace to confirm workloads are running.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List services and their ports to identify potential service port issues.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Inspect endpoints for all services to detect mismatched target ports (user-service showing 9999).",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe svc -n test-social-network user-service\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Describe the user-service to confirm Service targetPort is incorrectly set to 9999.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl describe svc -n test-social-network user-service\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe deploy -n test-social-network user-service\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Describe the user-service deployment to verify the container listens on port 9090, evidencing the mismatch.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl describe deploy -n test-social-network user-service\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl -n test-social-network patch svc user-service --type='json' -p='[{\\\"op\\\":\\\"replace\\\",\\\"path\\\":\\\"/spec/ports/0/targetPort\\\",\\\"value\\\":9090}]'\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Patch the user-service Service to set targetPort to 9090, fixing the misconfiguration.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl -n test-social-network patch svc user-service --type='json' -p='[{\\\"op\\\":\\\"replace\\\",\\\"path\\\":\\\"/spec/ports/0/targetPort\\\",\\\"value\\\":9090}]'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-social-network user-service -o wide\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Verify that the user-service endpoints now advertise port 9090 after the patch.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-social-network user-service -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/user-service --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Check user-service logs to confirm the service is running properly post-fix.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/user-service --tail=200\")"
+    }
+  ]
+}

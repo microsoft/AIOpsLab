@@ -1,0 +1,45 @@
+{
+  "problem_id": "pod_failure_hotel_res-detection-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "List all pods in the namespace to identify the failing pod with RunContainerError.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod user-<POD_SUFFIX> -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect the failing pod to obtain detailed error messages indicating the container cannot execute the specified command.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod user-66d5d6f874-wzrst -n test-hotel-reservation\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "66d5d6f874-wzrst",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 38
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy user -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Retrieve the deployment configuration to confirm the misconfigured container command causing the startup failure.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get deploy user -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the final decision indicating that an anomaly has been detected.",
+      "sequence_number": 4,
+      "original_command": "submit(\"Yes\")"
+    }
+  ]
+}

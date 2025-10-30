@@ -1,0 +1,127 @@
+{
+  "problem_id": "astronomy_shop_recommendation_service_cache_failure-localization-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the astronomy-shop namespace to identify unhealthy pods and restarts.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop ad-<POD_SUFFIX> --previous; echo '---'; kubectl logs -n astronomy-shop ad-94b<POD_SUFFIX>cho '==='; kubectl logs -n astronomy-shop fraud-detection-65868b<POD_SUFFIX>vious; echo '---'; kubectl logs -n astronomy-shop fraud-detection-65868bcdb5<POD_SUFFIX>",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Fetch previous and current logs for the ad and fraud-detection pods to detect crash loops or runtime errors.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop ad-94bd576b5-qk5kt --previous; echo '---'; kubectl logs -n astronomy-shop ad-94bd576b5-qk5kt; echo '==='; kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-w528m --previous; echo '---'; kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-w528m\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-qk5kt",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 46
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-qk5kt",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 120
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-w528m",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 196
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-w528m",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 284
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n astronomy-shop ad-<POD_SUFFIX>; echo '---'; kubectl logs -n astronomy-shop ad-94b<POD_SUFFIX> ad -<REPLICA_SUFFIX> || true; echo '---'; kubectl logs -n astronomy-shop ad-94bd57<POD_SUFFIX> || true; echo '==='; kubectl describe pod -n astronomy-shop fraud-detection-65868bcdb<POD_SUFFIX>--'; kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-w5<POD_SUFFIX>e<REPLICA_SUFFIX>revious || true; echo '---'; kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-w528m <POD_SUFFIX>on || true; echo '==='; kubectl logs -n astronomy-shop load-generator-68b6f899f5-6tntx | ta<POD_SUFFIX>",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Describe ad and fraud-detection pods to inspect events and states, gather container logs for both (including previous), and review load-generator logs for client-side errors to correlate impact.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl describe pod -n astronomy-shop ad-94bd576b5-qk5kt; echo '---'; kubectl logs -n astronomy-shop ad-94bd576b5-qk5kt -c ad --previous || true; echo '---'; kubectl logs -n astronomy-shop ad-94bd576b5-qk5kt -c ad || true; echo '==='; kubectl describe pod -n astronomy-shop fraud-detection-65868bcdb5-w528m; echo '---'; kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-w528m -c fraud-detection --previous || true; echo '---'; kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-w528m -c fraud-detection || true; echo '==='; kubectl logs -n astronomy-shop load-generator-68b6f899f5-6tntx | tail -n 120\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-qk5kt",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 54
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-qk5kt",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 117
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-qk5kt",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 205
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-w528m",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 303
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-w528m",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 380
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-w528m",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 495
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "68b6f899f5-6tntx",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 598
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 134
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 400
+        }
+      ]
+    },
+    {
+      "command": "submit([\"fraud<REPLICA_SUFFIX>\"])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the identified faulty component to the orchestrator.",
+      "sequence_number": 4,
+      "original_command": "submit([\"fraud-detection\"])",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 14
+        }
+      ]
+    }
+  ]
+}

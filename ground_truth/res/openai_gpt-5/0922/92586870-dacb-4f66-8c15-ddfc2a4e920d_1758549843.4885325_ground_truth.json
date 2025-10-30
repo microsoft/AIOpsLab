@@ -1,0 +1,67 @@
+{
+  "problem_id": "revoke_auth_mongodb-detection-2",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to identify failing components (rate pod in Error state).",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation rate-<POD_SUFFIX> --all-containers=true -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect previous logs of the failing rate pod to reveal the 'not authorized on rate-db' MongoDB error.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation rate-7bdc978679-npdcq --all-containers=true --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-npdcq",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 56
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 92
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation rate -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Review the rate service deployment configuration to check environment and DB connection details.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation rate -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation mongodb-rate-<POD_SUFFIX> --all-containers=true\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Examine MongoDB logs to confirm authorization is enabled and client operations are unauthorized.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation mongodb-rate-56cc8659c9-fqpb9 --all-containers=true\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "56cc8659c9-fqpb9",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 64
+        }
+      ]
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the final detection result indicating an anomaly was found.",
+      "sequence_number": 5,
+      "original_command": "submit(\"Yes\")"
+    }
+  ]
+}

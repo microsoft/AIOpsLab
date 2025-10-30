@@ -1,0 +1,125 @@
+{
+  "problem_id": "container_kill-localization",
+  "key_commands": [
+    {
+      "command": "submit([])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the final conclusion that no faulty components were detected.",
+      "sequence_number": 1,
+      "original_command": "submit([])"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/reservation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Check reservation service logs for DB/cache setup and Consul registration.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/reservation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/user --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Check user service logs to verify DB init and Consul registration.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/user --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/rate --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Check rate service logs for DB/cache setup and Consul registration.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/rate --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/profile --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Check profile service logs for DB and cache initialization and Consul registration.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/profile --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/consul --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Examine Consul agent logs to verify leader election, health endpoints, and service registration events.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/consul --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/recommendation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Inspect recommendation service logs for DB initialization and Consul registration status.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/recommendation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/frontend --tail=200 | tail -n +1 && kubectl logs -n test-hotel-reservation deploy/search --tail=200 | tail -n +1 && kubectl logs -n test-hotel-reservation deploy/consul --tail=50 | tail -n +1 && kubectl get pods -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Aggregate logs from related services and display pod details to cross-check overall system health and timing around the geo restart.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/frontend --tail=200 | tail -n +1 && kubectl logs -n test-hotel-reservation deploy/search --tail=200 | tail -n +1 && kubectl logs -n test-hotel-reservation deploy/consul --tail=50 | tail -n +1 && kubectl get pods -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/frontend --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Check frontend logs for client-visible errors (e.g., Consul connection refused) indicating system health issues.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/frontend --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Verify service endpoints to ensure backing pods are registered and discoverable.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation -l io.kompose.service=geo\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Describe the geo pod to confirm container termination details (Last State Exit Code 137) indicating a container kill.",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation -l io.kompose.service=geo\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/search --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Inspect search service logs to confirm healthy initialization and Consul registration.",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/search --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/geo --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Retrieve recent application logs for the geo deployment to check runtime behavior around the restart.",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/geo --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List services to confirm service exposure and selectors for context.",
+      "sequence_number": 14,
+      "original_command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "List all pods in the namespace to identify abnormal statuses or restarts (geo shows a recent restart).",
+      "sequence_number": 15,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    }
+  ]
+}

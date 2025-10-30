@@ -1,0 +1,69 @@
+{
+  "problem_id": "user_unregistered_mongodb-localization-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl describe deploy -n test-hotel-reservation mongodb-geo\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Describe the MongoDB deployment to verify --auth is enabled and initialization scripts/volumes, explaining auth behavior.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl describe deploy -n test-hotel-reservation mongodb-geo\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe deploy -n test-hotel-reservation geo\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Describe the geo deployment to review runtime configuration (command, env vars) that could affect DB authentication.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe deploy -n test-hotel-reservation geo\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "List pods with IPs to correlate MongoDB log connection attempts (e.g., 10.244.1.116) with the geo pod.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation mongodb-geo-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect MongoDB logs to confirm authentication configuration, user creation, and auth failures including the client IP and principal.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation mongodb-geo-5ff578bcb8-p5rmr\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5ff578bcb8-p5rmr",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 63
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Fetch logs from the failing geo pod to reveal the root error (SASL authentication failure against MongoDB).",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-84fbc958c7-f5vck\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-f5vck",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 55
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to identify unhealthy components and their statuses.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    }
+  ]
+}

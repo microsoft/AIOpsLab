@@ -1,0 +1,45 @@
+{
+  "problem_id": "assign_to_non_existent_node_social_net-analysis-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Lists all pods in the test-social-network namespace to identify any pods not running (e.g., Pending).",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod user-service-<POD_SUFFIX> -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Describes the Pending pod to view scheduling conditions, events, and nodeSelector causing scheduling failure.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod user-service-5b549cc8dc-k97sh -n test-social-network\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5b549cc8dc-k97sh",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 46
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get nodes -o wide\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Lists available nodes and roles to verify that the target node specified by the selector does not exist and to check taints.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get nodes -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy user-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Retrieves the Deployment spec to confirm the nodeSelector forcing scheduling to a non-existent node (kubernetes.io/hostname=extra-node).",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get deploy user-service -n test-social-network -o yaml\")"
+    }
+  ]
+}

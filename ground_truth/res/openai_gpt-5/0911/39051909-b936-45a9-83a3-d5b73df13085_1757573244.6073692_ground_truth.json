@@ -1,0 +1,109 @@
+{
+  "problem_id": "k8s_target_port-misconfig-mitigation-3",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get svc post-storage-service -n test-social-network -o jsonpath=\\'{.spec.ports[0].targetPort}\\'; echo; kubectl get endpoints -n test-social-network post-storage-service -o wide; echo; kubectl logs -n test-social-network -l service=compose-post-service --tail=50\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Validate fix: confirm Service targetPort and endpoints now use 9090; recheck client logs",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get svc post-storage-service -n test-social-network -o jsonpath=\\'{.spec.ports[0].targetPort}\\'; echo; kubectl get endpoints -n test-social-network post-storage-service -o wide; echo; kubectl logs -n test-social-network -l service=compose-post-service --tail=50\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl -n test-social-network patch svc post-storage-service -p \\'{\\\\\"spec\\\\\":{\\\\\"ports\\\\\":[{\\\\\"name\\\\\":\\\\\"9090\\\\\",\\\\\"port\\\\\":9090,\\\\\"protocol\\\\\":\\\\\"TCP\\\\\",\\\\\"targetPort\\\\\":9090}]}}\\'\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Fix Service by setting targetPort to 9090 to match the container",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl -n test-social-network patch svc post-storage-service -p \\'{\\\\\"spec\\\\\":{\\\\\"ports\\\\\":[{\\\\\"name\\\\\":\\\\\"9090\\\\\",\\\\\"port\\\\\":9090,\\\\\"protocol\\\\\":\\\\\"TCP\\\\\",\\\\\"targetPort\\\\\":9090}]}}\\'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pod -n test-social-network -l service=post-storage-service -o name | xargs -I{} kubectl exec -n test-social-network {} -- sh -c 'ss -ltnp || netstat -tulpn'\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Attempt to verify listening ports inside the pod (diagnostic; command not available)",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get pod -n test-social-network -l service=post-storage-service -o name | xargs -I{} kubectl exec -n test-social-network {} -- sh -c 'ss -ltnp || netstat -tulpn'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network -o jsonpath='{range .items[*]}{.metadata.name}{\\\"\\\\t\\\"}{range .spec.ports[*]}{.port}:{.targetPort}{\\\"\\\\t\\\"}{end}{\\\"\\\\n\\\"}{end}'\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Cross-check all services to ensure port-to-targetPort mappings are consistent cluster-wide.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network -o jsonpath='{range .items[*]}{.metadata.name}{\\\"\\\\t\\\"}{range .spec.ports[*]}{.port}:{.targetPort}{\\\"\\\\t\\\"}{end}{\\\"\\\\n\\\"}{end}'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc post-storage-service -n test-social-network -o jsonpath='{.spec.ports[0].targetPort}'; echo; kubectl get endpoints -n test-social-network post-storage-service -o wide; echo; kubectl logs -n test-social-network -l service=compose-post-service --tail=50\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Verify the fix by confirming targetPort is 9090, endpoints reflect port 9090, and check client logs.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get svc post-storage-service -n test-social-network -o jsonpath='{.spec.ports[0].targetPort}'; echo; kubectl get endpoints -n test-social-network post-storage-service -o wide; echo; kubectl logs -n test-social-network -l service=compose-post-service --tail=50\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl -n test-social-network patch svc post-storage-service -p '{\\\"spec\\\":{\\\"ports\\\":[{\\\"name\\\":\\\"9090\\\",\\\"port\\\":9090,\\\"protocol\\\":\\\"TCP\\\",\\\"targetPort\\\":9090}]}}'\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Patch the Service to correct targetPort from 9999 to 9090, resolving the connectivity issue.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl -n test-social-network patch svc post-storage-service -p '{\\\"spec\\\":{\\\"ports\\\":[{\\\"name\\\":\\\"9090\\\",\\\"port\\\":9090,\\\"protocol\\\":\\\"TCP\\\",\\\"targetPort\\\":9090}]}}'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc post-storage-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Inspect the Service spec to identify targetPort is incorrectly set to 9999.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get svc post-storage-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network -l service=post-storage-service --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Inspect post-storage-service logs to confirm the service is up",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network -l service=post-storage-service --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-social-network post-storage-service -o wide\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Check the Service endpoints to see the backend port (9999), exposing a mismatch with the pod's port.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-social-network post-storage-service -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe deploy/post-storage-service -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Describe the post-storage-service deployment to confirm the container exposes port 9090.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl describe deploy/post-storage-service -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List services and exposed ports to spot potential routing issues",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network -l service=compose-post-service --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Inspect compose-post-service logs to reveal connection refused to post-storage-service on port 9090, indicating a service connectivity issue.",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network -l service=compose-post-service --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "List pods in the namespace to verify workloads are running",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    }
+  ]
+}

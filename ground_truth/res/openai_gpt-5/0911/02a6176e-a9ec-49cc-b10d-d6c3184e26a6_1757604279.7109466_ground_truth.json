@@ -1,0 +1,225 @@
+{
+  "problem_id": "astronomy_shop_cart_service_failure-localization-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/product-catalog --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Auxiliary check of product-catalog service logs to rule out catalog issues.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/product-catalog --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/fraud<REPLICA_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Check current fraud-detection logs for errors; used as a supplemental probe.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/fraud-detection --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 55
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/fraud<REPLICA_SUF<REPLICA_SUFFIX>evious --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Attempt to view previous logs for fraud-detection to check recent restarts.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/fraud-detection --previous --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 55
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 67
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/ad --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Auxiliary inspection of ad service logs which showed OTLP exporter timeouts.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/ad --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/recommendation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Auxiliary verification that recommendation service is receiving requests.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/recommendation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/payment --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Inspect payment service logs to confirm request handling and success responses.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/payment --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/checkout --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Inspect checkout service logs as auxiliary verification.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/checkout --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/frontend --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Check frontend logs to verify the web app starts and is ready.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/frontend --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n astronomy-shop <POD_SUFFIX>-54<POD_SUFFIX>",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Describe the frontend-proxy pod to validate configuration and readiness details.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl describe pod -n astronomy-shop frontend-proxy-548b4649d7-4ntn6\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "frontend-proxy",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 51
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "548b4649d7-4ntn6",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 66
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n astronomy-shop load-generator-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Describe the load-generator pod to confirm environment variables and target host/ports.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl describe pod -n astronomy-shop load-generator-68b6f899f5-bz544\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "68b6f899f5-bz544",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 66
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Verify service endpoints (including valkey-cart:6379) are populated, indicating service discovery is functioning.",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl get endpoints -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Review frontend-proxy (Envoy) logs to confirm proxy startup and readiness, narrowing connectivity issues.",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/frontend-proxy --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "frontend-proxy",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 50
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/valkey-cart --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Check valkey-cart (Redis) logs to confirm it is healthy and accepting connections, narrowing the issue to connectivity/config.",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/valkey-cart --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/cart -c cart --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Fetch cart container logs showing the core failure: inability to connect to Redis (valkey) leading to FailedPrecondition errors.",
+      "sequence_number": 14,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/cart -c cart --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop pod/load-generator-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect specific load-generator pod logs which revealed repeated connection refused errors.",
+      "sequence_number": 15,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop pod/load-generator-68b6f899f5-bz544 --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "68b6f899f5-bz544",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 62
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/load<REPLICA_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Check load-generator deployment logs for workload and client-side errors.",
+      "sequence_number": 16,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/load-generator --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-generator",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 54
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/cart --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Fetch recent cart deployment logs (default container) to see immediate errors and note container selection hints.",
+      "sequence_number": 17,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/cart --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List services to verify the presence and ports of backing services such as valkey-cart for the cart service.",
+      "sequence_number": 18,
+      "original_command": "exec_shell(\"kubectl get svc -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all pods in the astronomy-shop namespace to check overall component health and identify candidates for investigation.",
+      "sequence_number": 19,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    }
+  ]
+}

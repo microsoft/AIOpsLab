@@ -1,0 +1,83 @@
+{
+  "problem_id": "noop_detection_astronomy_shop-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List all pods in the namespace to verify component status and readiness.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get events -n astronomy-shop --sort-by=.lastTimestamp\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Inspect recent cluster events for scheduling, probe failures, or other anomalies.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get events -n astronomy-shop --sort-by=.lastTimestamp\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "List services and obtain the checkout service ClusterIP/port to correlate with connection errors.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get svc -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/frontend --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Fetch frontend logs showing ECONNREFUSED to the checkout service IP, directly evidencing the connectivity anomaly.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/frontend --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n astronomy-shop checkout -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Verify checkout service endpoints (pod IP and port) to confirm service backing endpoints are present.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get endpoints -n astronomy-shop checkout -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n astronomy-shop checkout-<POD_SUFFIX> && kubectl logs -n astronomy-shop checkout-5bc5<POD_SUFFIX>checkout --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Describe the checkout pod and fetch its container logs to confirm application readiness and health.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl describe pod -n astronomy-shop checkout-5bc54f8cd8-xx7r8 && kubectl logs -n astronomy-shop checkout-5bc54f8cd8-xx7r8 -c checkout --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5bc54f8cd8-xx7r8",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 60
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5bc54f8cd8-xx7r8",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 120
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check deployment availability to ensure replicas are up and available.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get deploy -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/checkout --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Attempt to fetch checkout deployment logs as an auxiliary check.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/checkout --tail=200\")"
+    }
+  ]
+}

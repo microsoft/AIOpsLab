@@ -1,0 +1,61 @@
+{
+  "problem_id": "k8s_target_port-misconfig-localization-2",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List pods in the namespace to verify all components are running and healthy.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List services and exposed ports to identify target service and its port configuration.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/compose-post-service --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Inspect client service logs; shows connection refused to text-service on port 9090, indicating service reachability/port issue.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/compose-post-service --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/text-service --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Check text-service logs to confirm it is running and not crashing.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/text-service --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints text-service -n test-social-network -o wide && kubectl get deploy text-service -n test-social-network -o yaml && kubectl get svc text-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Inspect endpoints, deployment, and service configuration for text-service; reveals service targetPort set to 9999 while containerPort is 9090, confirming a targetPort misconfiguration.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get endpoints text-service -n test-social-network -o wide && kubectl get deploy text-service -n test-social-network -o yaml && kubectl get svc text-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl exec -n test-social-network deploy/text-service -- ss -ltnp || kubectl exec -n test-social-network deploy/text-service -- netstat -tlnp\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Attempt to verify which port the text-service listens on inside the container; failed due to missing tools but supports validation effort.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl exec -n test-social-network deploy/text-service -- ss -ltnp || kubectl exec -n test-social-network deploy/text-service -- netstat -tlnp\")"
+    },
+    {
+      "command": "submit([\"text-service\"])",
+      "type": "execute_command",
+      "importance_score": 9,
+      "description": "Submit the identified faulty component responsible for the misconfiguration.",
+      "sequence_number": 7,
+      "original_command": "submit([\"text-service\"])"
+    }
+  ]
+}

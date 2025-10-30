@@ -1,0 +1,45 @@
+{
+  "problem_id": "flower_node_stop-detection",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n docker\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Check for Flower pods in the target 'docker' namespace to detect missing components.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n docker\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get namespaces\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Verify the existence of the 'docker' namespace or identify potential namespace issues.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get namespaces\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -A\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "List pods across all namespaces to see if Flower components are running elsewhere.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get pods -A\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get all -A | grep -Ei 'flower|serverapp|clientapp|superlink|supernode'\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Search all resources cluster-wide for Flower-related components to confirm absence.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get all -A | grep -Ei 'flower|serverapp|clientapp|superlink|supernode'\")"
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the anomaly detection result indicating Flower components are not running.",
+      "sequence_number": 5,
+      "original_command": "submit(\"Yes\")"
+    }
+  ]
+}

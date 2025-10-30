@@ -1,0 +1,67 @@
+{
+  "problem_id": "astronomy_shop_image_slow_load-detection",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Lists all pods in the astronomy-shop namespace to spot anomalies such as restarts and non-ready statuses.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Inspects the problematic pod for detailed state and events, revealing exit code 137 and BackOff restarts.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-65868bcdb5-sbs5h\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-sbs5h",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 67
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-<POD_SUFFIX> -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Attempts to retrieve logs from the previously terminated container instance to diagnose the crash.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-sbs5h --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-sbs5h",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 73
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pod -n astronomy-shop fraud-detection-<POD_SUFFIX> -o json\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Fetches the pod specification and status in JSON to confirm restartCount and termination details programmatically.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get pod -n astronomy-shop fraud-detection-65868bcdb5-sbs5h -o json\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-sbs5h",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 62
+        }
+      ]
+    }
+  ]
+}

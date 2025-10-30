@@ -1,0 +1,109 @@
+{
+  "problem_id": "redeploy_without_PV-analysis-1",
+  "key_commands": [
+    {
+      "command": "submit(\"None\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the conclusion that no faults were detected based on healthy pod states and successful service/Consul interactions.",
+      "sequence_number": 1,
+      "original_command": "submit(\"None\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Get detailed pod information including IPs and node placement for correlation with logs and services.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/geo --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Verify geo service DB connectivity and Consul registration.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/geo --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/user --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Verify user service DB connectivity and Consul registration.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/user --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/rate --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Verify rate service DB/memcached connectivity and Consul registration.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/rate --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/profile --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Verify profile service DB/memcached connectivity and Consul registration.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/profile --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/reservation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Verify reservation service DB/memcached connectivity and Consul registration.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/reservation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/recommendation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Verify recommendation service DB connectivity and Consul registration.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/recommendation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/search --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Verify search service startup, Consul registration, and dependencies.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/search --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/consul --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Check Consul logs to validate service discovery health and registrations from services.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/consul --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/frontend --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Inspect frontend deployment logs for client-facing errors and downstream dependency issues.",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/frontend --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all services with details to verify service endpoints and exposure.",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "List the status of all pods in the test-hotel-reservation namespace to establish baseline health.",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    }
+  ]
+}

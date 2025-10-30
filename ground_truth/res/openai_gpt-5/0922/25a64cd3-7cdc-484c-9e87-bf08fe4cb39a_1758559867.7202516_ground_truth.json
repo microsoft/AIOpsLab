@@ -1,0 +1,61 @@
+{
+  "problem_id": "scale_pod_zero_social_net-analysis-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Lists all pods in the namespace to check running workloads and identify missing pods like user-service.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Lists services to verify service exposure; provides auxiliary context.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/nginx-thrift --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 1,
+      "description": "Attempts to fetch logs from the frontend deployment; low relevance to root cause.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/nginx-thrift --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network pod/nginx-thrift-7c48f57-h8t4f --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 1,
+      "description": "Attempts to fetch logs from a specific nginx-thrift pod; low relevance to root cause.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network pod/nginx-thrift-7c48f57-h8t4f --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/user-service --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Attempts to fetch user-service logs; the timeout suggests no pods running, supporting the zero-replica finding.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/user-service --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Lists all deployments with status; reveals user-service has 0 replicas available indicating it is scaled to zero.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy user-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Describes the user-service deployment in detail; confirms spec.replicas: 0, directly identifying the misconfiguration.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get deploy user-service -n test-social-network -o yaml\")"
+    }
+  ]
+}

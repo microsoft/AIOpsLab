@@ -1,0 +1,69 @@
+{
+  "problem_id": "misconfig_app_hotel_res-detection",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to identify components with errors; flags the geo pod in Error state.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Fetch logs from the geo pod; reveals DB URL mongodb-geo:27777 and 'no reachable servers' panic, indicating misconfiguration.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-c47ff745-7mhg5\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "c47ff745-7mhg5",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 55
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "List services and ports; confirms mongodb-geo service exposes port 27017, validating the port mismatch with 27777 seen in logs.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation geo-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Describe the geo pod to review events, restart behavior, and container details supporting the diagnosis.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation geo-c47ff745-7mhg5\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "c47ff745-7mhg5",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 63
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation geo -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Inspect the geo deployment configuration to verify image, command, and environment; helps confirm configuration context.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation geo -o yaml\")"
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the anomaly detection result indicating misconfiguration was found.",
+      "sequence_number": 6,
+      "original_command": "submit(\"Yes\")"
+    }
+  ]
+}

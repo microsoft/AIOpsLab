@@ -1,0 +1,119 @@
+{
+  "problem_id": "astronomy_shop_cart_service_failure-detection",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "List all pods in the astronomy-shop namespace to spot unhealthy pods or restarts.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod flagd-<POD_SUFFIX> -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Inspect flagd pod details to rule out dependency issues impacting other services.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod flagd-5f48fd7789-pd8ch -n astronomy-shop\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5f48fd7789-pd8ch",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 39
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod fraud-detection-<POD_SUFFIX> -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Get detailed status and events for the fraud-detection pod revealing CrashLoopBackOff and exit code.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl describe pod fraud-detection-65868bcdb5-tqhnw -n astronomy-shop\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-tqhnw",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 49
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs fraud-detection-<POD_SUFFIX> -n astronomy-shop -c fraud<REPLICA_SUF<REPLICA_SUFFIX>evious\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Attempt to fetch logs from the previously crashed fraud-detection container for failure context.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs fraud-detection-65868bcdb5-tqhnw -n astronomy-shop -c fraud-detection --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-tqhnw",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 41
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 80
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 92
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs fraud-detection-<POD_SUFFIX> -n astronomy-shop -c fraud<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Fetch current logs of the fraud-detection container to observe startup behavior.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs fraud-detection-65868bcdb5-tqhnw -n astronomy-shop -c fraud-detection\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-tqhnw",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 41
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 80
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods fraud-detection-<POD_SUFFIX> -n astronomy-shop -o json\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Retrieve raw pod JSON to confirm containerStatuses and CrashLoopBackOff details including exit code.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get pods fraud-detection-65868bcdb5-tqhnw -n astronomy-shop -o json\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-tqhnw",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 45
+        }
+      ]
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the final decision indicating anomalies were detected.",
+      "sequence_number": 7,
+      "original_command": "submit(\"Yes\")"
+    }
+  ]
+}

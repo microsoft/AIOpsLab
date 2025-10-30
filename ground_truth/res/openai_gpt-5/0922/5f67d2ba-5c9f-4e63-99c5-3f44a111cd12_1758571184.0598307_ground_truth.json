@@ -1,0 +1,29 @@
+{
+  "problem_id": "network_delay_hotel_res-detection-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all pods in the namespace to verify overall service health and readiness before deeper investigation.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get events -n test-hotel-reservation --sort-by=.lastTimestamp\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect recent namespace events to detect signs of injected network delay (Chaos Mesh networkchaos) affecting the user service.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get events -n test-hotel-reservation --sort-by=.lastTimestamp\")"
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 9,
+      "description": "Submit the anomaly detection result indicating that an issue (network delay) was found.",
+      "sequence_number": 3,
+      "original_command": "submit(\"Yes\")"
+    }
+  ]
+}

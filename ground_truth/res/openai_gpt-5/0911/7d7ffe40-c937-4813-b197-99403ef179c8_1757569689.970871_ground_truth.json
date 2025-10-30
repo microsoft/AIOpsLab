@@ -1,0 +1,77 @@
+{
+  "problem_id": "k8s_target_port-misconfig-detection-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "List all pods in the namespace to verify workloads are running.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all services and their ports to identify advertised service ports.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "List deployments to confirm availability status of components.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Show service endpoints and resolved backend ports; reveals user-service endpoints using port 9999.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs deploy/user-service -n test-social-network --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Check user-service logs for startup status or errors.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs deploy/user-service -n test-social-network --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc user-service -n test-social-network -o yaml && echo '---' && kubectl get deploy user-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Fetch detailed YAML for the user-service Service and Deployment to compare service targetPort (9999) with containerPort (9090), exposing the misconfiguration.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get svc user-service -n test-social-network -o yaml && echo '---' && kubectl get deploy user-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap user-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 1,
+      "description": "Retrieve user-service ConfigMap; auxiliary config review not directly related to port issue.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get configmap user-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl exec deploy/user-service -n test-social-network -- sh -c 'ss -ltnp || netstat -tulnp'\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Attempt to check listening ports inside the container; fails but indicates intent to verify runtime ports.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl exec deploy/user-service -n test-social-network -- sh -c 'ss -ltnp || netstat -tulnp'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl exec deploy/user-service -n test-social-network -- sh -c 'cat /proc/net/tcp | grep -E \\\":2382|:270F\\\" || true'\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect /proc/net/tcp to verify actual listening port (9090 -> :2382) and absence of 9999 (:270F), confirming targetPort mismatch.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl exec deploy/user-service -n test-social-network -- sh -c 'cat /proc/net/tcp | grep -E \\\":2382|:270F\\\" || true'\")"
+    }
+  ]
+}

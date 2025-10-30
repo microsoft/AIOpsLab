@@ -1,0 +1,147 @@
+{
+  "problem_id": "auth_miss_mongodb-mitigation-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all pods in the namespace to identify the failing component",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod url-shorten-mongodb-<POD_SUFFIX> -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect the failing MongoDB pod for config, mounts, and recent events",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod url-shorten-mongodb-7f8c54769c-6zpc7 -n test-social-network\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7f8c54769c-6zpc7",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 53
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs url-shorten-mongodb-<POD_SUFFIX> -n test-social-network -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Fetch previous container logs to pinpoint the TLS PEM error causing crashes",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs url-shorten-mongodb-7f8c54769c-6zpc7 -n test-social-network --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7f8c54769c-6zpc7",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 45
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 82
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get secret mongodb-tls -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Review the TLS secret referenced by the pod to validate contents and keys",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get secret mongodb-tls -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get secret mongodb-tls -n test-social-network -o jsonpath='{.data.tls\\\\.pem}' | base64 -d | sed -n '1,200p'\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Decode the tls.pem data to confirm it is only a certificate and missing a key",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get secret mongodb-tls -n test-social-network -o jsonpath='{.data.tls\\\\.pem}' | base64 -d | sed -n '1,200p'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap url-shorten-mongodb -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Check the MongoDB configuration which requires TLS and references the PEM",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get configmap url-shorten-mongodb -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap user-mongodb -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Use a working MongoDB service's config as reference (TLS disabled) to guide mitigation",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get configmap user-mongodb -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl patch configmap url-shorten-mongodb -n test-social-network --type='json' -p='[{\\\"op\\\":\\\"replace\\\",\\\"path\\\":\\\"/data/mongod.conf\\\",\\\"value\\\":\\\"net:\\\\n  tls:\\\\n    mode: disabled\\\\n\\\"}]'\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Mitigate by disabling TLS in the url-shorten-mongodb ConfigMap to avoid invalid PEM usage",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl patch configmap url-shorten-mongodb -n test-social-network --type='json' -p='[{\\\"op\\\":\\\"replace\\\",\\\"path\\\":\\\"/data/mongod.conf\\\",\\\"value\\\":\\\"net:\\\\n  tls:\\\\n    mode: disabled\\\\n\\\"}]'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl delete pod url-shorten-mongodb-<POD_SUFFIX> -n test-social-network\")",
+      "type": "execute_command",
+      "importance_score": 9,
+      "description": "Force the pod to restart and pick up the updated (TLS disabled) configuration",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl delete pod url-shorten-mongodb-7f8c54769c-6zpc7 -n test-social-network\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7f8c54769c-6zpc7",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 51
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network -w --field-selector=metadata.name=url-shorten-mongodb-<POD_SUFFIX> --request-timeout=10s\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Watch the old pod termination to ensure rollout progress",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network -w --field-selector=metadata.name=url-shorten-mongodb-7f8c54769c-6zpc7 --request-timeout=10s\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7f8c54769c-6zpc7",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 106
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network -l app=url-shorten-mongodb -o wide\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Confirm a new MongoDB pod is running after the config change",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network -l app=url-shorten-mongodb -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs url-shorten-mongodb-<POD_SUFFIX> -n test-social-network --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Verify the new MongoDB instance starts with TLS disabled and accepts connections",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl logs url-shorten-mongodb-7f8c54769c-mk799 -n test-social-network --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7f8c54769c-mk799",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 45
+        }
+      ]
+    }
+  ]
+}

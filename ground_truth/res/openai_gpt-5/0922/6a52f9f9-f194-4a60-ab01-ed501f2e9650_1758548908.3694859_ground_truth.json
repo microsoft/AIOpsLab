@@ -1,0 +1,161 @@
+{
+  "problem_id": "revoke_auth_mongodb-mitigation-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl exec -n test-hotel-reservation mongodb-geo-<POD_SUFFIX> -- bash -lc \\'mongo admin -u admin -p admin --authenticationDatabase admin --eval \\\\\\\"db.grantRolesToUser(\\\\\\\\\\\\\"admin\\\\\\\\\\\\\", [{role: \\\\\\\\\\\\\"readWrite\\\\\\\\\\\\\", db: \\\\\\\\\\\\\"geo-db\\\\\\\\\\\\\"}]); db.getUser(\\\\\\\\\\\\\"admin\\\\\\\\\\\\\")\\\\\\\"\\'\\\")",
+      "type": "execute_command",
+      "importance_score": 9,
+      "description": "Directly grant readWrite role to admin on geo-db and verify user roles as a targeted fix.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl exec -n test-hotel-reservation mongodb-geo-5ff578bcb8-7p9cb -- bash -lc \\'mongo admin -u admin -p admin --authenticationDatabase admin --eval \\\\\\\"db.grantRolesToUser(\\\\\\\\\\\\\"admin\\\\\\\\\\\\\", [{role: \\\\\\\\\\\\\"readWrite\\\\\\\\\\\\\", db: \\\\\\\\\\\\\"geo-db\\\\\\\\\\\\\"}]); db.getUser(\\\\\\\\\\\\\"admin\\\\\\\\\\\\\")\\\\\\\"\\'\\\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5ff578bcb8-7p9cb",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 63
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl exec -n test-hotel-reservation mongodb-geo-<POD_SUFFIX> -- bash -lc 'mongo admin -u admin -p admin --authenticationDatabase admin --eval \\\"db.grantRolesToUser(\\\\\\\"admin\\\\\\\", [{role: \\\\\\\"readWrite\\\\\\\", db: \\\\\\\"geo-db\\\\\\\"}]); db.getUser(\\\\\\\"admin\\\\\\\")\\\"'\")",
+      "type": "execute_command",
+      "importance_score": 8,
+      "description": "Directly grant readWrite role to admin on geo-db and verify user roles as an alternate/confirmatory fix",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl exec -n test-hotel-reservation mongodb-geo-5ff578bcb8-7p9cb -- bash -lc 'mongo admin -u admin -p admin --authenticationDatabase admin --eval \\\"db.grantRolesToUser(\\\\\\\"admin\\\\\\\", [{role: \\\\\\\"readWrite\\\\\\\", db: \\\\\\\"geo-db\\\\\\\"}]); db.getUser(\\\\\\\"admin\\\\\\\")\\\"'\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5ff578bcb8-7p9cb",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 63
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check overall pod status and placement after applying the fix.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Verify whether the geo service regains authorization after mitigation.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-84fbc958c7-9nnqr --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-9nnqr",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 55
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl exec -n test-hotel-reservation mongodb-geo-<POD_SUFFIX> -- bash -lc 'bash /scripts/revoke-miti<POD_SUFFIX>-mongo.sh'\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Execute mitigation script in mongodb-geo pod to restore admin readWrite privileges on geo-db.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl exec -n test-hotel-reservation mongodb-geo-5ff578bcb8-7p9cb -- bash -lc 'bash /scripts/revoke-mitigate-admin-geo-mongo.sh'\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5ff578bcb8-7p9cb",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 63
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "mitigate-admin",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 114
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl exec -n test-hotel-reservation mongodb-geo-<POD_SUFFIX> -- bash -lc \\'bash /scripts/revoke-miti<POD_SUFFIX>-mongo.sh\\'\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Execute remediation script inside mongodb-geo pod to restore admin readWrite role on geo-db.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl exec -n test-hotel-reservation mongodb-geo-5ff578bcb8-7p9cb -- bash -lc \\'bash /scripts/revoke-mitigate-admin-geo-mongo.sh\\'\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5ff578bcb8-7p9cb",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 63
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "mitigate-admin",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 115
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/mongodb-geo --tail=200; kubectl get configmap -n test-hotel-reservation mongo-geo-script -o yaml; kubectl get configmap -n test-hotel-reservation failure-admin-geo -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Review mongodb-geo logs and inspect init/failure scripts to identify revoke and mitigation actions.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/mongodb-geo --tail=200; kubectl get configmap -n test-hotel-reservation mongo-geo-script -o yaml; kubectl get configmap -n test-hotel-reservation failure-admin-geo -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation mongodb-profile -o yaml; kubectl get deploy -n test-hotel-reservation profile -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Compare related services and databases for reference configuration.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation mongodb-profile -o yaml; kubectl get deploy -n test-hotel-reservation profile -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy,sts,po,svc -n test-hotel-reservation | grep mongodb-geo -n; kubectl get all -n test-hotel-reservation | grep mongodb-geo; kubectl get deploy -n test-hotel-reservation mongodb-geo -o yaml || kubectl get sts -n test-hotel-reservation mongodb-geo -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Locate and inspect mongodb-geo resources and their configuration.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl get deploy,sts,po,svc -n test-hotel-reservation | grep mongodb-geo -n; kubectl get all -n test-hotel-reservation | grep mongodb-geo; kubectl get deploy -n test-hotel-reservation mongodb-geo -o yaml || kubectl get sts -n test-hotel-reservation mongodb-geo -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation geo -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Review geo deployment configuration for environment and connectivity settings.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation geo -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-<POD_SUFFIX> --all-containers=true --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect geo service logs to confirm authorization errors against MongoDB.",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-84fbc958c7-9nnqr --all-containers=true --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-9nnqr",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 55
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to identify failing components.",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    }
+  ]
+}

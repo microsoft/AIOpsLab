@@ -303,3 +303,56 @@ def test_timeout_truncates_episode():
         assert reward == env.reward_config.timeout
         assert info["results"] == {"success": False, "reason": "timeout"}
 
+
+def test_canonical_fallback_uses_shared_ground_truth():
+    orchestrator = StubOrchestrator()
+
+    # Provide a minimal registry with canonicalization logic
+    import re as _re
+
+    class _StubRegistry:
+        def get_canonical_id(self, pid: str) -> str:
+            return _re.sub(r"-\d+$", "", pid)
+
+    orchestrator.probs = _StubRegistry()
+
+    # Ground truth exists only for canonical id "problem-5"
+    commands = [
+        {"command": 'exec_shell("id")', "importance_score": 5, "sequence_number": 1}
+    ]
+
+    with ground_truth_dir({"problem-5": commands}) as gt_dir:
+        env = ProblemRLEnvironment(
+            orchestrator=orchestrator, max_steps=2, ground_truth_dir=gt_dir
+        )
+
+        # Request a suffixed problem id; should fall back to canonical
+        obs, info = env.reset("problem-5-1")
+
+        assert info["problem_id"] == "problem-5-1"
+        # Power commands should be available via the canonical mapping
+        assert "power_commands" in info
+        assert info["power_commands_remaining"] == ['exec_shell("id")']
+
+
+def test_missing_ground_truth_raises_runtime_error():
+    orchestrator = StubOrchestrator()
+
+    class _EmptyRegistry:
+        def get_canonical_id(self, pid: str) -> str:
+            return pid  # no canonicalization
+
+    orchestrator.probs = _EmptyRegistry()
+
+    # Provide GT for a different problem so env initializes, but lookup will fail
+    with ground_truth_dir({"other-problem": []}) as gt_dir:
+        env = ProblemRLEnvironment(
+            orchestrator=orchestrator, max_steps=2, ground_truth_dir=gt_dir
+        )
+
+        try:
+            env.reset("unknown-problem-1")
+            assert False, "Expected RuntimeError due to missing ground truth"
+        except RuntimeError as e:
+            assert "No ground-truth power commands" in str(e)
+

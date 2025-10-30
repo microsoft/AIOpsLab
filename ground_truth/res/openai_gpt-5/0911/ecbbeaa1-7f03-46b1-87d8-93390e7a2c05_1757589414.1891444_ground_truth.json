@@ -1,0 +1,59 @@
+{
+  "problem_id": "container_kill-detection",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Lists all pods in the namespace to detect anomalies like restarts and identify the target pod.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod geo-<POD_SUFFIX> -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Describes the pod to inspect container state and events; reveals Last State terminated with exit code 137 indicating a kill.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod geo-84fbc958c7-7j7nz -n test-hotel-reservation\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-7j7nz",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 37
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs geo-<POD_SUFFIX> -n test-hotel-reservation -c hotel-reserv-geo -<REPLICA_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Fetches logs from the previous container instance to corroborate the crash/restart context.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs geo-84fbc958c7-7j7nz -n test-hotel-reservation -c hotel-reserv-geo --previous --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-7j7nz",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 29
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 89
+        }
+      ]
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 9,
+      "description": "Submits the anomaly detection result confirming a container kill/restart was detected.",
+      "sequence_number": 4,
+      "original_command": "submit(\"Yes\")"
+    }
+  ]
+}

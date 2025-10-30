@@ -1,0 +1,107 @@
+{
+  "problem_id": "revoke_auth_mongodb-analysis-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl exec -n test-hotel-reservation mongodb-geo-<POD_SUFFIX> -- cat /docker-entrypoint-initdb.d/k8s-geo-mongo.sh\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Read the MongoDB initialization script inside the DB pod to validate user creation and role grant logic.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl exec -n test-hotel-reservation mongodb-geo-5ff578bcb8-vl428 -- cat /docker-entrypoint-initdb.d/k8s-geo-mongo.sh\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5ff578bcb8-vl428",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 63
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation geo -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Retrieve the geo deployment manifest to verify command, image, env vars, and configuration impacting DB access.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation geo -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation pod/mongodb-geo-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Inspect MongoDB pod logs to confirm authentication/authorization behavior and errors during geo service access.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation pod/mongodb-geo-5ff578bcb8-vl428\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5ff578bcb8-vl428",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 67
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation pod/geo-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Fetch current logs from the geo service to capture the exact error message indicating MongoDB authorization failure.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation pod/geo-84fbc958c7-vfm7w\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-vfm7w",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation geo-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Describe the geo pod to review container state, events, and CrashLoopBackOff details.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation geo-84fbc958c7-vfm7w\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-vfm7w",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 63
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation pod/geo-<POD_SUFFIX> -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Attempt to fetch previous logs from the geo pod for clues about recent crashes.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation pod/geo-84fbc958c7-vfm7w --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-vfm7w",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 73
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to identify failing components and their status.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    }
+  ]
+}

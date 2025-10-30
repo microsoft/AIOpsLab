@@ -1,0 +1,69 @@
+{
+  "problem_id": "k8s_target_port-misconfig-localization-3",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check overall pod status in the namespace to ensure components are running.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List services and exposed ports to identify relevant service and its port.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/compose-post-service --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect client service logs showing connection refused to post-storage-service on port 9090, indicating a connectivity issue.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/compose-post-service --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/post-storage-service --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Verify post-storage-service starts without internal errors, focusing the investigation on networking/config.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/post-storage-service --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints post-storage-service -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Check service endpoints and backend port (shows 10.244.1.22:8080), revealing the service routes to port 8080.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get endpoints post-storage-service -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy post-storage-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Review deployment to confirm containerPort is 9090, establishing expected application listening port.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get deploy post-storage-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc post-storage-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Inspect service spec to find targetPort is 8080, confirming mismatch with containerPort 9090 (root cause).",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get svc post-storage-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "submit([\"post-storage-service\"])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the identified faulty component responsible for the misconfiguration.",
+      "sequence_number": 8,
+      "original_command": "submit([\"post-storage-service\"])"
+    }
+  ]
+}

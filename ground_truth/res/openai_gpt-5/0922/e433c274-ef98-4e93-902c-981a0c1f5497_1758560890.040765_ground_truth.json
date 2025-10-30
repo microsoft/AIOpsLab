@@ -1,0 +1,29 @@
+{
+  "problem_id": "assign_to_non_existent_node_social_net-analysis-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all pods in the test-social-network namespace to identify any pods not running normally (e.g., Pending).",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n test-social-network user-service-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect the Pending pod's detailed status, node selector, and scheduler events to pinpoint the scheduling failure (mismatched node selector/taint).",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod -n test-social-network user-service-5b549cc8dc-gzr6v\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5b549cc8dc-gzr6v",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 69
+        }
+      ]
+    }
+  ]
+}

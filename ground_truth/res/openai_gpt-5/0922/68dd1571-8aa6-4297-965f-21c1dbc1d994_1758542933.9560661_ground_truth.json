@@ -1,0 +1,77 @@
+{
+  "problem_id": "k8s_target_port-misconfig-localization-2",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List all pods in the namespace to get component and pod names for further inspection.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network nginx-thrift-7c48f57-nlwtr --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Check frontend (nginx-thrift) logs; reveals connection refused errors on port 8080.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network nginx-thrift-7c48f57-nlwtr --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network -o name | xargs -I{} sh -c 'echo === {}; kubectl logs -n test-social-network {} --tail=200 2>&1 | grep -i -E \\\"error|exception|fail|panic|fatal\\\" | head -n 10'\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Scan recent logs from all pods for errors; shows compose-post-service failing to connect to text-service.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network -o name | xargs -I{} sh -c 'echo === {}; kubectl logs -n test-social-network {} --tail=200 2>&1 | grep -i -E \\\"error|exception|fail|panic|fatal\\\" | head -n 10'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "List services and ports; confirms text-service is exposed on service port 9090.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-social-network text-service user-mongodb url-shorten-mongodb post-storage-mongodb compose-post-service -o wide\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Check endpoints and target ports; shows text-service endpoints on 8080 indicating potential targetPort mismatch.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-social-network text-service user-mongodb url-shorten-mongodb post-storage-mongodb compose-post-service -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl -n test-social-network describe svc text-service; echo '---'; kubectl -n test-social-network get deploy text-service -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Describe Service and Deployment; confirms Service targetPort is 8080 while containerPort is 9090, identifying the misconfiguration.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl -n test-social-network describe svc text-service; echo '---'; kubectl -n test-social-network get deploy text-service -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl -n test-social-network logs text-service-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check text-service pod logs; shows the service started, supporting that the issue is port mapping, not crash.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl -n test-social-network logs text-service-585f7cbc5f-tlwh4 --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "585f7cbc5f-tlwh4",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 61
+        }
+      ]
+    },
+    {
+      "command": "submit([\"text-service\"])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit localized faulty component based on evidence of Service targetPort/containerPort mismatch.",
+      "sequence_number": 8,
+      "original_command": "submit([\"text-service\"])"
+    }
+  ]
+}
