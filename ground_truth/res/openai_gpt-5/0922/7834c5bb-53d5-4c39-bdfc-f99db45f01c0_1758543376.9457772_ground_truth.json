@@ -1,0 +1,69 @@
+{
+  "problem_id": "k8s_target_port-misconfig-analysis-2",
+  "key_commands": [
+    {
+      "command": "submit({\"system_level\": \"Application\", \"fault_type\": \"Misconfiguration\"})",
+      "type": "execute_command",
+      "importance_score": 1,
+      "description": "Submit the final analysis identifying the issue category.",
+      "sequence_number": 1,
+      "original_command": "submit({\"system_level\": \"Application\", \"fault_type\": \"Misconfiguration\"})"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/user-mongodb --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check MongoDB logs to confirm it is listening and accepting connections on expected port.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/user-mongodb --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "List ConfigMaps to verify presence of configuration resources referenced by workloads.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get configmap -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/user-service --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Inspect user-service logs for dependency connection issues that might indicate misconfiguration.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/user-service --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get events -n test-social-network --sort-by=.metadata.creationTimestamp\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Review ordered Kubernetes events to surface warnings/errors (e.g., FailedMount) and rollout signals.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get events -n test-social-network --sort-by=.metadata.creationTimestamp\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/nginx-thrift --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Fetch recent logs from the nginx-thrift deployment to look for request or connectivity errors.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/nginx-thrift --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "List services with port details to inspect service port exposure and detect potential port/targetPort mismatches.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all pods in the namespace to verify component readiness and status.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    }
+  ]
+}

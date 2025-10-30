@@ -77,7 +77,7 @@ If you're running VLLM and the LLM agent locally, Privoxy will by default proxy 
 
 ```bash
 export no_proxy=localhost
-``` 
+```
 
 After finishing cluster creation, proceed to the next "Update `config.yml`" step.
 
@@ -215,12 +215,115 @@ AIOpsLab makes it extremely easy to develop and evaluate your agents. You can on
         ```python
         problem_desc, instructs, apis = orch.init_problem("k8s_target_port-misconfig-mitigation-1")
         ```
-    
+
     2. **Set agent context**: Use the problem description, instructions, and APIs available to set context for your agent. (*This step depends on your agent's design and is left to the user*)
+
+### Running problems as a reinforcement-learning environment
+
+To integrate AIOpsLab problems with reinforcement-learning pipelines, use the
+`ProblemRLEnvironment` wrapper. It mirrors the familiar `reset`/`step` API and
+returns structured observations that include the task description,
+instructions, and latest environment response. Rewards are configurable via
+`RewardConfig`, and every environment instance automatically loads the
+"power-model" command traces recorded for each problem from the
+[`ground_truth/`](ground_truth/) directory. When your agent replays a command
+from the ground-truth trace it receives an importance-weighted bonus, guiding
+exploration toward proven investigation paths.
+
+```python
+from aiopslab.orchestrator import ProblemRLEnvironment, RewardConfig
+
+env = ProblemRLEnvironment(
+    max_steps=5,
+    reward_config=RewardConfig(step=-0.1, command_match_multiplier=0.01),
+)
+observation, info = env.reset("container_kill-detection")
+
+while True:
+    action = policy(observation, info)  # your RL policy
+    observation, reward, done, info = env.step(action)
+    if done:
+        break
+
+env.close()
+```
+
+The default observation is a dictionary containing:
+
+- `state`: concatenated task description, instructions, and most recent
+  environment message.
+- `actions_left`: remaining steps before a timeout penalty is applied.
+- `last_action` / `last_response`: previous interaction details.
+
+The accompanying `info` payload exposes the available API names and their
+descriptions as well as termination metadata (e.g., whether the episode ended
+due to a valid submission or a timeout). The remaining high-value commands from
+the ground-truth trace are included too, allowing training loops to introspect
+which investigative steps are still pending. Set the
+`AIOPSLAB_GROUND_TRUTH_DIR` environment variable if you need to point the
+environment at an alternative repository of ground-truth traces.
+
+#### Programmatic helpers for managing RL environments
+
+External training loops can import `service.reset_rl_environment` and
+`service.step_rl_environment` to manage a `ProblemRLEnvironment` instance inside
+their process:
+
+```python
+from service import reset_rl_environment, step_rl_environment
+
+handle = reset_rl_environment("misconfig_app_hotel_res-mitigation-1")
+step_zero = step_rl_environment(handle.env_id, step=0)
+
+# execute the first agent action
+step_one = step_rl_environment(
+    handle.env_id,
+    step=1,
+    action="exec",
+    llm_response="analysis",
+    llm_raw_response="analysis",
+)
+```
+
+Calling `step_rl_environment(..., step=0)` returns the initial state without
+executing an action, which makes it easy to bootstrap RL policies. Subsequent
+steps require an action string and return:
+
+```python
+RLEnvironmentStep(
+    state="...",
+    actions_left=3,
+    actions={"exec_shell": "Run shell", "submit": "Submit"},
+    reward=-0.01,
+    info={
+        "llm_response": "...",
+        "llm_raw_response": "...",
+        "len": 4,
+        "environment": {"terminated": False, "truncated": False, "done": False},
+    },
+)
+```
+
+When the environment reports that an episode is finished the helper closes the
+underlying environment and removes it from the internal registry. New episodes
+can be created by calling `reset_rl_environment` again with the desired
+`problem_id`. The helpers are intentionally agent-agnostic—callers are expected
+to supply the policy that chooses actions. If you would like to reuse one of the
+built-in agents, import it from `clients.registry.AgentRegistry` and integrate
+it within your training loop. Because the helpers simply return the observation
+structure, you can plug in any agent by calling `step_rl_environment` with the
+agent's chosen action on each turn.
+
+By default rewards come from the `PowerModel` ground-truth traces bundled with
+the repository. The helper mirrors the environment's reward directly so agents
+benefit from the same reward shaping the research team uses internally. Callers
+can pass a custom `RewardConfig` or override the ground-truth directory via
+`reset_rl_environment(..., reward_config=..., ground_truth_dir=...)` if they wish
+to tweak the reward weights or experiment with alternative traces.
 
 
     3. **Start the problem**: Start the problem by calling the `start_problem` method. You can specify the maximum number of steps too:
-
+    
         ```python
         import asyncio
         asyncio.run(orch.start_problem(max_steps=30))
@@ -261,7 +364,7 @@ To add a new application to AIOpsLab with Helm, you need to:
 
     ```python
     from aiopslab.service.apps.base import Application
-
+    
     class MyApp(Application):
         def __init__(self):
             super().__init__("<path to app metadata JSON>")
@@ -331,7 +434,7 @@ See a full example of a problem [here](/aiopslab/orchestrator/problems/k8s_targe
 
     ```python
     from aiopslab.generators.fault.inject_virtual import *
-
+    
     inj = VirtualizationFaultInjector(testbed="<namespace>")
     inj.inject_fault(microservices=["<service-name>"], fault_type="misconfig")
     ```
@@ -354,6 +457,22 @@ See a full example of a problem [here](/aiopslab/orchestrator/problems/k8s_targe
     > Relevant Code: [aiopslab/orchestrator/evaluators/](/aiopslab/orchestrator/evaluators/)
 
 </details>
+
+### How to enable problem sets with variants?
+
+edit `.env` and set ``AIOPSLAB_USE_PROBLEM_VARIANTS=true``
+
+Should make sure the method to choose problem set mode has already implemented.
+```
+    if args.enable_problem_variants:
+        # Variant Mode: Get Variant Problems:
+        problems = ProblemRegistry(variant_mode=args.enable_problem_variants).get_problem_ids()
+        print("Use variant mode to run tasks")
+    else:
+        # Static Mode: Get All Problems
+        problems = ProblemRegistry().PROBLEM_REGISTRY
+        print("Use standard mode to run tasks")
+```
 
 
 

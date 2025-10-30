@@ -4,4 +4,6 @@
 from .network_loss import (
     NetworkLossDetection,
     NetworkLossLocalization,
+    NetworkLossAnalysis,
+    NetworkLossMitigation,
 )

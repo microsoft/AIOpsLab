@@ -1,0 +1,93 @@
+{
+  "problem_id": "pod_kill_hotel_res-detection-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all pods in the namespace to verify overall component health and status.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all services and their cluster IPs/ports to confirm service exposure.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Inspect deployments, replicas, and images to confirm expected app configuration.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl run tmp-curl --rm -i --restart=Never --image=curlimages/curl -n test-hotel-reservation -- -sS http://frontend:5000/\")",
+      "type": "execute_command",
+      "importance_score": 6,
+      "description": "Create an ephemeral curl pod to verify the frontend service is reachable and serving content.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl run tmp-curl --rm -i --restart=Never --image=curlimages/curl -n test-hotel-reservation -- -sS http://frontend:5000/\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl run tmp-curl --rm -i --restart=Never --image=curlimages/curl -n test-hotel-reservation -- -sS 'http://search:8082/hotels?inDate=2015-04-09&outDate=2015-04-10&lat=37.7749&lon=-122.4194'\")",
+      "type": "execute_command",
+      "importance_score": 9,
+      "description": "Create an ephemeral curl pod to directly test the search service endpoint; failures indicate the core anomaly.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl run tmp-curl --rm -i --restart=Never --image=curlimages/curl -n test-hotel-reservation -- -sS 'http://search:8082/hotels?inDate=2015-04-09&outDate=2015-04-10&lat=37.7749&lon=-122.4194'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-hotel-reservation search -o wide\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Check the search service endpoints to confirm a backing pod/IP is registered.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-hotel-reservation search -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl run tmp-curl --rm -i --restart=Never --image=curlimages/curl -n test-hotel-reservation -- -v --max-time 5 http://search:8082/health || kubectl run tmp-curl2 --rm -i --restart=Never --image=curlimages/curl -n test-hotel-reservation -- -v --max-time 5 'http://search:8082/hotels?inDate=2015-04-09&outDate=2015-04-10&lat=37.7749&lon=-122.4194'\")",
+      "type": "execute_command",
+      "importance_score": 9,
+      "description": "Run verbose health and functional checks from ephemeral curl pods against the search service to corroborate connectivity failures.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl run tmp-curl --rm -i --restart=Never --image=curlimages/curl -n test-hotel-reservation -- -v --max-time 5 http://search:8082/health || kubectl run tmp-curl2 --rm -i --restart=Never --image=curlimages/curl -n test-hotel-reservation -- -v --max-time 5 'http://search:8082/hotels?inDate=2015-04-09&outDate=2015-04-10&lat=37.7749&lon=-122.4194'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation -l io.kompose.service=search --tail=200 && echo '---' && kubectl describe pod -n test-hotel-reservation -l io.kompose.service=search\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Fetch logs and describe the search pod to verify it is running and healthy despite external request failures.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation -l io.kompose.service=search --tail=200 && echo '---' && kubectl describe pod -n test-hotel-reservation -l io.kompose.service=search\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl run tmp-curl --rm -i --restart=Never --image=curlimages/curl -n test-hotel-reservation -- -sS 'http://frontend:5000/hotels?inDate=2015-04-09&outDate=2015-04-10&lat=37.7749&lon=-122.4194'\")",
+      "type": "execute_command",
+      "importance_score": 6,
+      "description": "Validate end-to-end functionality via the frontend path to compare with direct search access behavior.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl run tmp-curl --rm -i --restart=Never --image=curlimages/curl -n test-hotel-reservation -- -sS 'http://frontend:5000/hotels?inDate=2015-04-09&outDate=2015-04-10&lat=37.7749&lon=-122.4194'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl run tmp-busy --rm -i --restart=Never --image=busybox:1.36 -n test-hotel-reservation -- sh -c 'wget -S -O- http://search:8082/health || wget -S -O- \\\"http://search:8082/hotels?inDate=2015-04-09&outDate=2015-04-10&lat=37.7749&lon=-122.4194\\\"' \")",
+      "type": "execute_command",
+      "importance_score": 7,
+      "description": "Cross-validate connectivity issues using wget from a BusyBox pod to rule out client image/tooling issues.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl run tmp-busy --rm -i --restart=Never --image=busybox:1.36 -n test-hotel-reservation -- sh -c 'wget -S -O- http://search:8082/health || wget -S -O- \\\"http://search:8082/hotels?inDate=2015-04-09&outDate=2015-04-10&lat=37.7749&lon=-122.4194\\\"' \")"
+    },
+    {
+      "command": "exec_shell(\"kubectl run curl-test --restart=Never --image=curlimages/curl -n test-hotel-reservation -- -v --max-time 5 http://search:8082/health && sleep 1; kubectl logs -n test-hotel-reservation curl-test || true; kubectl get pod -n test-hotel-reservation curl-test -o wide || true\")",
+      "type": "execute_command",
+      "importance_score": 4,
+      "description": "Attempt a non-interactive curl pod to probe search health and retrieve its logs/status for further evidence.",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl run curl-test --restart=Never --image=curlimages/curl -n test-hotel-reservation -- -v --max-time 5 http://search:8082/health && sleep 1; kubectl logs -n test-hotel-reservation curl-test || true; kubectl get pod -n test-hotel-reservation curl-test -o wide || true\")"
+    }
+  ]
+}

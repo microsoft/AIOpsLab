@@ -1,0 +1,59 @@
+{
+  "problem_id": "revoke_auth_mongodb-detection-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "List all pods in the namespace to identify any failing components.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation geo-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect the failing pod's detailed status, container state, and events to determine the cause (CrashLoopBackOff).",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation geo-84fbc958c7-7ll6b\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-7ll6b",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 63
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-<POD_SUFFIX> -c hotel-reserv-geo -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Attempt to fetch previous container logs for the crashing container to gather error details.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-84fbc958c7-7ll6b -c hotel-reserv-geo --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-7ll6b",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 55
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 89
+        }
+      ]
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the anomaly detection result to complete the task.",
+      "sequence_number": 4,
+      "original_command": "submit(\"Yes\")"
+    }
+  ]
+}

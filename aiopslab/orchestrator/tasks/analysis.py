@@ -6,8 +6,10 @@
 import textwrap
 from typing import Any
 
-from aiopslab.orchestrator.tasks.base import Task
 from aiopslab.orchestrator.actions.analysis import AnalysisActions
+from aiopslab.orchestrator.evaluators.quantitative import is_exact_match_lower
+from aiopslab.orchestrator.tasks.base import Task
+from aiopslab.orchestrator.tasks.variant_task import VariantProblemMixin
 from aiopslab.service.apps.base import Application
 from aiopslab.session import SessionItem
 from aiopslab.utils.actions import get_actions
@@ -87,7 +89,53 @@ class AnalysisTask(Task):
         else:
             raise InvalidActionError(action_name)
 
+    def evaluate_variant_analysis(self, soln: Any):
+        """Evaluate the solution against the active variant expectations."""
+        if not isinstance(self, VariantProblemMixin):
+            return None
+
+        if any(
+            key in self.results
+            for key in ("system_level_correct", "fault_type_correct", "success")
+        ):
+            return self.results.get("success")
+
+        expected_system_level = self.get_expected_system_level()
+        expected_fault_type = self.get_expected_fault_type()
+
+        if expected_system_level is None and expected_fault_type is None:
+            return None
+
+        if not isinstance(soln, dict):
+            if expected_system_level is not None:
+                self.results["system_level_correct"] = False
+            if expected_fault_type is not None:
+                self.results["fault_type_correct"] = False
+            self.results["success"] = False
+            return False
+
+        system_level_correct = True
+        fault_type_correct = True
+
+        if expected_system_level is not None:
+            system_level_correct = is_exact_match_lower(
+                soln.get("system_level", ""), expected_system_level
+            )
+            self.results["system_level_correct"] = system_level_correct
+
+        if expected_fault_type is not None:
+            fault_type_correct = is_exact_match_lower(
+                soln.get("fault_type", ""), expected_fault_type
+            )
+            self.results["fault_type_correct"] = fault_type_correct
+
+        if expected_system_level is not None or expected_fault_type is not None:
+            self.results["success"] = system_level_correct and fault_type_correct
+
+        return self.results.get("success")
+
     def eval(self, soln: Any, trace: list[SessionItem], duration: float):
+        self.evaluate_variant_analysis(soln)
         self.add_result("TTA", duration)
         self.common_eval(trace)
         return self.results

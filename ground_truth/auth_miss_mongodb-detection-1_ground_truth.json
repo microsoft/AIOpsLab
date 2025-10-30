@@ -1,0 +1,59 @@
+{
+  "problem_id": "auth_miss_mongodb-detection-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to identify any unhealthy components; reveals the url-shorten-mongodb pod in Error.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod url-shorten-mongodb-<POD_SUFFIX> -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect the failing pod's detailed status, events, and mounts; confirms CrashLoopBackOff and TLS secret/config mounts.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod url-shorten-mongodb-bbc7d85f7-d8tr9 -n test-social-network\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "bbc7d85f7-d8tr9",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 53
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs url-shorten-mongodb-<POD_SUFFIX> -n test-social-network -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Retrieve previous container logs to find root cause; shows InvalidSSLConfiguration due to unreadable PEM at /etc/tls/tls.pem.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs url-shorten-mongodb-bbc7d85f7-d8tr9 -n test-social-network --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "bbc7d85f7-d8tr9",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 45
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 82
+        }
+      ]
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the detection result confirming anomalies are present.",
+      "sequence_number": 4,
+      "original_command": "submit(\"Yes\")"
+    }
+  ]
+}

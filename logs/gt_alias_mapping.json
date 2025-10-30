@@ -1,0 +1,1078 @@
+{
+  "stats": {
+    "exact": 100,
+    "canonical": 0,
+    "variant": 76,
+    "missing": 2
+  },
+  "mapping": [
+    {
+      "problem_id": "assign_to_non_existent_node_social_net-analysis",
+      "canonical": "assign_to_non_existent_node_social_net-analysis",
+      "gt_id_used": "assign_to_non_existent_node_social_net-analysis-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "assign_to_non_existent_node_social_net-analysis-1",
+      "canonical": "assign_to_non_existent_node_social_net-analysis",
+      "gt_id_used": "assign_to_non_existent_node_social_net-analysis-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "assign_to_non_existent_node_social_net-detection",
+      "canonical": "assign_to_non_existent_node_social_net-detection",
+      "gt_id_used": "assign_to_non_existent_node_social_net-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "assign_to_non_existent_node_social_net-detection-1",
+      "canonical": "assign_to_non_existent_node_social_net-detection",
+      "gt_id_used": "assign_to_non_existent_node_social_net-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "assign_to_non_existent_node_social_net-localization",
+      "canonical": "assign_to_non_existent_node_social_net-localization",
+      "gt_id_used": "assign_to_non_existent_node_social_net-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "assign_to_non_existent_node_social_net-localization-1",
+      "canonical": "assign_to_non_existent_node_social_net-localization",
+      "gt_id_used": "assign_to_non_existent_node_social_net-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "assign_to_non_existent_node_social_net-mitigation",
+      "canonical": "assign_to_non_existent_node_social_net-mitigation",
+      "gt_id_used": "assign_to_non_existent_node_social_net-mitigation-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "assign_to_non_existent_node_social_net-mitigation-1",
+      "canonical": "assign_to_non_existent_node_social_net-mitigation",
+      "gt_id_used": "assign_to_non_existent_node_social_net-mitigation-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_ad_service_failure-detection",
+      "canonical": "astronomy_shop_ad_service_failure-detection",
+      "gt_id_used": "astronomy_shop_ad_service_failure-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_ad_service_failure-detection-1",
+      "canonical": "astronomy_shop_ad_service_failure-detection",
+      "gt_id_used": "astronomy_shop_ad_service_failure-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_ad_service_failure-localization",
+      "canonical": "astronomy_shop_ad_service_failure-localization",
+      "gt_id_used": "astronomy_shop_ad_service_failure-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_ad_service_failure-localization-1",
+      "canonical": "astronomy_shop_ad_service_failure-localization",
+      "gt_id_used": "astronomy_shop_ad_service_failure-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_ad_service_high_cpu-detection",
+      "canonical": "astronomy_shop_ad_service_high_cpu-detection",
+      "gt_id_used": "astronomy_shop_ad_service_high_cpu-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_ad_service_high_cpu-detection-1",
+      "canonical": "astronomy_shop_ad_service_high_cpu-detection",
+      "gt_id_used": "astronomy_shop_ad_service_high_cpu-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_ad_service_high_cpu-localization",
+      "canonical": "astronomy_shop_ad_service_high_cpu-localization",
+      "gt_id_used": "astronomy_shop_ad_service_high_cpu-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_ad_service_high_cpu-localization-1",
+      "canonical": "astronomy_shop_ad_service_high_cpu-localization",
+      "gt_id_used": "astronomy_shop_ad_service_high_cpu-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_ad_service_manual_gc-detection",
+      "canonical": "astronomy_shop_ad_service_manual_gc-detection",
+      "gt_id_used": "astronomy_shop_ad_service_manual_gc-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_ad_service_manual_gc-detection-1",
+      "canonical": "astronomy_shop_ad_service_manual_gc-detection",
+      "gt_id_used": "astronomy_shop_ad_service_manual_gc-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_ad_service_manual_gc-localization",
+      "canonical": "astronomy_shop_ad_service_manual_gc-localization",
+      "gt_id_used": "astronomy_shop_ad_service_manual_gc-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_ad_service_manual_gc-localization-1",
+      "canonical": "astronomy_shop_ad_service_manual_gc-localization",
+      "gt_id_used": "astronomy_shop_ad_service_manual_gc-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_cart_service_failure-detection",
+      "canonical": "astronomy_shop_cart_service_failure-detection",
+      "gt_id_used": "astronomy_shop_cart_service_failure-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_cart_service_failure-detection-1",
+      "canonical": "astronomy_shop_cart_service_failure-detection",
+      "gt_id_used": "astronomy_shop_cart_service_failure-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_cart_service_failure-localization",
+      "canonical": "astronomy_shop_cart_service_failure-localization",
+      "gt_id_used": "astronomy_shop_cart_service_failure-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_cart_service_failure-localization-1",
+      "canonical": "astronomy_shop_cart_service_failure-localization",
+      "gt_id_used": "astronomy_shop_cart_service_failure-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_image_slow_load-detection",
+      "canonical": "astronomy_shop_image_slow_load-detection",
+      "gt_id_used": "astronomy_shop_image_slow_load-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_image_slow_load-detection-1",
+      "canonical": "astronomy_shop_image_slow_load-detection",
+      "gt_id_used": "astronomy_shop_image_slow_load-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_image_slow_load-localization",
+      "canonical": "astronomy_shop_image_slow_load-localization",
+      "gt_id_used": "astronomy_shop_image_slow_load-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_image_slow_load-localization-1",
+      "canonical": "astronomy_shop_image_slow_load-localization",
+      "gt_id_used": "astronomy_shop_image_slow_load-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_kafka_queue_problems-detection",
+      "canonical": "astronomy_shop_kafka_queue_problems-detection",
+      "gt_id_used": "astronomy_shop_kafka_queue_problems-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_kafka_queue_problems-detection-1",
+      "canonical": "astronomy_shop_kafka_queue_problems-detection",
+      "gt_id_used": "astronomy_shop_kafka_queue_problems-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_kafka_queue_problems-localization",
+      "canonical": "astronomy_shop_kafka_queue_problems-localization",
+      "gt_id_used": "astronomy_shop_kafka_queue_problems-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_kafka_queue_problems-localization-1",
+      "canonical": "astronomy_shop_kafka_queue_problems-localization",
+      "gt_id_used": "astronomy_shop_kafka_queue_problems-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_loadgenerator_flood_homepage-detection",
+      "canonical": "astronomy_shop_loadgenerator_flood_homepage-detection",
+      "gt_id_used": "astronomy_shop_loadgenerator_flood_homepage-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_loadgenerator_flood_homepage-detection-1",
+      "canonical": "astronomy_shop_loadgenerator_flood_homepage-detection",
+      "gt_id_used": "astronomy_shop_loadgenerator_flood_homepage-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_loadgenerator_flood_homepage-localization",
+      "canonical": "astronomy_shop_loadgenerator_flood_homepage-localization",
+      "gt_id_used": "astronomy_shop_loadgenerator_flood_homepage-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_loadgenerator_flood_homepage-localization-1",
+      "canonical": "astronomy_shop_loadgenerator_flood_homepage-localization",
+      "gt_id_used": "astronomy_shop_loadgenerator_flood_homepage-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_payment_service_failure-detection",
+      "canonical": "astronomy_shop_payment_service_failure-detection",
+      "gt_id_used": "astronomy_shop_payment_service_failure-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_payment_service_failure-detection-1",
+      "canonical": "astronomy_shop_payment_service_failure-detection",
+      "gt_id_used": "astronomy_shop_payment_service_failure-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_payment_service_failure-localization",
+      "canonical": "astronomy_shop_payment_service_failure-localization",
+      "gt_id_used": "astronomy_shop_payment_service_failure-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_payment_service_failure-localization-1",
+      "canonical": "astronomy_shop_payment_service_failure-localization",
+      "gt_id_used": "astronomy_shop_payment_service_failure-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_payment_service_unreachable-detection",
+      "canonical": "astronomy_shop_payment_service_unreachable-detection",
+      "gt_id_used": "astronomy_shop_payment_service_unreachable-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_payment_service_unreachable-detection-1",
+      "canonical": "astronomy_shop_payment_service_unreachable-detection",
+      "gt_id_used": "astronomy_shop_payment_service_unreachable-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_payment_service_unreachable-localization",
+      "canonical": "astronomy_shop_payment_service_unreachable-localization",
+      "gt_id_used": "astronomy_shop_payment_service_unreachable-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_payment_service_unreachable-localization-1",
+      "canonical": "astronomy_shop_payment_service_unreachable-localization",
+      "gt_id_used": "astronomy_shop_payment_service_unreachable-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_product_catalog_service_failure-detection",
+      "canonical": "astronomy_shop_product_catalog_service_failure-detection",
+      "gt_id_used": "astronomy_shop_product_catalog_service_failure-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_product_catalog_service_failure-detection-1",
+      "canonical": "astronomy_shop_product_catalog_service_failure-detection",
+      "gt_id_used": "astronomy_shop_product_catalog_service_failure-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_product_catalog_service_failure-localization",
+      "canonical": "astronomy_shop_product_catalog_service_failure-localization",
+      "gt_id_used": "astronomy_shop_product_catalog_service_failure-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_product_catalog_service_failure-localization-1",
+      "canonical": "astronomy_shop_product_catalog_service_failure-localization",
+      "gt_id_used": "astronomy_shop_product_catalog_service_failure-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_recommendation_service_cache_failure-detection",
+      "canonical": "astronomy_shop_recommendation_service_cache_failure-detection",
+      "gt_id_used": "astronomy_shop_recommendation_service_cache_failure-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_recommendation_service_cache_failure-detection-1",
+      "canonical": "astronomy_shop_recommendation_service_cache_failure-detection",
+      "gt_id_used": "astronomy_shop_recommendation_service_cache_failure-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "astronomy_shop_recommendation_service_cache_failure-localization",
+      "canonical": "astronomy_shop_recommendation_service_cache_failure-localization",
+      "gt_id_used": "astronomy_shop_recommendation_service_cache_failure-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "astronomy_shop_recommendation_service_cache_failure-localization-1",
+      "canonical": "astronomy_shop_recommendation_service_cache_failure-localization",
+      "gt_id_used": "astronomy_shop_recommendation_service_cache_failure-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "auth_miss_mongodb-analysis",
+      "canonical": "auth_miss_mongodb-analysis",
+      "gt_id_used": "auth_miss_mongodb-analysis-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "auth_miss_mongodb-analysis-1",
+      "canonical": "auth_miss_mongodb-analysis",
+      "gt_id_used": "auth_miss_mongodb-analysis-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "auth_miss_mongodb-detection",
+      "canonical": "auth_miss_mongodb-detection",
+      "gt_id_used": "auth_miss_mongodb-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "auth_miss_mongodb-detection-1",
+      "canonical": "auth_miss_mongodb-detection",
+      "gt_id_used": "auth_miss_mongodb-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "auth_miss_mongodb-localization",
+      "canonical": "auth_miss_mongodb-localization",
+      "gt_id_used": "auth_miss_mongodb-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "auth_miss_mongodb-localization-1",
+      "canonical": "auth_miss_mongodb-localization",
+      "gt_id_used": "auth_miss_mongodb-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "auth_miss_mongodb-mitigation",
+      "canonical": "auth_miss_mongodb-mitigation",
+      "gt_id_used": "auth_miss_mongodb-mitigation-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "auth_miss_mongodb-mitigation-1",
+      "canonical": "auth_miss_mongodb-mitigation",
+      "gt_id_used": "auth_miss_mongodb-mitigation-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "container_kill-analysis",
+      "canonical": "container_kill-analysis",
+      "gt_id_used": "container_kill-analysis",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "container_kill-analysis-1",
+      "canonical": "container_kill-analysis",
+      "gt_id_used": "container_kill-analysis-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "container_kill-detection",
+      "canonical": "container_kill-detection",
+      "gt_id_used": "container_kill-detection",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "container_kill-detection-1",
+      "canonical": "container_kill-detection",
+      "gt_id_used": "container_kill-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "container_kill-localization",
+      "canonical": "container_kill-localization",
+      "gt_id_used": "container_kill-localization",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "container_kill-localization-1",
+      "canonical": "container_kill-localization",
+      "gt_id_used": "container_kill-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "container_kill-mitigation",
+      "canonical": "container_kill-mitigation",
+      "gt_id_used": "container_kill-mitigation",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "container_kill-mitigation-1",
+      "canonical": "container_kill-mitigation",
+      "gt_id_used": "container_kill-mitigation-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "flower_model_misconfig-detection",
+      "canonical": "flower_model_misconfig-detection",
+      "gt_id_used": null,
+      "reason": "missing"
+    },
+    {
+      "problem_id": "flower_node_stop-detection",
+      "canonical": "flower_node_stop-detection",
+      "gt_id_used": null,
+      "reason": "missing"
+    },
+    {
+      "problem_id": "k8s_target_port-misconfig-analysis",
+      "canonical": "k8s_target_port-misconfig-analysis",
+      "gt_id_used": "k8s_target_port-misconfig-analysis-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "k8s_target_port-misconfig-analysis-1",
+      "canonical": "k8s_target_port-misconfig-analysis",
+      "gt_id_used": "k8s_target_port-misconfig-analysis-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "k8s_target_port-misconfig-analysis-2",
+      "canonical": "k8s_target_port-misconfig-analysis",
+      "gt_id_used": "k8s_target_port-misconfig-analysis-2",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "k8s_target_port-misconfig-analysis-3",
+      "canonical": "k8s_target_port-misconfig-analysis",
+      "gt_id_used": "k8s_target_port-misconfig-analysis-3",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "k8s_target_port-misconfig-detection",
+      "canonical": "k8s_target_port-misconfig-detection",
+      "gt_id_used": "k8s_target_port-misconfig-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "k8s_target_port-misconfig-detection-1",
+      "canonical": "k8s_target_port-misconfig-detection",
+      "gt_id_used": "k8s_target_port-misconfig-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "k8s_target_port-misconfig-detection-2",
+      "canonical": "k8s_target_port-misconfig-detection",
+      "gt_id_used": "k8s_target_port-misconfig-detection-2",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "k8s_target_port-misconfig-detection-3",
+      "canonical": "k8s_target_port-misconfig-detection",
+      "gt_id_used": "k8s_target_port-misconfig-detection-3",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "k8s_target_port-misconfig-localization",
+      "canonical": "k8s_target_port-misconfig-localization",
+      "gt_id_used": "k8s_target_port-misconfig-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "k8s_target_port-misconfig-localization-1",
+      "canonical": "k8s_target_port-misconfig-localization",
+      "gt_id_used": "k8s_target_port-misconfig-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "k8s_target_port-misconfig-localization-2",
+      "canonical": "k8s_target_port-misconfig-localization",
+      "gt_id_used": "k8s_target_port-misconfig-localization-2",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "k8s_target_port-misconfig-localization-3",
+      "canonical": "k8s_target_port-misconfig-localization",
+      "gt_id_used": "k8s_target_port-misconfig-localization-3",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "k8s_target_port-misconfig-mitigation",
+      "canonical": "k8s_target_port-misconfig-mitigation",
+      "gt_id_used": "k8s_target_port-misconfig-mitigation-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "k8s_target_port-misconfig-mitigation-1",
+      "canonical": "k8s_target_port-misconfig-mitigation",
+      "gt_id_used": "k8s_target_port-misconfig-mitigation-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "k8s_target_port-misconfig-mitigation-2",
+      "canonical": "k8s_target_port-misconfig-mitigation",
+      "gt_id_used": "k8s_target_port-misconfig-mitigation-2",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "k8s_target_port-misconfig-mitigation-3",
+      "canonical": "k8s_target_port-misconfig-mitigation",
+      "gt_id_used": "k8s_target_port-misconfig-mitigation-3",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "misconfig_app_hotel_res-analysis",
+      "canonical": "misconfig_app_hotel_res-analysis",
+      "gt_id_used": "misconfig_app_hotel_res-analysis-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "misconfig_app_hotel_res-analysis-1",
+      "canonical": "misconfig_app_hotel_res-analysis",
+      "gt_id_used": "misconfig_app_hotel_res-analysis-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "misconfig_app_hotel_res-detection",
+      "canonical": "misconfig_app_hotel_res-detection",
+      "gt_id_used": "misconfig_app_hotel_res-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "misconfig_app_hotel_res-detection-1",
+      "canonical": "misconfig_app_hotel_res-detection",
+      "gt_id_used": "misconfig_app_hotel_res-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "misconfig_app_hotel_res-localization",
+      "canonical": "misconfig_app_hotel_res-localization",
+      "gt_id_used": "misconfig_app_hotel_res-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "misconfig_app_hotel_res-localization-1",
+      "canonical": "misconfig_app_hotel_res-localization",
+      "gt_id_used": "misconfig_app_hotel_res-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "misconfig_app_hotel_res-mitigation",
+      "canonical": "misconfig_app_hotel_res-mitigation",
+      "gt_id_used": "misconfig_app_hotel_res-mitigation-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "misconfig_app_hotel_res-mitigation-1",
+      "canonical": "misconfig_app_hotel_res-mitigation",
+      "gt_id_used": "misconfig_app_hotel_res-mitigation-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "network_delay_hotel_res-analysis",
+      "canonical": "network_delay_hotel_res-analysis",
+      "gt_id_used": "network_delay_hotel_res-analysis-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "network_delay_hotel_res-analysis-1",
+      "canonical": "network_delay_hotel_res-analysis",
+      "gt_id_used": "network_delay_hotel_res-analysis-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "network_delay_hotel_res-detection",
+      "canonical": "network_delay_hotel_res-detection",
+      "gt_id_used": "network_delay_hotel_res-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "network_delay_hotel_res-detection-1",
+      "canonical": "network_delay_hotel_res-detection",
+      "gt_id_used": "network_delay_hotel_res-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "network_delay_hotel_res-localization",
+      "canonical": "network_delay_hotel_res-localization",
+      "gt_id_used": "network_delay_hotel_res-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "network_delay_hotel_res-localization-1",
+      "canonical": "network_delay_hotel_res-localization",
+      "gt_id_used": "network_delay_hotel_res-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "network_delay_hotel_res-mitigation",
+      "canonical": "network_delay_hotel_res-mitigation",
+      "gt_id_used": "network_delay_hotel_res-mitigation-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "network_delay_hotel_res-mitigation-1",
+      "canonical": "network_delay_hotel_res-mitigation",
+      "gt_id_used": "network_delay_hotel_res-mitigation-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "network_loss_hotel_res-analysis",
+      "canonical": "network_loss_hotel_res-analysis",
+      "gt_id_used": "network_loss_hotel_res-analysis-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "network_loss_hotel_res-analysis-1",
+      "canonical": "network_loss_hotel_res-analysis",
+      "gt_id_used": "network_loss_hotel_res-analysis-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "network_loss_hotel_res-detection",
+      "canonical": "network_loss_hotel_res-detection",
+      "gt_id_used": "network_loss_hotel_res-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "network_loss_hotel_res-detection-1",
+      "canonical": "network_loss_hotel_res-detection",
+      "gt_id_used": "network_loss_hotel_res-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "network_loss_hotel_res-localization",
+      "canonical": "network_loss_hotel_res-localization",
+      "gt_id_used": "network_loss_hotel_res-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "network_loss_hotel_res-localization-1",
+      "canonical": "network_loss_hotel_res-localization",
+      "gt_id_used": "network_loss_hotel_res-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "network_loss_hotel_res-mitigation",
+      "canonical": "network_loss_hotel_res-mitigation",
+      "gt_id_used": "network_loss_hotel_res-mitigation-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "network_loss_hotel_res-mitigation-1",
+      "canonical": "network_loss_hotel_res-mitigation",
+      "gt_id_used": "network_loss_hotel_res-mitigation-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "noop_detection_astronomy_shop",
+      "canonical": "noop_detection_astronomy_shop",
+      "gt_id_used": "noop_detection_astronomy_shop-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "noop_detection_astronomy_shop-1",
+      "canonical": "noop_detection_astronomy_shop",
+      "gt_id_used": "noop_detection_astronomy_shop-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "noop_detection_hotel_reservation",
+      "canonical": "noop_detection_hotel_reservation",
+      "gt_id_used": "noop_detection_hotel_reservation-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "noop_detection_hotel_reservation-1",
+      "canonical": "noop_detection_hotel_reservation",
+      "gt_id_used": "noop_detection_hotel_reservation-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "noop_detection_social_network",
+      "canonical": "noop_detection_social_network",
+      "gt_id_used": "noop_detection_social_network-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "noop_detection_social_network-1",
+      "canonical": "noop_detection_social_network",
+      "gt_id_used": "noop_detection_social_network-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "pod_failure_hotel_res-analysis",
+      "canonical": "pod_failure_hotel_res-analysis",
+      "gt_id_used": "pod_failure_hotel_res-analysis-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "pod_failure_hotel_res-analysis-1",
+      "canonical": "pod_failure_hotel_res-analysis",
+      "gt_id_used": "pod_failure_hotel_res-analysis-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "pod_failure_hotel_res-detection",
+      "canonical": "pod_failure_hotel_res-detection",
+      "gt_id_used": "pod_failure_hotel_res-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "pod_failure_hotel_res-detection-1",
+      "canonical": "pod_failure_hotel_res-detection",
+      "gt_id_used": "pod_failure_hotel_res-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "pod_failure_hotel_res-localization",
+      "canonical": "pod_failure_hotel_res-localization",
+      "gt_id_used": "pod_failure_hotel_res-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "pod_failure_hotel_res-localization-1",
+      "canonical": "pod_failure_hotel_res-localization",
+      "gt_id_used": "pod_failure_hotel_res-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "pod_failure_hotel_res-mitigation",
+      "canonical": "pod_failure_hotel_res-mitigation",
+      "gt_id_used": "pod_failure_hotel_res-mitigation-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "pod_failure_hotel_res-mitigation-1",
+      "canonical": "pod_failure_hotel_res-mitigation",
+      "gt_id_used": "pod_failure_hotel_res-mitigation-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "pod_kill_hotel_res-analysis",
+      "canonical": "pod_kill_hotel_res-analysis",
+      "gt_id_used": "pod_kill_hotel_res-analysis-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "pod_kill_hotel_res-analysis-1",
+      "canonical": "pod_kill_hotel_res-analysis",
+      "gt_id_used": "pod_kill_hotel_res-analysis-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "pod_kill_hotel_res-detection",
+      "canonical": "pod_kill_hotel_res-detection",
+      "gt_id_used": "pod_kill_hotel_res-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "pod_kill_hotel_res-detection-1",
+      "canonical": "pod_kill_hotel_res-detection",
+      "gt_id_used": "pod_kill_hotel_res-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "pod_kill_hotel_res-localization",
+      "canonical": "pod_kill_hotel_res-localization",
+      "gt_id_used": "pod_kill_hotel_res-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "pod_kill_hotel_res-localization-1",
+      "canonical": "pod_kill_hotel_res-localization",
+      "gt_id_used": "pod_kill_hotel_res-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "pod_kill_hotel_res-mitigation",
+      "canonical": "pod_kill_hotel_res-mitigation",
+      "gt_id_used": "pod_kill_hotel_res-mitigation-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "pod_kill_hotel_res-mitigation-1",
+      "canonical": "pod_kill_hotel_res-mitigation",
+      "gt_id_used": "pod_kill_hotel_res-mitigation-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "redeploy_without_PV-analysis",
+      "canonical": "redeploy_without_PV-analysis",
+      "gt_id_used": "redeploy_without_PV-analysis-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "redeploy_without_PV-analysis-1",
+      "canonical": "redeploy_without_PV-analysis",
+      "gt_id_used": "redeploy_without_PV-analysis-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "redeploy_without_PV-detection",
+      "canonical": "redeploy_without_PV-detection",
+      "gt_id_used": "redeploy_without_PV-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "redeploy_without_PV-detection-1",
+      "canonical": "redeploy_without_PV-detection",
+      "gt_id_used": "redeploy_without_PV-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "redeploy_without_PV-mitigation",
+      "canonical": "redeploy_without_PV-mitigation",
+      "gt_id_used": "redeploy_without_PV-mitigation-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "redeploy_without_PV-mitigation-1",
+      "canonical": "redeploy_without_PV-mitigation",
+      "gt_id_used": "redeploy_without_PV-mitigation-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "revoke_auth_mongodb-analysis",
+      "canonical": "revoke_auth_mongodb-analysis",
+      "gt_id_used": "revoke_auth_mongodb-analysis-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "revoke_auth_mongodb-analysis-1",
+      "canonical": "revoke_auth_mongodb-analysis",
+      "gt_id_used": "revoke_auth_mongodb-analysis-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "revoke_auth_mongodb-analysis-2",
+      "canonical": "revoke_auth_mongodb-analysis",
+      "gt_id_used": "revoke_auth_mongodb-analysis-2",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "revoke_auth_mongodb-detection",
+      "canonical": "revoke_auth_mongodb-detection",
+      "gt_id_used": "revoke_auth_mongodb-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "revoke_auth_mongodb-detection-1",
+      "canonical": "revoke_auth_mongodb-detection",
+      "gt_id_used": "revoke_auth_mongodb-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "revoke_auth_mongodb-detection-2",
+      "canonical": "revoke_auth_mongodb-detection",
+      "gt_id_used": "revoke_auth_mongodb-detection-2",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "revoke_auth_mongodb-localization",
+      "canonical": "revoke_auth_mongodb-localization",
+      "gt_id_used": "revoke_auth_mongodb-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "revoke_auth_mongodb-localization-1",
+      "canonical": "revoke_auth_mongodb-localization",
+      "gt_id_used": "revoke_auth_mongodb-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "revoke_auth_mongodb-localization-2",
+      "canonical": "revoke_auth_mongodb-localization",
+      "gt_id_used": "revoke_auth_mongodb-localization-2",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "revoke_auth_mongodb-mitigation",
+      "canonical": "revoke_auth_mongodb-mitigation",
+      "gt_id_used": "revoke_auth_mongodb-mitigation-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "revoke_auth_mongodb-mitigation-1",
+      "canonical": "revoke_auth_mongodb-mitigation",
+      "gt_id_used": "revoke_auth_mongodb-mitigation-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "revoke_auth_mongodb-mitigation-2",
+      "canonical": "revoke_auth_mongodb-mitigation",
+      "gt_id_used": "revoke_auth_mongodb-mitigation-2",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "scale_pod_zero_social_net-analysis",
+      "canonical": "scale_pod_zero_social_net-analysis",
+      "gt_id_used": "scale_pod_zero_social_net-analysis-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "scale_pod_zero_social_net-analysis-1",
+      "canonical": "scale_pod_zero_social_net-analysis",
+      "gt_id_used": "scale_pod_zero_social_net-analysis-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "scale_pod_zero_social_net-detection",
+      "canonical": "scale_pod_zero_social_net-detection",
+      "gt_id_used": "scale_pod_zero_social_net-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "scale_pod_zero_social_net-detection-1",
+      "canonical": "scale_pod_zero_social_net-detection",
+      "gt_id_used": "scale_pod_zero_social_net-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "scale_pod_zero_social_net-localization",
+      "canonical": "scale_pod_zero_social_net-localization",
+      "gt_id_used": "scale_pod_zero_social_net-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "scale_pod_zero_social_net-localization-1",
+      "canonical": "scale_pod_zero_social_net-localization",
+      "gt_id_used": "scale_pod_zero_social_net-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "scale_pod_zero_social_net-mitigation",
+      "canonical": "scale_pod_zero_social_net-mitigation",
+      "gt_id_used": "scale_pod_zero_social_net-mitigation-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "scale_pod_zero_social_net-mitigation-1",
+      "canonical": "scale_pod_zero_social_net-mitigation",
+      "gt_id_used": "scale_pod_zero_social_net-mitigation-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "user_unregistered_mongodb-analysis",
+      "canonical": "user_unregistered_mongodb-analysis",
+      "gt_id_used": "user_unregistered_mongodb-analysis-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "user_unregistered_mongodb-analysis-1",
+      "canonical": "user_unregistered_mongodb-analysis",
+      "gt_id_used": "user_unregistered_mongodb-analysis-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "user_unregistered_mongodb-analysis-2",
+      "canonical": "user_unregistered_mongodb-analysis",
+      "gt_id_used": "user_unregistered_mongodb-analysis-2",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "user_unregistered_mongodb-detection",
+      "canonical": "user_unregistered_mongodb-detection",
+      "gt_id_used": "user_unregistered_mongodb-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "user_unregistered_mongodb-detection-1",
+      "canonical": "user_unregistered_mongodb-detection",
+      "gt_id_used": "user_unregistered_mongodb-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "user_unregistered_mongodb-detection-2",
+      "canonical": "user_unregistered_mongodb-detection",
+      "gt_id_used": "user_unregistered_mongodb-detection-2",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "user_unregistered_mongodb-localization",
+      "canonical": "user_unregistered_mongodb-localization",
+      "gt_id_used": "user_unregistered_mongodb-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "user_unregistered_mongodb-localization-1",
+      "canonical": "user_unregistered_mongodb-localization",
+      "gt_id_used": "user_unregistered_mongodb-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "user_unregistered_mongodb-localization-2",
+      "canonical": "user_unregistered_mongodb-localization",
+      "gt_id_used": "user_unregistered_mongodb-localization-2",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "user_unregistered_mongodb-mitigation",
+      "canonical": "user_unregistered_mongodb-mitigation",
+      "gt_id_used": "user_unregistered_mongodb-mitigation-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "user_unregistered_mongodb-mitigation-1",
+      "canonical": "user_unregistered_mongodb-mitigation",
+      "gt_id_used": "user_unregistered_mongodb-mitigation-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "user_unregistered_mongodb-mitigation-2",
+      "canonical": "user_unregistered_mongodb-mitigation",
+      "gt_id_used": "user_unregistered_mongodb-mitigation-2",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "wrong_bin_usage-analysis",
+      "canonical": "wrong_bin_usage-analysis",
+      "gt_id_used": "wrong_bin_usage-analysis-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "wrong_bin_usage-analysis-1",
+      "canonical": "wrong_bin_usage-analysis",
+      "gt_id_used": "wrong_bin_usage-analysis-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "wrong_bin_usage-detection",
+      "canonical": "wrong_bin_usage-detection",
+      "gt_id_used": "wrong_bin_usage-detection-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "wrong_bin_usage-detection-1",
+      "canonical": "wrong_bin_usage-detection",
+      "gt_id_used": "wrong_bin_usage-detection-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "wrong_bin_usage-localization",
+      "canonical": "wrong_bin_usage-localization",
+      "gt_id_used": "wrong_bin_usage-localization-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "wrong_bin_usage-localization-1",
+      "canonical": "wrong_bin_usage-localization",
+      "gt_id_used": "wrong_bin_usage-localization-1",
+      "reason": "exact"
+    },
+    {
+      "problem_id": "wrong_bin_usage-mitigation",
+      "canonical": "wrong_bin_usage-mitigation",
+      "gt_id_used": "wrong_bin_usage-mitigation-1",
+      "reason": "variant"
+    },
+    {
+      "problem_id": "wrong_bin_usage-mitigation-1",
+      "canonical": "wrong_bin_usage-mitigation",
+      "gt_id_used": "wrong_bin_usage-mitigation-1",
+      "reason": "exact"
+    }
+  ]
+}

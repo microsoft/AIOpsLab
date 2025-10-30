@@ -1,0 +1,71 @@
+# Ray-based VLLM Inference Configuration
+data:
+  tokenizer: null
+  use_shm: False
+  train_files: ${oc.env:HOME}/data/gsm8k/train.parquet
+  val_files: ${oc.env:HOME}/data/gsm8k/test.parquet
+  prompt_key: prompt
+  reward_fn_key: data_source
+  max_prompt_length: 512
+  max_response_length: 1024
+  train_batch_size: 64
+  val_batch_size: null
+  return_raw_input_ids: False
+  return_raw_chat: False
+  return_full_prompt: False
+  shuffle: True
+  filter_overlong_prompts: True
+  filter_overlong_prompts_workers: 1
+  truncation: error
+  image_key: images
+  video_key: videos
+  trust_remote_code: False
+  custom_cls:
+    path: null
+    name: null
+
+model:
+  path: meta-llama/Llama-3.2-1B-Instruct
+  use_shm: False
+  external_lib: null
+  override_config: {}
+  trust_remote_code: False
+
+rollout:
+  name: vllm
+  mode: sync
+  temperature: 1.0
+  top_k: -1
+  top_p: 1
+  use_fire_sampling: False
+  prompt_length: ${data.max_prompt_length}
+  response_length: ${data.max_response_length}
+  dtype: bfloat16
+  gpu_memory_utilization: 0.5
+  ignore_eos: False
+  enforce_eager: True
+  free_cache_engine: True
+  load_format: dummy_dtensor
+  layered_summon: False
+  tensor_model_parallel_size: 1
+  max_num_batched_tokens: 8192
+  max_model_len: null
+  max_num_seqs: 1024
+  disable_log_stats: True
+  enable_chunked_prefill: True
+  do_sample: True
+  n: 3
+
+inference:
+  device: cuda
+  save_format: pt
+  output_dir: "./rollouts"
+  enable_server: true
+  server_url: "ws://localhost:8765"
+
+ray_init:
+  num_cpus: null  # Use all available CPUs
+  num_gpus: null  # Use all available GPUs
+  num_workers: 1
+  object_store_memory: null
+  

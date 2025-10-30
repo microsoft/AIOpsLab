@@ -10,13 +10,14 @@ import threading
 from datetime import datetime
 from typing import Union
 from datetime import datetime, timedelta
-from kubernetes import client
+from kubernetes import client, config
 
 import pandas as pd
 import pytz
 from prometheus_api_client import PrometheusConnect
 
 from aiopslab.observer import monitor_config, root_path, get_pod_list, get_services_list
+from aiopslab.config import get_kube_context
 
 normal_metrics = [
     # cpu
@@ -247,6 +248,8 @@ class PrometheusAPI:
 
     def initialize_pod_and_service_lists(self, custom_namespace=None):
         namespace = custom_namespace or monitor_config["namespace"]
+        kube_context = get_kube_context()
+        config.load_kube_config(context=kube_context)
         v1 = client.CoreV1Api()
         pod_list = [
             pod

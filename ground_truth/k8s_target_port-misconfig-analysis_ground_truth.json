@@ -1,0 +1,77 @@
+{
+  "problem_id": "k8s_target_port-misconfig-analysis",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "List all pods in the namespace to verify workloads are running",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List services to confirm presence of user-service and exposed port",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/compose-post-service --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Check client-side errors indicating connection refused to user-service:9090",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/compose-post-service --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/user-service --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Verify user-service startup and basic runtime behavior",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/user-service --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy user-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect deployment to confirm containerPort is 9090",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get deploy user-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc user-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Inspect service to reveal targetPort is 9999, indicating a port mismatch",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get svc user-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints user-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Verify endpoints show port 9999, confirming mismatch with container port 9090",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get endpoints user-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl exec -n test-social-network pod/user-service-<POD_SUFFIX> -- sh -c 'ss -tlnp || netstat -tlnp'\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Attempt to verify listening ports inside the user-service pod (failed, minor)",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl exec -n test-social-network pod/user-service-6d5985bd55-tdk68 -- sh -c 'ss -tlnp || netstat -tlnp'\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "6d5985bd55-tdk68",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 65
+        }
+      ]
+    }
+  ]
+}

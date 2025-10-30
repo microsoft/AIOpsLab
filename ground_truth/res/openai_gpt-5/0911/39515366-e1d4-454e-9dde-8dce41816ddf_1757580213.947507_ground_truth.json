@@ -1,0 +1,131 @@
+{
+  "problem_id": "revoke_auth_mongodb-mitigation-2",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get deploy rate -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Confirm rate deployment availability to validate that the service has recovered.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get deploy rate -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation rate-<POD_SUFFIX> --since=2m\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Re-check rate service logs post-mitigation to confirm successful initialization and normal operation.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation rate-7bdc978679-fxx7g --since=2m\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-fxx7g",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 56
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl exec -n test-hotel-reservation mongodb-rate-<POD_SUFFIX> -c hotel-reserv-rate-mongo -- mongo admin -u admin -p admin --authenticationDatabase admin --quiet --eval 'db.getUser(\\\"admin\\\")'\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Verify that the admin user now has the required readWrite role on rate-db.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl exec -n test-hotel-reservation mongodb-rate-56cc8659c9-slsbx -c hotel-reserv-rate-mongo -- mongo admin -u admin -p admin --authenticationDatabase admin --quiet --eval 'db.getUser(\\\"admin\\\")'\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "56cc8659c9-slsbx",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 64
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl exec -n test-hotel-reservation mongodb-rate-<POD_SUFFIX> -c hotel-reserv-rate-mongo -- bash /scripts/revoke-miti<POD_SUFFIX>e-mongo.sh\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Execute mitigation script inside MongoDB pod to restore readWrite privilege for admin on rate-db.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl exec -n test-hotel-reservation mongodb-rate-56cc8659c9-slsbx -c hotel-reserv-rate-mongo -- bash /scripts/revoke-mitigate-admin-rate-mongo.sh\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "56cc8659c9-slsbx",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 64
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "mitigate-admin",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 132
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap mongo-rate-script -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "View init DB script ConfigMap to understand intended user/role provisioning.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get configmap mongo-rate-script -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap failure-admin-rate -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Discover remediation scripts available via ConfigMap for restoring admin privileges.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get configmap failure-admin-rate -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy mongodb-rate -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Examine MongoDB deployment to discover mounted scripts/configs that can fix roles.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get deploy mongodb-rate -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation mongodb-rate-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Check MongoDB pod logs to confirm authentication/authorization configuration and error context.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation mongodb-rate-56cc8659c9-slsbx\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "56cc8659c9-slsbx",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 64
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation rate-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Inspect rate service logs to identify the error, revealing MongoDB authorization failure.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation rate-7bdc978679-fxx7g\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-fxx7g",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 56
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List pods in the namespace to identify failing components and discover pod names.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    }
+  ]
+}

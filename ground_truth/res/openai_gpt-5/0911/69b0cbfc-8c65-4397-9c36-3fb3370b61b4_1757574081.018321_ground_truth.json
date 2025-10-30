@@ -1,0 +1,107 @@
+{
+  "problem_id": "auth_miss_mongodb-detection-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to identify failing components and target pod(s).",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod url-shorten-mongodb-<POD_SUFFIX> -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect the failing MongoDB pod for container state, restart reason, mounts, and events.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod url-shorten-mongodb-685c54f5f9-7x9h8 -n test-social-network\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "685c54f5f9-7x9h8",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 53
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs url-shorten-mongodb-<POD_SUFFIX> -n test-social-network --tail=200 -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Attempt to fetch logs from the previous container instance to see the crash reason.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs url-shorten-mongodb-685c54f5f9-7x9h8 -n test-social-network --tail=200 --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "685c54f5f9-7x9h8",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 45
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 93
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap url-shorten-mongodb -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Retrieve mongod.conf ConfigMap to verify TLS settings and certificate file paths.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get configmap url-shorten-mongodb -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy,rs -n test-social-network | grep url-shorten-mongodb || true\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check deployment and replica sets for the url-shorten-mongodb to understand current replicas and rollout state.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get deploy,rs -n test-social-network | grep url-shorten-mongodb || true\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get secret mongodb-tls -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Inspect the TLS secret referenced by MongoDB to assess certificate presence/metadata.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get secret mongodb-tls -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deployment url-shorten-mongodb -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Review deployment spec to confirm volume mounts and references to the TLS secret and ConfigMap.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get deployment url-shorten-mongodb -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network -o wide | grep url-shorten-mongodb || true\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Filter pod list to the MongoDB pods to verify CrashLoopBackOff status and scheduling details.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network -o wide | grep url-shorten-mongodb || true\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network url-shorten-mongodb-<POD_SUFFIX> --tail=200 || true\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Fetch current pod logs; reveals the fatal error that the SSL certificate is expired or not yet valid, directly identifying the root cause.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network url-shorten-mongodb-685c54f5f9-7x9h8 --tail=200 || true\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "685c54f5f9-7x9h8",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 68
+        }
+      ]
+    }
+  ]
+}

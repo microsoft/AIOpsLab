@@ -1,0 +1,145 @@
+{
+  "problem_id": "user_unregistered_mongodb-mitigation-2",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation; kubectl logs -n test-hotel-reservation rate-<POD_SUFFIX> --tail=100\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Confirm the rate service recovers and operates normally after mitigation.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation; kubectl logs -n test-hotel-reservation rate-7bdc978679-brc8j --tail=100\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-brc8j",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 100
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl exec -n test-hotel-reservation $(kubectl get pod -n test-hotel-reservation -l io.kompose.service=mongodb-rate -o jsonpath='{.items[0].metadata.name}') -- bash -lc 'mongo admin -u root -p root --authenticationDatabase admin --quiet --eval \\\"JSON.stringify(db.getUser(\\\\\\\"admin\\\\\\\"))\\\"'\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Attempt to verify existence of the admin user directly in MongoDB.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl exec -n test-hotel-reservation $(kubectl get pod -n test-hotel-reservation -l io.kompose.service=mongodb-rate -o jsonpath='{.items[0].metadata.name}') -- bash -lc 'mongo admin -u root -p root --authenticationDatabase admin --quiet --eval \\\"JSON.stringify(db.getUser(\\\\\\\"admin\\\\\\\"))\\\"'\")"
+    },
+    {
+      "command": "submit()",
+      "type": "execute_command",
+      "importance_score": 3,
+      "description": "Submit the mitigation for evaluation after confirming service recovery.",
+      "sequence_number": 3,
+      "original_command": "submit()"
+    },
+    {
+      "command": "exec_shell(\"kubectl exec -n test-hotel-reservation $(kubectl get pod -n test-hotel-reservation -l io.kompose.service=mongodb-rate -o jsonpath='{.items[0].metadata.name}') -- bash -lc 'bash /scripts/remove-<POD_SUFFIX>-rate-mongo.sh'\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Execute mitigation script via bash to recreate admin user and restore privileges in MongoDB.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl exec -n test-hotel-reservation $(kubectl get pod -n test-hotel-reservation -l io.kompose.service=mongodb-rate -o jsonpath='{.items[0].metadata.name}') -- bash -lc 'bash /scripts/remove-mitigate-admin-rate-mongo.sh'\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "mitigate-admin",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 205
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl exec -n test-hotel-reservation $(kubectl get pod -n test-hotel-reservation -l io.kompose.service=mongodb-rate -o jsonpath='{.items[0].metadata.name}') -- bash -lc 'chmod +x /scripts/remove-<POD_SUFFIX>-rate-mongo.sh && /scripts/remove-mi<POD_SUFFIX>ate-mongo.sh'\")",
+      "type": "execute_command",
+      "importance_score": 3,
+      "description": "Attempt to execute mitigation script after chmod (failed due to read-only filesystem), informing correct approach.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl exec -n test-hotel-reservation $(kubectl get pod -n test-hotel-reservation -l io.kompose.service=mongodb-rate -o jsonpath='{.items[0].metadata.name}') -- bash -lc 'chmod +x /scripts/remove-mitigate-admin-rate-mongo.sh && /scripts/remove-mitigate-admin-rate-mongo.sh'\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "mitigate-admin",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 209
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "mitigate-admin",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 257
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap mongo-rate-script failure-admin-rate -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "View initialization and mitigation scripts to plan admin user restoration.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get configmap mongo-rate-script failure-admin-rate -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmaps,secrets,svc -n test-hotel-reservation | grep -E 'mongo|rate'; kubectl get pods -n test-hotel-reservation -l io.kompose.service=mongodb-rate -o name | xargs -I{} kubectl logs {} -n test-hotel-reservation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "List related resources and retrieve MongoDB pod logs, revealing SASL auth failures and missing admin user.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get configmaps,secrets,svc -n test-hotel-reservation | grep -E 'mongo|rate'; kubectl get pods -n test-hotel-reservation -l io.kompose.service=mongodb-rate -o name | xargs -I{} kubectl logs {} -n test-hotel-reservation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy rate mongodb-rate -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Inspect rate and mongodb-rate deployments to understand configuration and mounts.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl get deploy rate mongodb-rate -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs rate-<POD_SUFFIX> -n test-hotel-reservation -c hotel-reserv-rate -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Fetch previous container logs for the rate service to capture the crash reason.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl logs rate-7bdc978679-brc8j -n test-hotel-reservation -c hotel-reserv-rate --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-brc8j",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 30
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 91
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod rate-<POD_SUFFIX> -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Describe the failing rate pod to review container states and events.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl describe pod rate-7bdc978679-brc8j -n test-hotel-reservation\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-brc8j",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 38
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all pods in the namespace to identify failing components.",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    }
+  ]
+}

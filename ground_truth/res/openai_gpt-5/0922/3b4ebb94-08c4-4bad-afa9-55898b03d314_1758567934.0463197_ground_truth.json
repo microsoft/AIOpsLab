@@ -1,0 +1,171 @@
+{
+  "problem_id": "pod_kill_hotel_res-mitigation-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/user --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Verify user service DB connection and Consul registration.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/user --since=10m\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/reservation --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Verify reservation service DB/cache initialization and Consul registration.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/reservation --since=10m\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/profile --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Verify profile service DB/cache initialization and Consul registration.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/profile --since=10m\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/rate --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Verify rate service initialization, cache connectivity, and Consul registration.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/rate --since=10m\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/recommendation --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Check recommendation service DB connection and Consul registration.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/recommendation --since=10m\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deployment geo -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Inspect geo deployment config (image, env, resources) for correctness.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get deployment geo -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/search --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Validate that the search service initializes and registers in Consul.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/search --since=10m\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/frontend --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Check frontend logs for Consul discovery errors and subsequent recovery.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/frontend --since=10m\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/consul --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Confirm Consul registry health and that services are registering successfully.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/consul --since=10m\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation pod/geo-<POD_SUFFIX> --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Verify current geo pod logs to confirm successful DB connection and service registration.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation pod/geo-84fbc958c7-xfstn --since=10m\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-xfstn",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/mongodb-geo --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Check MongoDB for geo service startup, binding, auth, and connection acceptance to confirm DB availability.",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/mongodb-geo --since=10m\")"
+    },
+    {
+      "command": "submit()",
+      "type": "execute_command",
+      "importance_score": 2,
+      "description": "Submit the completed mitigation for evaluation.",
+      "sequence_number": 12,
+      "original_command": "submit()"
+    },
+    {
+      "command": "exec_shell(\"kubectl delete podchaos pod-kill -n test-hotel-reservation\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Mitigate the issue by deleting the active PodChaos resource, stopping ongoing pod-kill chaos.",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl delete podchaos pod-kill -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Verify service endpoints (e.g., mongodb-geo) and networking details.",
+      "sequence_number": 14,
+      "original_command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-<POD_SUFFIX> -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Inspect previous logs of the geo pod to diagnose the crash (panic: no reachable servers).",
+      "sequence_number": 15,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-84fbc958c7-xfstn --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-xfstn",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 55
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 69
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get podchaos -n test-hotel-reservation -o yaml || kubectl get podchaos -A\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Retrieve details of active PodChaos experiments to confirm the chaos configuration targeting the user service.",
+      "sequence_number": 16,
+      "original_command": "exec_shell(\"kubectl get podchaos -n test-hotel-reservation -o yaml || kubectl get podchaos -A\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get events -n test-hotel-reservation --sort-by=.lastTimestamp\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Inspect recent namespace events to detect anomalies, revealing PodChaos activity affecting pods.",
+      "sequence_number": 17,
+      "original_command": "exec_shell(\"kubectl get events -n test-hotel-reservation --sort-by=.lastTimestamp\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to assess overall service health and detect restarts.",
+      "sequence_number": 18,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    }
+  ]
+}

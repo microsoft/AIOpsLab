@@ -1,0 +1,59 @@
+{
+  "problem_id": "astronomy_shop_ad_service_high_cpu-detection",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Lists all pods in the astronomy-shop namespace to identify any pods in an error or abnormal state.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Describes the specific failing pod to gather detailed state, events, and CrashLoopBackOff evidence.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-65868bcdb5-j2555\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-j2555",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 67
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop pod/fraud-detection-<POD_SUFFIX> -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Retrieves logs from the previous instance of the container to investigate crash reasons.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop pod/fraud-detection-65868bcdb5-j2555 --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-j2555",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 63
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 77
+        }
+      ]
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 9,
+      "description": "Submits the detection result indicating that an anomaly was found.",
+      "sequence_number": 4,
+      "original_command": "submit(\"Yes\")"
+    }
+  ]
+}

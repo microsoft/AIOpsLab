@@ -120,3 +120,69 @@ class NetworkLossLocalization(
 
         return self.results
 
+
+################## Root cause analysis Problem ##################
+class NetworkLossAnalysis(NetworkLossBaseTask, AnalysisTask):
+    def __init__(self):
+        NetworkLossBaseTask.__init__(self)
+        AnalysisTask.__init__(self, self.app)
+
+    def eval(self, soln: Any, trace: list[SessionItem], duration: float):
+        print("== Evaluation ==")
+
+        if not isinstance(soln, dict):
+            print("Solution is not a dictionary")
+            self.results["system_level_correct"] = False
+            self.results["fault_type_correct"] = False
+            self.results["success"] = False
+            super().eval(soln, trace, duration)
+            return self.results
+
+        is_sys_level_correct = is_exact_match_lower(
+            soln.get("system_level", ""), "Application"
+        )
+        is_fault_type_correct = is_exact_match_lower(
+            soln.get("fault_type", ""), "Network/Storage Issue"
+        )
+
+        self.results["system_level_correct"] = is_sys_level_correct
+        self.results["fault_type_correct"] = is_fault_type_correct
+        self.results["success"] = is_sys_level_correct and is_fault_type_correct
+
+        super().eval(soln, trace, duration)
+
+        return self.results
+
+
+################## Mitigation Problem ##################
+class NetworkLossMitigation(NetworkLossBaseTask, MitigationTask):
+    def __init__(self):
+        NetworkLossBaseTask.__init__(self)
+        MitigationTask.__init__(self, self.app)
+
+    def eval(self, soln: Any, trace: list[SessionItem], duration: float):
+        print("== Evaluation ==")
+
+        super().eval(soln, trace, duration)
+
+        pods_ready = self._check_pods_ready(
+            {
+                "namespace": self.namespace,
+                "services": [self.faulty_service],
+            }
+        )
+
+        if pods_ready:
+            print(
+                f"Pods for service '{self.faulty_service}' in namespace '{self.namespace}' are ready."
+            )
+        else:
+            print(
+                f"Pods for service '{self.faulty_service}' in namespace '{self.namespace}' are not ready."
+            )
+
+        self.add_result("mitigation_pods_ready", pods_ready)
+        self.results["success"] = pods_ready
+
+        return self.results
+

@@ -1,0 +1,75 @@
+{
+  "problem_id": "misconfig_app_hotel_res-analysis",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List pods in the namespace to identify failing components.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod geo-<POD_SUFFIX> -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Inspect the failing geo pod for state, events, and restart/backoff details.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod geo-c47ff745-c7svr -n test-hotel-reservation\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "c47ff745-c7svr",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 37
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs geo-<POD_SUFFIX> -n test-hotel-reservation -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Retrieve previous container logs to find the crash cause; reveals DB URL set to mongodb-geo:27777 and connection failure.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs geo-c47ff745-c7svr -n test-hotel-reservation --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "c47ff745-c7svr",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 29
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 69
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide | grep mongodb-geo || kubectl describe svc mongodb-geo -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Check the mongodb-geo service and its port (27017) to compare against the application's configured DB port.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide | grep mongodb-geo || kubectl describe svc mongodb-geo -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy geo -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Examine the geo deployment configuration for image, command, and environment settings that might cause misconfiguration.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get deploy geo -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmaps -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "List and inspect ConfigMaps for any related configurations or scripts; auxiliary verification.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get configmaps -n test-hotel-reservation -o yaml\")"
+    }
+  ]
+}

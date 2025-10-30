@@ -162,6 +162,9 @@ if __name__ == "__main__":
     parser.add_argument('--model', type=str,
                        default=os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini"),
                        help='OpenRouter model to use')
+    parser.add_argument('--enable-problem-variants', type=bool,
+                       default=os.getenv("AIOPSLAB_USE_PROBLEM_VARIANTS", None),
+                       help='run problem variant mode')
 
     args = parser.parse_args()
 
@@ -179,8 +182,14 @@ if __name__ == "__main__":
     results_dir = setup_results_directory(model, agent_name)
     print(f"Results will be saved to: {results_dir}")
 
-    # Get all problems
-    problems = ProblemRegistry().PROBLEM_REGISTRY
+    if args.enable_problem_variants:
+        # Variant Mode: Get Variant Problems:
+        problems = ProblemRegistry(variant_mode=args.enable_problem_variants).get_problem_ids()
+        print("Use variant mode to run tasks")
+    else:
+        # Static Mode: Get All Problems
+        problems = ProblemRegistry().PROBLEM_REGISTRY
+        print("Use standard mode to run tasks")
 
     # Filter problems if specific IDs requested
     if args.problem_ids:

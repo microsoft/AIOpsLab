@@ -1,0 +1,93 @@
+{
+  "problem_id": "astronomy_shop_ad_service_manual_gc-localization-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the astronomy-shop namespace to assess overall pod health and restarts, including the ad service pod.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get services -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all services to identify ClusterIP addresses and confirm the presence of ad and related services.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get services -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deployment/frontend --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Review frontend logs to detect downstream connection errors, indicating inability to reach checkout and ad services.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deployment/frontend --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n astronomy-shop checkout ad -o wide\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Check service endpoints for checkout and ad to verify if backends are registered; reveals ad has no ready endpoints.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get endpoints -n astronomy-shop checkout ad -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc ad -n astronomy-shop -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect the ad service configuration (selector, ports) to validate label-based endpoint selection.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get svc ad -n astronomy-shop -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pod -n astronomy-shop ad-<POD_SUFFIX> -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect the specific ad pod to confirm labels, IP, readiness, restarts, and correlate with service selectors.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get pod -n astronomy-shop ad-94bd576b5-jkqlc -o yaml\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-jkqlc",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 49
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n astronomy-shop ad -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Detailed endpoints view for ad service showing notReadyAddresses, confirming the pod is not considered ready for the service.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get endpoints -n astronomy-shop ad -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop ad-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Examine ad pod logs indicating the 'adManualGc' feature flag triggering manual GC, explaining readiness/availability issues.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop ad-94bd576b5-jkqlc --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-jkqlc",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 46
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get deployment ad -n astronomy-shop -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Check ad deployment status to corroborate unavailability (MinimumReplicasUnavailable) aligning with endpoint readiness problems.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl get deployment ad -n astronomy-shop -o yaml\")"
+    }
+  ]
+}

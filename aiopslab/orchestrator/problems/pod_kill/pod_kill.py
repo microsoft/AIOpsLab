@@ -111,3 +111,69 @@ class PodKillLocalization(PodKillBaseTask, LocalizationTask):
         self.results["is_subset"] = is_sub
 
         return self.results
+
+
+################## Root Cause Analysis Problem ##################
+class PodKillAnalysis(PodKillBaseTask, AnalysisTask):
+    def __init__(self):
+        PodKillBaseTask.__init__(self)
+        AnalysisTask.__init__(self, self.app)
+
+    def eval(self, soln: Any, trace: list[SessionItem], duration: float):
+        print("== Evaluation ==")
+
+        if not isinstance(soln, dict):
+            print("Solution is not a dictionary")
+            self.results["system_level_correct"] = False
+            self.results["fault_type_correct"] = False
+            self.results["success"] = False
+            super().eval(soln, trace, duration)
+            return self.results
+
+        system_level_correct = is_exact_match_lower(
+            soln.get("system_level", ""), "Virtualization"
+        )
+        fault_type_correct = is_exact_match_lower(
+            soln.get("fault_type", ""), "Operation Error"
+        )
+
+        self.results["system_level_correct"] = system_level_correct
+        self.results["fault_type_correct"] = fault_type_correct
+        self.results["success"] = system_level_correct and fault_type_correct
+
+        super().eval(soln, trace, duration)
+
+        return self.results
+
+
+################## Mitigation Problem ##################
+class PodKillMitigation(PodKillBaseTask, MitigationTask):
+    def __init__(self):
+        PodKillBaseTask.__init__(self)
+        MitigationTask.__init__(self, self.app)
+
+    def eval(self, soln: Any, trace: list[SessionItem], duration: float):
+        print("== Evaluation ==")
+
+        super().eval(soln, trace, duration)
+
+        pods_ready = self._check_pods_ready(
+            {
+                "namespace": self.namespace,
+                "services": [self.faulty_service],
+            }
+        )
+
+        if pods_ready:
+            print(
+                f"All pods for service '{self.faulty_service}' are back to Ready state."
+            )
+        else:
+            print(
+                f"Pods for service '{self.faulty_service}' are not all Ready after mitigation."
+            )
+
+        self.add_result("mitigation_pods_ready", pods_ready)
+        self.results["success"] = pods_ready
+
+        return self.results

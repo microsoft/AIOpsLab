@@ -1,0 +1,101 @@
+{
+  "problem_id": "user_unregistered_mongodb-analysis-2",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pvc -n test-hotel-reservation rate-pvc -o yaml; echo '---'; kubectl get pv\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Verify MongoDB storage PVC/PV health to rule out storage-related causes.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pvc -n test-hotel-reservation rate-pvc -o yaml; echo '---'; kubectl get pv\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap -n test-hotel-reservation mongo-rate-script -o yaml; echo '---'; kubectl get configmap -n test-hotel-reservation failure-admin-rate -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Inspect init and failure ConfigMaps to see user creation/removal scripts that explain missing 'admin' user.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get configmap -n test-hotel-reservation mongo-rate-script -o yaml; echo '---'; kubectl get configmap -n test-hotel-reservation failure-admin-rate -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy mongodb-rate -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Review MongoDB deployment spec to confirm auth is enabled and which ConfigMaps/volumes are mounted.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get deploy mongodb-rate -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy rate -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Review the rate deployment spec to verify image, command, and environment configuration.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get deploy rate -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/mongodb-rate --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Inspect MongoDB logs which reveal authentication failures and 'UserNotFound: admin' in the admin database.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/mongodb-rate --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation rate-<POD_SUFFIX> -c hotel-reserv-rate --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Fetch application logs from the rate container showing SASL authentication failure to MongoDB.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation rate-7bdc978679-qpn6r -c hotel-reserv-rate --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-qpn6r",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 56
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation rate-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Describe the failing rate pod for status, restart history, and events indicating CrashLoopBackOff.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation rate-7bdc978679-qpn6r\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-qpn6r",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 64
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/rate -<REPLICA_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Attempt to retrieve previous logs from the rate deployment to get error context.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/rate --previous --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 64
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all pods in the namespace to identify failing components (rate pod in CrashLoopBackOff).",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    }
+  ]
+}

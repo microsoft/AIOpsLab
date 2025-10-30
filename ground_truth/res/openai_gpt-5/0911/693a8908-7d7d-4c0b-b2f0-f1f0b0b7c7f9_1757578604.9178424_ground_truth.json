@@ -1,0 +1,59 @@
+{
+  "problem_id": "revoke_auth_mongodb-detection-2",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to identify failing components (rate pod in Error state).",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod rate-<POD_SUFFIX> -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect pod details and events to confirm CrashLoopBackOff and gather context.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod rate-7bdc978679-xp5fm -n test-hotel-reservation\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-xp5fm",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 38
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs rate-<POD_SUFFIX> -n test-hotel-reservation -c hotel-reserv-rate -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Fetch previous container logs to reveal root cause: MongoDB authorization error (not authorized on rate-db).",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs rate-7bdc978679-xp5fm -n test-hotel-reservation -c hotel-reserv-rate --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-xp5fm",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 30
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 91
+        }
+      ]
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 9,
+      "description": "Submit that an anomaly is detected based on the identified MongoDB authorization failure.",
+      "sequence_number": 4,
+      "original_command": "submit(\"Yes\")"
+    }
+  ]
+}

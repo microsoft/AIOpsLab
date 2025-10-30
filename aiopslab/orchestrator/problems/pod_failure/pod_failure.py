@@ -118,3 +118,74 @@ class PodFailureLocalization(PodFailureBaseTask, LocalizationTask):
         self.results["is_subset"] = is_sub
 
         return self.results
+
+
+################## Root cause analysis Problem ##################
+class PodFailureAnalysis(PodFailureBaseTask, AnalysisTask):
+    def __init__(self):
+        PodFailureBaseTask.__init__(self)
+        AnalysisTask.__init__(self, self.app)
+
+    def eval(self, soln: Any, trace: list[SessionItem], duration: float):
+        print("== Evaluation ==")
+
+        if not isinstance(soln, dict):
+            print("Solution is not a dictionary")
+            self.results["system_level_correct"] = False
+            self.results["fault_type_correct"] = False
+            self.results["success"] = False
+            super().eval(soln, trace, duration)
+            return self.results
+
+        system_level_correct = is_exact_match_lower(
+            soln.get("system_level", ""), "Virtualization"
+        )
+        fault_type_correct = is_exact_match_lower(
+            soln.get("fault_type", ""), "Operation Error"
+        )
+
+        if not system_level_correct:
+            print(f"Incorrect system level: {soln.get('system_level')}")
+        else:
+            print("System level correctly identified.")
+
+        if not fault_type_correct:
+            print(f"Incorrect fault type: {soln.get('fault_type')}")
+        else:
+            print("Fault type correctly identified.")
+
+        self.results["system_level_correct"] = system_level_correct
+        self.results["fault_type_correct"] = fault_type_correct
+        self.results["success"] = system_level_correct and fault_type_correct
+
+        super().eval(soln, trace, duration)
+
+        return self.results
+
+
+################## Mitigation Problem ##################
+class PodFailureMitigation(PodFailureBaseTask, MitigationTask):
+    def __init__(self):
+        PodFailureBaseTask.__init__(self)
+        MitigationTask.__init__(self, self.app)
+
+    def eval(self, soln: Any, trace: list[SessionItem], duration: float) -> dict:
+        print("== Evaluation ==")
+
+        super().eval(soln, trace, duration)
+
+        pods_ready = self._check_pods_ready({"namespace": self.namespace})
+
+        if pods_ready:
+            print(f"[PASS] All pods in namespace '{self.namespace}' are ready.")
+        else:
+            print(f"[FAIL] Pods in namespace '{self.namespace}' are not ready.")
+
+        self.add_result("mitigation_pods_ready", pods_ready)
+
+        previous_success = self.results.get("success")
+        self.results["success"] = (
+            pods_ready if previous_success is None else previous_success and pods_ready
+        )
+
+        return self.results

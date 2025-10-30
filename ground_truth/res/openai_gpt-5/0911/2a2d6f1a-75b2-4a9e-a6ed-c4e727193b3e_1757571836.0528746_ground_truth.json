@@ -1,0 +1,165 @@
+{
+  "problem_id": "k8s_target_port-misconfig-mitigation-2",
+  "key_commands": [
+    {
+      "command": "submit()",
+      "type": "execute_command",
+      "importance_score": 1,
+      "description": "Submit the mitigation for evaluation after verification.",
+      "sequence_number": 1,
+      "original_command": "submit()"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/nginx-thrift --since=2m | tail -n 80\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Further verify from the gateway logs that connection errors subside after the fix",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/nginx-thrift --since=2m | tail -n 80\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/compose-post-service --since=5m | tail -n 200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Re-check client logs (compose-post-service) for improvements in connecting to text-service.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/compose-post-service --since=5m | tail -n 200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network -o name | xargs -I{} sh -c 'echo ==== {}; kubectl logs -n test-social-network {} --all<REPLICA_SUFFIX> --since=2m 2>/dev/null | grep -i \\\"connection refused\\\" | wc -l'\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Confirm across pods that recent 'connection refused' occurrences have dropped to zero",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network -o name | xargs -I{} sh -c 'echo ==== {}; kubectl logs -n test-social-network {} --all-containers --since=2m 2>/dev/null | grep -i \\\"connection refused\\\" | wc -l'\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-containers",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 138
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/compose-post-service --since=2m | tail -n 100\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Check compose-post-service logs post-fix to ensure connection errors are no longer occurring",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/compose-post-service --since=2m | tail -n 100\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pod -n test-social-network text-service-<POD_SUFFIX> -o jsonpath=\\'{.spec.containers[*].ports}\\'\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Confirm the container's actual listening port to compare against Service targetPort.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get pod -n test-social-network text-service-585f7cbc5f-snl5d -o jsonpath=\\'{.spec.containers[*].ports}\\'\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "585f7cbc5f-snl5d",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 64
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl patch service text-service -n test-social-network --type='json' -p='[{\\\"op\\\":\\\"replace\\\",\\\"path\\\":\\\"/spec/ports/0/targetPort\\\",\\\"value\\\":9090}]'\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Fix the Service by setting targetPort to 9090 so it matches the container's port",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl patch service text-service -n test-social-network --type='json' -p='[{\\\"op\\\":\\\"replace\\\",\\\"path\\\":\\\"/spec/ports/0/targetPort\\\",\\\"value\\\":9090}]'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pod -n test-social-network text-service-<POD_SUFFIX> -o jsonpath='{.spec.containers[*].ports}'\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Verify the container's listening port (9090) to determine the correct targetPort",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl get pod -n test-social-network text-service-585f7cbc5f-snl5d -o jsonpath='{.spec.containers[*].ports}'\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "585f7cbc5f-snl5d",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 64
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network text-service -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect text-service Service spec to confirm misconfigured targetPort (9999)",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network text-service -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-social-network text-service -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect text-service Endpoints to see the actual backend port exposed (revealed incorrect port 9999)",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-social-network text-service -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/text-service --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Check text-service logs to confirm the service starts and to rule out internal failures",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/text-service --since=10m\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/user-service --since=5m\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Inspect user-service logs for broader service health context.",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/user-service --since=5m\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network -o name | xargs -I{} sh -c 'echo ==== {}; kubectl logs -n test-social-network {} --all<REPLICA_SUFFIX> --since=5m 2>/dev/null | grep -iE \\\"error|fail|exception\\\" -C1 || true'\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Scan recent pod logs for errors to detect connection issues (e.g., connection refused to text-service:9090)",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network -o name | xargs -I{} sh -c 'echo ==== {}; kubectl logs -n test-social-network {} --all-containers --since=5m 2>/dev/null | grep -iE \\\"error|fail|exception\\\" -C1 || true'\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-containers",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 138
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/nginx-thrift --since=5m\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Check frontend gateway logs for request failures indicating downstream issues",
+      "sequence_number": 14,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/nginx-thrift --since=5m\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List all services to identify relevant Service objects and exposed ports",
+      "sequence_number": 15,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "List all pods in the namespace to confirm workloads are running",
+      "sequence_number": 16,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    }
+  ]
+}

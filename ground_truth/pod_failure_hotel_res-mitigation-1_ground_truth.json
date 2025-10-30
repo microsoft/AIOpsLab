@@ -1,0 +1,101 @@
+{
+  "problem_id": "pod_failure_hotel_res-mitigation-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Lists all pods in the namespace to identify failing components and overall status.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod user-<POD_SUFFIX> -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Describes the failing user pod to inspect events and failure reasons.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod user-66d5d6f874-5nf95 -n test-hotel-reservation\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "66d5d6f874-5nf95",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 38
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy user -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Retrieves the user deployment manifest to verify intended image and command configuration.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get deploy user -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Fetches all deployments' manifests in the namespace for cross-comparison and context.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pod user-<POD_SUFFIX> -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Gets the full pod spec to confirm the container image was mutated to pause and understand exact state.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get pod user-66d5d6f874-5nf95 -n test-hotel-reservation -o yaml\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "66d5d6f874-5nf95",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 33
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get mutatingwebhookconfigurations.admissionregistration.k8s.io -o wide\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Lists mutating webhooks to identify potential cluster-wide mutations (e.g., chaos-mesh) causing the issue.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get mutatingwebhookconfigurations.admissionregistration.k8s.io -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl delete mutatingwebhookconfiguration chaos-mesh<REPLICA_SUFFIX>\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Removes the mutating webhook responsible for altering pod specs (root-cause fix).",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl delete mutatingwebhookconfiguration chaos-mesh-mutation\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-mutation",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 66
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl rollout restart deploy user -n test-hotel-reservation\")",
+      "type": "execute_command",
+      "importance_score": 9,
+      "description": "Restarts the user deployment to recreate pods without the removed mutating webhook influence.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl rollout restart deploy user -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Verifies that a new user pod is running and the service has recovered.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation -o wide\")"
+    }
+  ]
+}

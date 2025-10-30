@@ -15,6 +15,55 @@ from aiopslab.paths import TARGET_MICROSERVICES
 from .helpers import get_frontend_url
 
 
+def evaluate_container_kill_analysis_solution(task, soln: Any) -> dict:
+    """Populate analysis results enforcing the known system scope."""
+
+    expected_system_level = "Virtualization"
+    expected_fault_type = "Operation Error"
+
+    if not isinstance(soln, dict):
+        print("Solution is not a dictionary")
+        task.results["system_level_correct"] = False
+        task.results["fault_type_correct"] = False
+        task.results["success"] = False
+        return task.results
+
+    is_system_level_correct = is_exact_match_lower(
+        soln.get("system_level", ""), expected_system_level
+    )
+    is_fault_type_correct = is_exact_match_lower(
+        soln.get("fault_type", ""), expected_fault_type
+    )
+
+    task.results["system_level_correct"] = is_system_level_correct
+    task.results["fault_type_correct"] = is_fault_type_correct
+    task.results["success"] = is_system_level_correct and is_fault_type_correct
+
+    return task.results
+
+
+def evaluate_container_kill_mitigation(task) -> bool:
+    """Validate mitigation success by polling for ready pods."""
+
+    pods_ready = task._check_pods_ready(
+        {
+            "namespace": task.namespace,
+            "services": [task.faulty_service],
+            "timeout": 60,
+            "interval": 5,
+        }
+    )
+
+    task.add_result("mitigation_pods_ready", pods_ready)
+
+    previous_success = task.results.get("success")
+    task.results["success"] = (
+        pods_ready if previous_success is None else previous_success and pods_ready
+    )
+
+    return task.results["success"]
+
+
 class ChaosFaultBaseTask:
     def __init__(self):
         self.app = HotelReservation()
@@ -120,5 +169,33 @@ class ContainerKillLocalization(ChaosFaultBaseTask, LocalizationTask):
 
         self.results["success"] = is_exact or (is_sub and len(soln) == 1)
         self.results["is_subset"] = is_sub
+
+        return self.results
+
+
+################## Analysis Problem ##################
+class ContainerKillAnalysis(ChaosFaultBaseTask, AnalysisTask):
+    def __init__(self):
+        ChaosFaultBaseTask.__init__(self)
+        AnalysisTask.__init__(self, self.app)
+
+    def eval(self, soln: Any, trace: list[SessionItem], duration: float):
+        print("== Evaluation ==")
+        evaluate_container_kill_analysis_solution(self, soln)
+        super().eval(soln, trace, duration)
+
+        return self.results
+
+
+################## Mitigation Problem ##################
+class ContainerKillMitigation(ChaosFaultBaseTask, MitigationTask):
+    def __init__(self):
+        ChaosFaultBaseTask.__init__(self)
+        MitigationTask.__init__(self, self.app)
+
+    def eval(self, soln: Any, trace: list[SessionItem], duration: float):
+        print("== Evaluation ==")
+        super().eval(soln, trace, duration)
+        evaluate_container_kill_mitigation(self)
 
         return self.results

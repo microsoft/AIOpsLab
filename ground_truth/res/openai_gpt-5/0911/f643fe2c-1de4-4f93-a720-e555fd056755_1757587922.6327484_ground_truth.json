@@ -1,0 +1,53 @@
+{
+  "problem_id": "scale_pod_zero_social_net-localization-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "List pods in the namespace to identify missing or non-running components.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List services to verify the presence and configuration of service endpoints like user-service.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "List deployments to check replica and availability status; reveals user-service has 0/0 replicas.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe deploy user-service -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Describe the user-service deployment to confirm desired replicas are 0 and view scaling events.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl describe deploy user-service -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get hpa -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Check for HorizontalPodAutoscaler resources to rule out autoscaling as the cause.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get hpa -n test-social-network\")"
+    },
+    {
+      "command": "submit([\"user-service\"])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the identified faulty component (user-service) as the root cause.",
+      "sequence_number": 6,
+      "original_command": "submit([\"user-service\"])"
+    }
+  ]
+}

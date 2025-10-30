@@ -1,0 +1,179 @@
+{
+  "problem_id": "misconfig_app_hotel_res-mitigation-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get cm,deploy,svc -n test-hotel-reservation -o yaml | grep -nE '27777|DB_URL|MONGO|GEO|GEO_DB|mongo.*url|PORT' -n || true\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Search across configs for database-related keys or the incorrect port to locate misconfiguration.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get cm,deploy,svc -n test-hotel-reservation -o yaml | grep -nE '27777|DB_URL|MONGO|GEO|GEO_DB|mongo.*url|PORT' -n || true\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl exec -n test-hotel-reservation deploy/geo -- geo -h || kubectl exec -n test-hotel-reservation deploy/geo -- /bin/sh -c 'geo -h' || kubectl exec -n test-hotel-reservation deploy/geo -- /bin/sh -lc 'strings $(which geo) | grep -i -E \\\"mongo|db|url|port\\\" | head -n 50'\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Attempt to introspect the geo binary/CLI for config hints (failed to exec due to container naming).",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl exec -n test-hotel-reservation deploy/geo -- geo -h || kubectl exec -n test-hotel-reservation deploy/geo -- /bin/sh -c 'geo -h' || kubectl exec -n test-hotel-reservation deploy/geo -- /bin/sh -lc 'strings $(which geo) | grep -i -E \\\"mongo|db|url|port\\\" | head -n 50'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc mongodb-geo -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Confirm mongodb-geo service target port configuration (27017) to match application setting",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get svc mongodb-geo -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmaps -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List ConfigMaps to identify Mongo init and failure scripts that might affect authentication/roles.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get configmaps -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl exec -n test-hotel-reservation deploy/geo -- printenv | sort\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Validate that DB_URL environment variable is present and correctly set in the geo container",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl exec -n test-hotel-reservation deploy/geo -- printenv | sort\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Get all deployments YAML for cross-referencing working configurations.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-<POD_SUFFIX> --since=30m\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Review recent geo logs showing panic due to 'no reachable servers' confirming DB connectivity issue.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-c47ff745-sw9f4 --since=30m\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "c47ff745-sw9f4",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 55
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation -l io.kompose.service=geo -o wide && echo '---' && kubectl logs -n test-hotel-reservation -l io.kompose.service=geo --since=5m --all-containers=true\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Verify geo pod status and recent logs post-patch",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation -l io.kompose.service=geo -o wide && echo '---' && kubectl logs -n test-hotel-reservation -l io.kompose.service=geo --since=5m --all-containers=true\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl rollout status deploy/geo -n test-hotel-reservation --timeout=60s\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Confirm the geo deployment rollout after applying the patch",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl rollout status deploy/geo -n test-hotel-reservation --timeout=60s\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-<POD_SUFFIX> -<REPLICA_SUFFIX> --all-containers=true\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Attempt to check previous geo container logs for historical failures (error retrieving logs).",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-c47ff745-sw9f4 --previous --all-containers=true\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "c47ff745-sw9f4",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 55
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 69
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl patch deploy geo -n test-hotel-reservation --type=strategic -p '{\\\"spec\\\":{\\\"template\\\":{\\\"spec\\\":{\\\"containers\\\":[{\\\"name\\\":\\\"hotel-reserv-geo\\\",\\\"env\\\":[{\\\"name\\\":\\\"JAEGER_SAMPLE_RATIO\\\",\\\"value\\\":\\\"1\\\"},{\\\"name\\\":\\\"DB_URL\\\",\\\"value\\\":\\\"mongodb-geo:27017\\\"}]}]}}}}'\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Patch geo deployment to set correct MongoDB connection URL (port 27017)",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl patch deploy geo -n test-hotel-reservation --type=strategic -p '{\\\"spec\\\":{\\\"template\\\":{\\\"spec\\\":{\\\"containers\\\":[{\\\"name\\\":\\\"hotel-reserv-geo\\\",\\\"env\\\":[{\\\"name\\\":\\\"JAEGER_SAMPLE_RATIO\\\",\\\"value\\\":\\\"1\\\"},{\\\"name\\\":\\\"DB_URL\\\",\\\"value\\\":\\\"mongodb-geo:27017\\\"}]}]}}}}'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/rate --since=10m --all-containers=true\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Check another service's logs to confirm standard MongoDB port usage (27017)",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/rate --since=10m --all-containers=true\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy geo -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Review geo deployment configuration to check environment variables and container settings",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl get deploy geo -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "List services to verify MongoDB-Geo service port and detect mismatch with app logs",
+      "sequence_number": 14,
+      "original_command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation geo-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Describe geo pod for status, restarts, and events",
+      "sequence_number": 15,
+      "original_command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation geo-c47ff745-sw9f4\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "c47ff745-sw9f4",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 63
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-<POD_SUFFIX> --all-containers=true --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Inspect geo pod logs to reveal misconfigured DB URL and error symptoms",
+      "sequence_number": 16,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-c47ff745-sw9f4 --all-containers=true --since=10m\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "c47ff745-sw9f4",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 55
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List pods to identify failing components in the namespace",
+      "sequence_number": 17,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    }
+  ]
+}

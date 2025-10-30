@@ -1,0 +1,173 @@
+{
+  "problem_id": "network_delay_hotel_res-detection",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the test-hotel-reservation namespace to verify component readiness and status.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation frontend-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Inspect frontend logs; reveals repeated connection refused errors to consul:8500 indicating a service discovery connectivity issue.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation frontend-7fc7ddc9db-j6skk --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7fc7ddc9db-j6skk",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 60
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation consul-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Check Consul agent logs to confirm it is running and handling requests, helping differentiate between Consul outage vs network connectivity problems.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation consul-78c8d79bb-rjgbq --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "78c8d79bb-rjgbq",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 58
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List services with cluster IPs and ports to validate Consul service exposure (ClusterIP and port 8500).",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation search-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Verify search service initializes and registers in Consul; helps rule out downstream service failures.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation search-5c64c8f5bc-bjmcs --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5c64c8f5bc-bjmcs",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 58
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation profile-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check profile service logs to confirm normal startup and Consul registration.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation profile-8b6dd7c6c-nv29z --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "8b6dd7c6c-nv29z",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation recommendation-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check recommendation service logs for normal operation and Consul registration.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation recommendation-6879fb56bf-gtb4t --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "6879fb56bf-gtb4t",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 66
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation rate-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check rate service logs for healthy startup and Consul registration.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation rate-7bdc978679-zkzmk --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-zkzmk",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 56
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation reservation-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check reservation service logs for normal initialization and registration in Consul.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation reservation-78c9f7976b-qzgcm --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "78c9f7976b-qzgcm",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 63
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check geo service logs to verify successful startup and Consul registration.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-84fbc958c7-st7hm --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-st7hm",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 55
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Inspect service endpoints to confirm backends are registered and reachable via ClusterIP/ports, supporting network path validation.",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation user-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check user service logs to ensure healthy startup and Consul registration.",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation user-66d5d6f874-xr49b --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "66d5d6f874-xr49b",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 56
+        }
+      ]
+    }
+  ]
+}

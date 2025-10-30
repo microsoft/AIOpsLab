@@ -1,0 +1,69 @@
+{
+  "problem_id": "wrong_bin_usage-detection",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all pods in the namespace to verify component health and readiness.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List services and ports to confirm service discovery endpoints (e.g., Consul service port).",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Inspect deployments and container images to understand component versions and mappings.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/frontend --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Check frontend logs; reveals repeated failures referencing profile lookups and initial Consul connection issues, indicating a downstream service anomaly.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/frontend --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/consul --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Validate Consul health and service registrations to rule out Consul as the root cause.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/consul --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/search --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Check search service logs to compare behavior and confirm it registers correctly with Consul.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/search --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/profile --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Inspect profile service logs; shows geo service messages (e.g., cmd/geo/main.go), confirming wrong binary/image behavior for profile.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/profile --tail=200\")"
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 9,
+      "description": "Submit the anomaly detection result indicating an issue was found.",
+      "sequence_number": 8,
+      "original_command": "submit(\"Yes\")"
+    }
+  ]
+}

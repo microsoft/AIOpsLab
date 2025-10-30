@@ -1,0 +1,123 @@
+{
+  "problem_id": "auth_miss_mongodb-mitigation-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List pods in the namespace to identify failing components",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n test-social-network url-shorten-mongodb-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Inspect the failing MongoDB pod to review configuration, volumes, and events",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod -n test-social-network url-shorten-mongodb-54d9696567-hws2w\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "54d9696567-hws2w",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 76
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network url-shorten-mongodb-<POD_SUFFIX> -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Fetch previous container logs to identify the root cause (expired/not yet valid SSL certificate)",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network url-shorten-mongodb-54d9696567-hws2w --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "54d9696567-hws2w",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 68
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 82
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap -n test-social-network url-shorten-mongodb -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Check mongod.conf ConfigMap to see TLS is required and certificateKeyFile is set",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get configmap -n test-social-network url-shorten-mongodb -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get secret -n test-social-network mongodb-tls -o jsonpath='{.data.tls\\\\.pem}' | base64 -d | awk '/BEGIN CERTIFICATE/{flag=1} flag; /END CERTIFICATE/{exit}' | openssl x509 -noout -dates -subject -issuer\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Decode and inspect the TLS certificate to confirm it is expired",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get secret -n test-social-network mongodb-tls -o jsonpath='{.data.tls\\\\.pem}' | base64 -d | awk '/BEGIN CERTIFICATE/{flag=1} flag; /END CERTIFICATE/{exit}' | openssl x509 -noout -dates -subject -issuer\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n test-social-network media-mongodb-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Compare with a healthy MongoDB pod to gather context",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl describe pod -n test-social-network media-mongodb-6d47ccb779-8zhbx\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "6d47ccb779-8zhbx",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 70
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap -n test-social-network media-mongodb -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Confirm the healthy MongoDB instance has TLS disabled, informing mitigation approach",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get configmap -n test-social-network media-mongodb -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl patch configmap -n test-social-network url-shorten-mongodb --type='json' -p='[{\\\"op\\\":\\\"replace\\\",\\\"path\\\":\\\"/data/mongod.conf\\\",\\\"value\\\":\\\"net:\\\\n  tls:\\\\n    mode: disabled\\\\n\\\"}]'\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Patch the ConfigMap to disable TLS in mongod.conf, mitigating the expired certificate issue",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl patch configmap -n test-social-network url-shorten-mongodb --type='json' -p='[{\\\"op\\\":\\\"replace\\\",\\\"path\\\":\\\"/data/mongod.conf\\\",\\\"value\\\":\\\"net:\\\\n  tls:\\\\n    mode: disabled\\\\n\\\"}]'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl delete pod -n test-social-network url-shorten-mongodb-<POD_SUFFIX>\")",
+      "type": "execute_command",
+      "importance_score": 9,
+      "description": "Delete the pod to force it to restart and pick up the updated ConfigMap",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl delete pod -n test-social-network url-shorten-mongodb-54d9696567-hws2w\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "54d9696567-hws2w",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 74
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Verify the new MongoDB pod comes up healthy after the mitigation",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network -o wide\")"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "problem_id": "wrong_bin_usage-analysis-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all pods in the namespace to verify service components are running.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/profile --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Inspect profile service logs; reveals it is running the geo binary (cmd/geo), indicating wrong binary usage.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deployment/profile --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe deployment profile -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Describe the profile deployment; confirms container command is set to 'geo', pinpointing the misconfiguration.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl describe deployment profile -n test-hotel-reservation\")"
+    },
+    {
+      "command": "submit({\"system_level\": \"Application\", \"fault_type\": \"Misconfiguration\"})",
+      "type": "execute_command",
+      "importance_score": 8,
+      "description": "Submit the root cause analysis identifying an application-level misconfiguration.",
+      "sequence_number": 4,
+      "original_command": "submit({\"system_level\": \"Application\", \"fault_type\": \"Misconfiguration\"})"
+    }
+  ]
+}

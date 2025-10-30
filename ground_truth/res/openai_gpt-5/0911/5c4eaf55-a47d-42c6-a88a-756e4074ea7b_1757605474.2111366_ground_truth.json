@@ -1,0 +1,245 @@
+{
+  "problem_id": "astronomy_shop_image_slow_load-localization-1",
+  "key_commands": [
+    {
+      "command": "submit([\"fraud<REPLICA_SUFFIX>\"])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the identified faulty component to the orchestrator for evaluation.",
+      "sequence_number": 1,
+      "original_command": "submit([\"fraud-detection\"])",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 14
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop ad-<POD_SUFFIX> -c ad --tail=200 && echo '---' && kubectl logs -n astronomy-shop cart-6fd<POD_SUFFIX> cart --tail=200 && echo '---' && kubectl logs -n astronomy-shop checkout-5bc54f8<POD_SUFFIX>ckout --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Fetch container-specific logs for ad, cart, and checkout to verify normal operations conclusively.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop ad-94bd576b5-rvhf6 -c ad --tail=200 && echo '---' && kubectl logs -n astronomy-shop cart-6fd857c656-ldlbb -c cart --tail=200 && echo '---' && kubectl logs -n astronomy-shop checkout-5bc54f8cd8-kzk2f -c checkout --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-rvhf6",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 46
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "6fd857c656-ldlbb",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 132
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5bc54f8cd8-kzk2f",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 225
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Describe the fraud-detection pod to confirm CrashLoopBackOff state and review last exit codes, restart counts, and events.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-65868bcdb5-7gtsl\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-7gtsl",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 67
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n astronomy-shop ad-<POD_SUFFIX> && echo '---' && kubectl describe pod -n astronomy-shop cart-6fd<POD_SUFFIX> echo '---' && kubectl describe pod -n astronomy-shop checkout-5bc54f8<POD_SUFFIX>",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Describe ad, cart, and checkout pods to confirm they are healthy and ready.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl describe pod -n astronomy-shop ad-94bd576b5-rvhf6 && echo '---' && kubectl describe pod -n astronomy-shop cart-6fd857c656-ldlbb && echo '---' && kubectl describe pod -n astronomy-shop checkout-5bc54f8cd8-kzk2f\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-rvhf6",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 54
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "6fd857c656-ldlbb",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 131
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5bc54f8cd8-kzk2f",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 213
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-<POD_SUFFIX> -c fraud<REPLICA_SUF<REPLICA_SUFFIX>evious --tail=200 || kubectl logs -n astronomy-shop fraud-detection-6586<POD<REPLICA_SUFFIX>aud-detection --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Attempt to retrieve container-specific logs (current or previous) for the fraud-detection container in the pod.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-7gtsl -c fraud-detection --previous --tail=200 || kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-7gtsl -c fraud-detection --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-7gtsl",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-7gtsl",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 167
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 80
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 92
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 184
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop ad-<POD_SUFFIX> --tail=200 && echo '---' && kubectl logs -n astronomy-shop cart-6fd<POD_SUFFIX>tail=200 && echo '---' && kubectl logs -n astronomy-shop checkout-5bc54f8<POD_SUFFIX>=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Fetch logs from specific ad, cart, and checkout pods to assess behavior (initial non-container-specific attempt).",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop ad-94bd576b5-rvhf6 --tail=200 && echo '---' && kubectl logs -n astronomy-shop cart-6fd857c656-ldlbb --tail=200 && echo '---' && kubectl logs -n astronomy-shop checkout-5bc54f8cd8-kzk2f --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-rvhf6",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 46
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "6fd857c656-ldlbb",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 126
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5bc54f8cd8-kzk2f",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 211
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-<POD_SUFFIX> -<REPLICA_SUFFIX> --tail=200 || kubectl logs -n astronomy-shop fraud-detection-6586<POD_SUFFIX>ail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Attempt to retrieve current or previous logs for the fraud-detection pod to diagnose the crash loop.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-7gtsl --previous --tail=200 || kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-7gtsl --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-7gtsl",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-7gtsl",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 148
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 73
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop -l opentelemetry.io/name -o wide --show-labels\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "List labeled pods with details to quickly spot unhealthy components; reveals fraud-detection is in CrashLoopBackOff.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop -l opentelemetry.io/name -o wide --show-labels\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop -l opentelemetry.io/name=ad --tail=200 && echo '---' && kubectl logs -n astronomy-shop -l opentelemetry.io/name=cart --tail=200 && echo '---' && kubectl logs -n astronomy-shop -l opentelemetry.io/name=checkout --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Attempt to fetch logs for ad, cart, and checkout services by label to check their health.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop -l opentelemetry.io/name=ad --tail=200 && echo '---' && kubectl logs -n astronomy-shop -l opentelemetry.io/name=cart --tail=200 && echo '---' && kubectl logs -n astronomy-shop -l opentelemetry.io/name=checkout --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n astronomy-shop ad cart checkout -o wide && echo '---' && kubectl describe svc -n astronomy-shop ad && echo '---' && kubectl describe svc -n astronomy-shop cart && echo '---' && kubectl describe svc -n astronomy-shop checkout\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Verify that ad, cart, and checkout services have healthy endpoints and check their service configurations for issues.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl get endpoints -n astronomy-shop ad cart checkout -o wide && echo '---' && kubectl describe svc -n astronomy-shop ad && echo '---' && kubectl describe svc -n astronomy-shop cart && echo '---' && kubectl describe svc -n astronomy-shop checkout\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n astronomy-shop -o wide\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "List services with details to correlate ClusterIP addresses mentioned in frontend errors with backend services.",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl get svc -n astronomy-shop -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop pod/frontend-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Fetch recent logs from the frontend pod to observe user-facing errors and identify dependent services/IPs showing connection issues.",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop pod/frontend-7d6b77c58-8bcrk --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7d6b77c58-8bcrk",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 56
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all pods in the astronomy-shop namespace to get an initial overview of component statuses and restarts.",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    }
+  ]
+}

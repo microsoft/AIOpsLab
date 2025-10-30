@@ -1,0 +1,109 @@
+{
+  "problem_id": "noop_detection_social_network-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network compose-post-service-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Validate compose-post-service startup and readiness through recent logs.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network compose-post-service-64f6c9b656-qf8hr --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "64f6c9b656-qf8hr",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 69
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network home-timeline-service-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Confirm home-timeline-service has started properly without runtime errors.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network home-timeline-service-7d787c8dfd-qz64g --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7d787c8dfd-qz64g",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 70
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network nginx-thrift-7c48f57-n4rjl -c nginx-thrift --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Inspect gateway (nginx-thrift) logs to detect any frontend or routing errors.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network nginx-thrift-7c48f57-n4rjl -c nginx-thrift --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network user-mongodb-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Review MongoDB logs to ensure the database is running and accepting connections from services.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network user-mongodb-75847cfbb-c9ssw --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "75847cfbb-c9ssw",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 61
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network user-service-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Check application logs for user-service to validate successful startup and backend connectivity.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network user-service-6d5985bd55-mrmbf --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "6d5985bd55-mrmbf",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 61
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Verify that each service has healthy endpoints backing it, confirming pod-to-service connectivity.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List services with details to ensure service objects are present and ports are exposed as expected.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get events -n test-social-network --sort-by=.lastTimestamp\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect recent namespace events to confirm normal scheduling, scaling, and startup without errors.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl get events -n test-social-network --sort-by=.lastTimestamp\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "List all pods in the test-social-network namespace to verify overall workload health and readiness.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    }
+  ]
+}

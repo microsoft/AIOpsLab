@@ -1,0 +1,51 @@
+{
+  "problem_id": "user_unregistered_mongodb-detection-2",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to identify the failing component (rate pod in Error state).",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation rate-<POD_SUFFIX> -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect previous logs of the failing rate pod to reveal SASL authentication failure when connecting to MongoDB.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation rate-7bdc978679-x869b --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-x869b",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 56
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 70
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation mongodb-rate-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Check MongoDB rate pod logs, confirming authentication errors due to missing admin user, pinpointing the root cause.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation mongodb-rate-56cc8659c9-ndqc7\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "56cc8659c9-ndqc7",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 64
+        }
+      ]
+    }
+  ]
+}

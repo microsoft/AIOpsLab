@@ -1,0 +1,157 @@
+{
+  "problem_id": "k8s_target_port-misconfig-mitigation-2",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network -l service=text-service --tail=100 && echo \\'---\\' && kubectl logs -n test-social-network -l service=compose-post-service --tail=100 && echo \\'---\\' && kubectl logs -n test-social-network -l service=nginx-thrift -c nginx-thrift --tail=50\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Final verification across text-service, compose-post-service, and nginx-thrift",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network -l service=text-service --tail=100 && echo \\'---\\' && kubectl logs -n test-social-network -l service=compose-post-service --tail=100 && echo \\'---\\' && kubectl logs -n test-social-network -l service=nginx-thrift -c nginx-thrift --tail=50\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network -l service=compose-post-service --tail=200 && echo \\'---\\' && kubectl get configmap compose-post-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Verify compose-post-service logs and its config (shows text-service port set to 9090)",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network -l service=compose-post-service --tail=200 && echo \\'---\\' && kubectl get configmap compose-post-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network -l service=nginx-thrift -c nginx-thrift --tail=20 && echo '---' && kubectl logs -n test-social-network -l service=compose-post-service --tail=20 && echo '---' && kubectl logs -n test-social-network -l service=user-service --tail=20\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Additional lightweight log sampling across frontend and dependent services to validate stabilization.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network -l service=nginx-thrift -c nginx-thrift --tail=20 && echo '---' && kubectl logs -n test-social-network -l service=compose-post-service --tail=20 && echo '---' && kubectl logs -n test-social-network -l service=user-service --tail=20\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc compose-post-service -n test-social-network -o yaml && echo \\'---\\' && kubectl describe deploy compose-post-service -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Inspect compose-post-service configuration to validate its dependency setup",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get svc compose-post-service -n test-social-network -o yaml && echo \\'---\\' && kubectl describe deploy compose-post-service -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap nginx-thrift -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Inspect nginx-thrift configmap to confirm routing/lua configs during investigation.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get configmap nginx-thrift -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network -l service=user-service --tail=50 && echo '---' && kubectl logs -n test-social-network -l service=nginx-thrift -c nginx-thrift --tail=50\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Re-check key service logs post-fix to validate reduced connection errors.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network -l service=user-service --tail=50 && echo '---' && kubectl logs -n test-social-network -l service=nginx-thrift -c nginx-thrift --tail=50\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network -l service=user-service --tail=50 && echo \\'---\\' && kubectl logs -n test-social-network -l service=nginx-thrift -c nginx-thrift --tail=50\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Spot-check downstream and frontend logs after the fix to verify error reduction.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network -l service=user-service --tail=50 && echo \\'---\\' && kubectl logs -n test-social-network -l service=nginx-thrift -c nginx-thrift --tail=50\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl -n test-social-network patch service text-service -p \\'{\\\\\"spec\\\\\":{\\\\\"ports\\\\\":[{\\\\\"name\\\\\":\\\\\"9090\\\\\",\\\\\"port\\\\\":9090,\\\\\"protocol\\\\\":\\\\\"TCP\\\\\",\\\\\"targetPort\\\\\":9090}]}}\\' && kubectl get endpoints text-service -n test-social-network -o wide\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Fix text-service Service by setting targetPort to 9090 and verify endpoints reflect the corrected port.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl -n test-social-network patch service text-service -p \\'{\\\\\"spec\\\\\":{\\\\\"ports\\\\\":[{\\\\\"name\\\\\":\\\\\"9090\\\\\",\\\\\"port\\\\\":9090,\\\\\"protocol\\\\\":\\\\\"TCP\\\\\",\\\\\"targetPort\\\\\":9090}]}}\\' && kubectl get endpoints text-service -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc text-service -n test-social-network -o yaml && echo \\'---\\' && kubectl describe deploy text-service -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Show text-service Service YAML (targetPort 9999) and Deployment (container port 9090) to confirm port mismatch.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl get svc text-service -n test-social-network -o yaml && echo \\'---\\' && kubectl describe deploy text-service -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network -l service=compose-post-service --tail=200 && echo '---' && kubectl get configmap compose-post-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "View compose-post-service logs and config to confirm it expects text-service on port 9090 while failures persist.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network -l service=compose-post-service --tail=200 && echo '---' && kubectl get configmap compose-post-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl -n test-social-network patch service text-service -p '{\\\"spec\\\":{\\\"ports\\\":[{\\\"name\\\":\\\"9090\\\",\\\"port\\\":9090,\\\"protocol\\\":\\\"TCP\\\",\\\"targetPort\\\":9090}]}}' && kubectl get endpoints text-service -n test-social-network -o wide\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Fix the misconfiguration by setting targetPort=9090 for text-service and verify endpoints update to 9090.",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl -n test-social-network patch service text-service -p '{\\\"spec\\\":{\\\"ports\\\":[{\\\"name\\\":\\\"9090\\\",\\\"port\\\":9090,\\\"protocol\\\":\\\"TCP\\\",\\\"targetPort\\\":9090}]}}' && kubectl get endpoints text-service -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc compose-post-service -n test-social-network -o yaml && echo '---' && kubectl describe deploy compose-post-service -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Review compose-post-service configuration to understand dependencies and confirm it expects text-service on 9090.",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl get svc compose-post-service -n test-social-network -o yaml && echo '---' && kubectl describe deploy compose-post-service -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc text-service -n test-social-network -o yaml && echo '---' && kubectl describe deploy text-service -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Examine text-service Service spec and Deployment; confirms Service targetPort=9999 while container listens on 9090.",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl get svc text-service -n test-social-network -o yaml && echo '---' && kubectl describe deploy text-service -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Check service endpoints; shows text-service routing to port 9999, suggesting a targetPort mismatch.",
+      "sequence_number": 14,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe deploy nginx-thrift -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Inspect the nginx-thrift deployment configuration for environment and mounts.",
+      "sequence_number": 15,
+      "original_command": "exec_shell(\"kubectl describe deploy nginx-thrift -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network -l service=nginx-thrift -c nginx-thrift --tail=200 && kubectl logs -n test-social-network -l service=user-service --tail=200 && kubectl logs -n test-social-network -l service=compose-post-service --tail=200 && kubectl logs -n test-social-network -l service=social-graph-service --tail=200 && kubectl logs -n test-social-network -l service=home-timeline-service --tail=200 && kubectl logs -n test-social-network -l service=user-timeline-service --tail=200 && kubectl logs -n test-social-network -l service=url-shorten-service --tail=200 && kubectl logs -n test-social-network -l service=media-service --tail=200 && kubectl logs -n test-social-network -l service=text-service --tail=200 && kubectl logs -n test-social-network -l service=post-storage-service --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Inspect logs across key services; reveals connection refused errors to text-service:9090 indicating a routing/port issue.",
+      "sequence_number": 16,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network -l service=nginx-thrift -c nginx-thrift --tail=200 && kubectl logs -n test-social-network -l service=user-service --tail=200 && kubectl logs -n test-social-network -l service=compose-post-service --tail=200 && kubectl logs -n test-social-network -l service=social-graph-service --tail=200 && kubectl logs -n test-social-network -l service=home-timeline-service --tail=200 && kubectl logs -n test-social-network -l service=user-timeline-service --tail=200 && kubectl logs -n test-social-network -l service=url-shorten-service --tail=200 && kubectl logs -n test-social-network -l service=media-service --tail=200 && kubectl logs -n test-social-network -l service=text-service --tail=200 && kubectl logs -n test-social-network -l service=post-storage-service --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network -l service=nginx-thrift --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Check gateway logs for request errors indicating downstream connectivity issues.",
+      "sequence_number": 17,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network -l service=nginx-thrift --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all services and exposed ports to identify potential port configuration issues.",
+      "sequence_number": 18,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "List all pods in the namespace to confirm workloads are running.",
+      "sequence_number": 19,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    }
+  ]
+}

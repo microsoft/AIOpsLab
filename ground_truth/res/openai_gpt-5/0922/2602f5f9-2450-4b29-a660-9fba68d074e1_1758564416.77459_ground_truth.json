@@ -1,0 +1,99 @@
+{
+  "problem_id": "container_kill-mitigation-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all pods in the namespace to assess overall service status and detect restarts.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-<POD_SUFFIX> -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Inspect previous container logs of the geo pod to understand the cause of the recent restart.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-84fbc958c7-n5892 --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-n5892",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 55
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 69
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation geo-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Describe the geo pod to review lifecycle details, termination reason, and exit code.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl describe pod -n test-hotel-reservation geo-84fbc958c7-n5892\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-n5892",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 63
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation -o wide && kubectl get events -n test-hotel-reservation --sort-by=.lastTimestamp\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Get pod details and sorted events to identify the PodChaos 'container-kill' event applied to the geo container.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation -o wide && kubectl get events -n test-hotel-reservation --sort-by=.lastTimestamp\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get podchaos -n test-hotel-reservation -o wide || kubectl get podchaos --all<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "List Chaos Mesh PodChaos experiments to confirm the active chaos resource affecting the service.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get podchaos -n test-hotel-reservation -o wide || kubectl get podchaos --all-namespaces\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-namespaces",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 96
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get podchaos container-kill -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Fetch full YAML of the 'container-kill' PodChaos to verify action, selector, target container, and duration.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get podchaos container-kill -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl delete podchaos container-kill -n test-hotel-reservation\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Remove the Chaos Mesh PodChaos experiment to stop further container kills and restore service stability.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl delete podchaos container-kill -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Verify post-mitigation that all pods are running and stable.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    }
+  ]
+}

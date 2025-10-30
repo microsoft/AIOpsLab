@@ -1,0 +1,93 @@
+{
+  "problem_id": "astronomy_shop_product_catalog_service_failure-localization-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all pods in the astronomy-shop namespace to verify component readiness and spot anomalies.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deployment/load<REPLICA_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Review load generator logs to detect user-facing errors and service availability issues.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deployment/load-generator --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-generator",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 58
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deployment/<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Inspect frontend-proxy (Envoy) logs for HTTP/gateway-level issues impacting the frontend.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deployment/frontend-proxy --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "frontend-proxy",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 54
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deployment/frontend --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Check frontend logs; clearly shows 'Product Catalog Fail Feature Flag Enabled', indicating downstream product-catalog fault via feature flag.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deployment/frontend --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deployment/product-catalog --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Validate product-catalog service behavior; confirms it is running normally aside from feature flag influence.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deployment/product-catalog --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deployment/flagd -c flagd --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Verify flagd core logs to ensure the flag service is operating and reading its config file.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deployment/flagd -c flagd --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmaps -n astronomy-shop -o wide\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List ConfigMaps to locate the feature flag configuration (flagd-config).",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get configmaps -n astronomy-shop -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap flagd-config -n astronomy-shop -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Retrieve flagd-config content; confirms 'productCatalogFailure' flag is ENABLED with defaultVariant 'on', directly explaining the failure.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl get configmap flagd-config -n astronomy-shop -o yaml\")"
+    },
+    {
+      "command": "submit([\"product-catalog\"])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the localized faulty component based on evidence from frontend logs and flag configuration.",
+      "sequence_number": 9,
+      "original_command": "submit([\"product-catalog\"])"
+    }
+  ]
+}

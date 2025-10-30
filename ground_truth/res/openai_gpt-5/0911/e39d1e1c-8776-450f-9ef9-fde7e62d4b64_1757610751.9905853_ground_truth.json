@@ -1,0 +1,91 @@
+{
+  "problem_id": "astronomy_shop_product_catalog_service_failure-detection-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "List all pods in the astronomy-shop namespace to spot anomalies such as restarts or non-ready statuses.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod fraud-detection-<POD_SUFFIX> -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect detailed pod state and events; reveals container terminations, exit code 137, and BackOff behavior.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod fraud-detection-65868bcdb5-nqwdf -n astronomy-shop\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-nqwdf",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 49
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs fraud-detection-<POD_SUFFIX> -n astronomy-shop -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Attempt to retrieve logs from the previous container instance to gather crash context.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs fraud-detection-65868bcdb5-nqwdf -n astronomy-shop --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-nqwdf",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 41
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 73
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs fraud-detection-<POD_SUFFIX> -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Retrieve current/last container logs for additional diagnostic information.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs fraud-detection-65868bcdb5-nqwdf -n astronomy-shop\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-nqwdf",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 41
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pod fraud-detection-<POD_SUFFIX> -n astronomy-shop -o jsonpath='{.status.containerStatuses[0].lastState.terminated.reason} {.status.containerStatuses[0].lastState.terminated.signal} {.status.containerStatuses[0].lastState.terminated.exitCode} {.status.containerStatuses[0].lastState.terminated.finishedAt}'\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Extract termination reason, signal, exit code, and timestamp to precisely confirm the failure (exit code 137).",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get pod fraud-detection-65868bcdb5-nqwdf -n astronomy-shop -o jsonpath='{.status.containerStatuses[0].lastState.terminated.reason} {.status.containerStatuses[0].lastState.terminated.signal} {.status.containerStatuses[0].lastState.terminated.exitCode} {.status.containerStatuses[0].lastState.terminated.finishedAt}'\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-nqwdf",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 44
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get events -n astronomy-shop --sort-by=.lastTimestamp\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Review recent namespace events to corroborate BackOff and restart behavior for the affected pod.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get events -n astronomy-shop --sort-by=.lastTimestamp\")"
+    }
+  ]
+}

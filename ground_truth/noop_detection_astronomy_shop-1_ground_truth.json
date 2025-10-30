@@ -1,0 +1,59 @@
+{
+  "problem_id": "noop_detection_astronomy_shop-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Lists all pods in the astronomy-shop namespace to identify any failing components.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspects the failing fraud-detection pod for detailed status, events, and crash information (CrashLoopBackOff, exit code).",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-65868bcdb5-8cr69\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-8cr69",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 67
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-<POD_SUFFIX> -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Attempts to retrieve logs from the previous crash of the fraud-detection container to further diagnose the issue.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-8cr69 --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-8cr69",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 73
+        }
+      ]
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submits the final decision indicating that an anomaly has been detected.",
+      "sequence_number": 4,
+      "original_command": "submit(\"Yes\")"
+    }
+  ]
+}

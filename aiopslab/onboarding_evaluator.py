@@ -41,7 +41,8 @@ class Evaluator:
         self.session = Session()
         print(f"Session ID: {self.session.session_id}")
         prob = self.probs.get_problem_instance(problem_id)
-        self.session.set_problem(prob, pid=problem_id)
+        canonical_pid = self.probs.get_canonical_id(problem_id)
+        self.session.set_problem(prob, pid=problem_id, canonical_pid=canonical_pid)
         self.session.set_agent(self.agent_name)
 
         print("Setting up OpenEBS...")

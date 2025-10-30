@@ -1,0 +1,61 @@
+{
+  "problem_id": "k8s_target_port-misconfig-localization-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List pods in the namespace to verify components are running and obtain pod names.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network -o name | xargs -I{} sh -c 'echo ==== {}; kubectl logs -n test-social-network --since=10m {} 2>&1 | grep -Ei \\\"error|exception|fail|timeout|refused|unavailable|panic\\\" || echo no-errors'\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Aggregate recent pod logs and filter for errors to detect connection issues pointing toward user-service.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network -o name | xargs -I{} sh -c 'echo ==== {}; kubectl logs -n test-social-network --since=10m {} 2>&1 | grep -Ei \\\"error|exception|fail|timeout|refused|unavailable|panic\\\" || echo no-errors'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network -o wide && echo '---' && kubectl get endpoints -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Show Services and their Endpoints to spot port mismatches; reveals user-service endpoints exposing port 8080.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network -o wide && echo '---' && kubectl get endpoints -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n test-social-network user-service-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Inspect the user-service pod to confirm the container's listening port (9090).",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl describe pod -n test-social-network user-service-6d5985bd55-sgg26\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "6d5985bd55-sgg26",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 69
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc user-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Fetch the user-service Service spec; confirms targetPort is misconfigured to 8080 (should be 9090).",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get svc user-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "submit([\"user-service\"])",
+      "type": "execute_command",
+      "importance_score": 8,
+      "description": "Submit the localized faulty component based on the detected targetPort misconfiguration.",
+      "sequence_number": 6,
+      "original_command": "submit([\"user-service\"])"
+    }
+  ]
+}

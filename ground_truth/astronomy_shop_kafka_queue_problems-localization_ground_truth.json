@@ -1,0 +1,181 @@
+{
+  "problem_id": "astronomy_shop_kafka_queue_problems-localization",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Review Envoy proxy initialization to rule out edge proxy issues.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/frontend-proxy --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "frontend-proxy",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 50
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/ad --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Confirm ad service is serving requests; auxiliary validation of non-faulty components.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/ad --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/product-catalog --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check product-catalog reloads and server status to rule out catalog-related issues.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/product-catalog --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/fraud<REPLICA_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Fetches Fraud Detection logs; container selection noted but no evident faults.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/fraud-detection --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 55
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/shipping --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Verify shipping service operations and responses to ensure core business flows are unaffected.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/shipping --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/recommendation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Inspect recommendation service logs to confirm normal request handling and further scope the issue.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/recommendation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/frontend --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Check frontend startup and readiness to ensure the UI layer is healthy.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/frontend --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/checkout --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Gets initial checkout logs to look for errors; indicates container defaults but minimal diagnostic value.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/checkout --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/payment --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Verify payment service health and successful transactions to rule out payment as the fault source.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/payment --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/otel<REPLICA_SUFFIX> --tail=300\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect OpenTelemetry Collector logs; shows misconfigured OTLP protocol/port (gRPC vs HTTP) and connection errors",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/otel-collector --tail=300\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-collector",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 54
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/kafka --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Inspect Kafka broker logs to confirm broker health and differentiate queue overload from broker faults.",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/kafka --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/checkout --tail=500 --all-containers=true\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Fetch extended logs from all containers in the checkout deployment; reveals the active 'kafkaQueueProblems' feature flag causing deliberate queue overload.",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/checkout --tail=500 --all-containers=true\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/currency --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect currency service logs; reveals OTLP gRPC exporter connection refused to otel-collector service IP:4317, indicating collector connectivity or config issue.",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/currency --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/load<REPLICA_SUFFIX> --tail=500\")",
+      "type": "probe_command",
+      "importance_score": 1,
+      "description": "Retrieves additional load-generator logs for broader context on traffic and potential issues.",
+      "sequence_number": 14,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/load-generator --tail=500\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-generator",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 54
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List services and their cluster IPs/ports to verify Kafka and related endpoints for downstream log correlation.",
+      "sequence_number": 15,
+      "original_command": "exec_shell(\"kubectl get svc -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/load<REPLICA_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 1,
+      "description": "Fetches recent logs from the load-generator to check if workload generation is functioning or showing errors.",
+      "sequence_number": 16,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/load-generator --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-generator",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 54
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the astronomy-shop namespace to assess overall service health and identify targets for deeper inspection.",
+      "sequence_number": 17,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    }
+  ]
+}

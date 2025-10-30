@@ -1,0 +1,155 @@
+{
+  "problem_id": "astronomy_shop_ad_service_failure-localization",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get networkpolicy -n astronomy-shop -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Check for any NetworkPolicies that could block traffic between frontend and backend services.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get networkpolicy -n astronomy-shop -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop pod/frontend-<POD_SUFFIX> --tail=200 --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Fetch recent logs from the specific frontend pod to corroborate connection failures and timing.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop pod/frontend-7d6b77c58-ch5lz --tail=200 --since=10m\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7d6b77c58-ch5lz",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 56
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl exec -n astronomy-shop pod/frontend-<POD_SUFFIX> -- sh -c 'getent hosts ad cart; nc -vz ad 8080; nc -vz cart 8080; curl -sS http://ad:8080/ || true; curl -sS http://cart:8080/ || true'\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "From the frontend pod, test DNS resolution and TCP reachability to ad and cart services, and attempt HTTP requests to validate in-cluster connectivity.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl exec -n astronomy-shop pod/frontend-7d6b77c58-ch5lz -- sh -c 'getent hosts ad cart; nc -vz ad 8080; nc -vz cart 8080; curl -sS http://ad:8080/ || true; curl -sS http://cart:8080/ || true'\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7d6b77c58-ch5lz",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 56
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop pod/cart-<POD_SUFFIX> -c cart --tail=200 --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect the cart service container logs to validate normal operation or detect errors impacting connectivity.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop pod/cart-6fd857c656-vl8ns -c cart --tail=200 --since=10m\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "6fd857c656-vl8ns",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 52
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop pod/ad-<POD_SUFFIX> -<REPLICA_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Check previous Ad service container logs to investigate recent restarts or prior failures.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop pod/ad-94bd576b5-xrjmj --previous --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-xrjmj",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 50
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 64
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deployment/ad --tail=200 --since=10m; kubectl logs -n astronomy-shop deployment/cart --tail=200 --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Initial attempt to get logs from ad and cart deployments to check for service-side errors.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deployment/ad --tail=200 --since=10m; kubectl logs -n astronomy-shop deployment/cart --tail=200 --since=10m\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop pod/ad-<POD_SUFFIX> --tail=200 --since=10m\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect current Ad service pod logs for runtime errors or readiness issues.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop pod/ad-94bd576b5-xrjmj --tail=200 --since=10m\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-xrjmj",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 50
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n astronomy-shop; kubectl describe svc ad -n astronomy-shop; kubectl describe svc cart -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Verify that ad and cart services have healthy endpoints and correct selectors/ports by inspecting Endpoints and service descriptions.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl get endpoints -n astronomy-shop; kubectl describe svc ad -n astronomy-shop; kubectl describe svc cart -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n astronomy-shop -o wide\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "List services with Cluster IPs to correlate error IPs from frontend logs with service names (ad, cart, etc.).",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl get svc -n astronomy-shop -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deployment/frontend --tail=200 --since=5m\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Fetch recent frontend deployment logs to observe client-side errors and identify target services (e.g., ECONNREFUSED with specific Cluster IPs).",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deployment/frontend --tail=200 --since=5m\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deployment/<POD_SUFFIX> --tail=200 --since=5m\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Check recent logs of the frontend-proxy (Envoy) to identify gateway issues impacting frontend requests.",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deployment/frontend-proxy --tail=200 --since=5m\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "frontend-proxy",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 54
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all pods and their statuses in the astronomy-shop namespace to get initial service health and restarts.",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    }
+  ]
+}

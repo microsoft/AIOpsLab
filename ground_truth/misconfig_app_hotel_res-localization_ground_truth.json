@@ -1,0 +1,53 @@
+{
+  "problem_id": "misconfig_app_hotel_res-localization",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Lists all pods in the namespace to identify failing components (geo pod in Error state).",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-<POD_SUFFIX> --all-containers=true --previous=false\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Retrieves logs from the failing geo pod to reveal the DB connection error and port mismatch (mongodb-geo:27777).",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-c47ff745-qn9vc --all-containers=true --previous=false\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "c47ff745-qn9vc",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 55
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy geo -n test-hotel-reservation -o yaml && kubectl get svc mongodb-geo -n test-hotel-reservation -o yaml && kubectl logs -n test-hotel-reservation mongodb-geo-<POD_SUFFIX> --all-containers=true --tail=100\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspects geo deployment and mongodb-geo service configuration and checks MongoDB pod logs to confirm service port (27017) and validate the root cause (geo misconfiguration).",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get deploy geo -n test-hotel-reservation -o yaml && kubectl get svc mongodb-geo -n test-hotel-reservation -o yaml && kubectl logs -n test-hotel-reservation mongodb-geo-5ff578bcb8-xv9q6 --all-containers=true --tail=100\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5ff578bcb8-xv9q6",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 188
+        }
+      ]
+    },
+    {
+      "command": "submit([\"geo\"])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submits the identified faulty component (geo) as the root cause.",
+      "sequence_number": 4,
+      "original_command": "submit([\"geo\"])"
+    }
+  ]
+}

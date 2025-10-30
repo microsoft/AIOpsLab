@@ -6,7 +6,7 @@ import subprocess
 import threading
 import time
 import yaml
-from typing import List
+from typing import Iterable, List, Sequence
 from aiopslab.service.helm import Helm
 from aiopslab.service.kubectl import KubeCtl
 from aiopslab.generators.fault.base import FaultInjector
@@ -79,7 +79,12 @@ class SymptomFaultInjector(FaultInjector):
     def recover_network_loss(self):
         self.delete_chaos_experiment("network-loss")
 
-    def inject_network_loss(self, microservices: List[str], duration: str = "200s"):
+    def inject_network_loss(
+        self,
+        microservices: List[str],
+        duration: str = "200s",
+        **loss_kwargs,
+    ):
         """
         Inject a network loss fault.
         """
@@ -90,21 +95,36 @@ class SymptomFaultInjector(FaultInjector):
             "spec": {
                 "action": "loss",
                 "mode": "one",
-                "duration": duration,
+                "duration": loss_kwargs.get("duration", duration),
                 "selector": {
                     "namespaces": [self.namespace],
                     "labelSelectors": {"io.kompose.service": ", ".join(microservices)},
                 },
-                "loss": {"loss": "99", "correlation": "100"},
+                "loss": {
+                    "loss": str(loss_kwargs.get("loss", "99")),
+                    "correlation": str(loss_kwargs.get("correlation", "100")),
+                },
             },
         }
 
         self.create_chaos_experiment(chaos_experiment, "network-loss")
 
-    def inject_container_kill(self, microservice: str, containers: List[str]):
+    def inject_container_kill(
+        self,
+        microservice: str,
+        containers: Sequence[str] | str | None = None,
+        **chaos_kwargs,
+    ):
         """
         Inject a container kill.
         """
+        container_names = chaos_kwargs.pop("container_names", None)
+        if container_names is None:
+            container_names = chaos_kwargs.pop("containers", None)
+        if container_names is None:
+            container_names = containers
+        container_names = self._normalize_container_names(container_names)
+        duration = chaos_kwargs.get("duration", "200s")
         chaos_experiment = {
             "apiVersion": "chaos-mesh.org/v1alpha1",
             "kind": "PodChaos",
@@ -112,11 +132,9 @@ class SymptomFaultInjector(FaultInjector):
             "spec": {
                 "action": "container-kill",
                 "mode": "one",
-                "duration": "200s",
+                "duration": duration,
                 "selector": {"labelSelectors": {"io.kompose.service": microservice}},
-                "containerNames": containers
-                if isinstance(containers, list)
-                else [containers],
+                "containerNames": container_names,
             },
         }
 
@@ -131,6 +149,7 @@ class SymptomFaultInjector(FaultInjector):
         duration: str = "200s",
         latency: str = "10s",
         jitter: str = "0ms",
+        **delay_kwargs,
     ):
         """
         Inject a network delay fault.
@@ -148,15 +167,31 @@ class SymptomFaultInjector(FaultInjector):
             "spec": {
                 "action": "delay",
                 "mode": "one",
-                "duration": duration,
+                "duration": delay_kwargs.get("duration", duration),
                 "selector": {
                     "labelSelectors": {"io.kompose.service": ", ".join(microservices)}
                 },
-                "delay": {"latency": latency, "correlation": "100", "jitter": jitter},
+                "delay": {
+                    "latency": delay_kwargs.get("latency", latency),
+                    "correlation": str(delay_kwargs.get("correlation", "100")),
+                    "jitter": delay_kwargs.get("jitter", jitter),
+                },
             },
         }
 
         self.create_chaos_experiment(chaos_experiment, "network-delay")
+
+    @staticmethod
+    def _normalize_container_names(
+        containers: Sequence[str] | str | None,
+    ) -> List[str]:
+        if containers is None:
+            return []
+        if isinstance(containers, str):
+            return [containers]
+        if isinstance(containers, Iterable):
+            return [str(name) for name in containers]
+        return [str(containers)]
 
     def recover_network_delay(self):
         self.delete_chaos_experiment("network-delay")

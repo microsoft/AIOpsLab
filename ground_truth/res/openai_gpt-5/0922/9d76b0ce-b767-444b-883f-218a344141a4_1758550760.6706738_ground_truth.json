@@ -1,0 +1,91 @@
+{
+  "problem_id": "revoke_auth_mongodb-analysis-2",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Lists all pods in the namespace to identify failing components.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod rate-<POD_SUFFIX> -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Describes the failing rate pod to inspect state, events, and restart reasons.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod rate-7bdc978679-qg7p6 -n test-hotel-reservation\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-qg7p6",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 38
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs rate-<POD_SUFFIX> -n test-hotel-reservation -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Retrieves previous container logs from the crashing rate pod, revealing the MongoDB authorization error.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs rate-7bdc978679-qg7p6 -n test-hotel-reservation --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-qg7p6",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 30
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 70
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs mongodb-rate-<POD_SUFFIX> -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Checks MongoDB service logs confirming access control enabled and repeated unauthorized operations from the rate service.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs mongodb-rate-56cc8659c9-2srsn -n test-hotel-reservation\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "56cc8659c9-2srsn",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 38
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Provides extended pod details (IP, node) to verify placement and potential connectivity context.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy rate -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspects the rate Deployment spec to verify configuration, showing no DB auth credentials/secret provided.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get deploy rate -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "submit({\"system_level\": \"Application\", \"fault_type\": \"Dependency Problem\"})",
+      "type": "execute_command",
+      "importance_score": 9,
+      "description": "Submits the final analysis classification to the orchestrator.",
+      "sequence_number": 7,
+      "original_command": "submit({\"system_level\": \"Application\", \"fault_type\": \"Dependency Problem\"})"
+    }
+  ]
+}

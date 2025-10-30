@@ -1,0 +1,29 @@
+{
+  "problem_id": "scale_pod_zero_social_net-detection-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List pods in the namespace to assess running workloads and notice absence of user-service pods.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List services in the namespace to verify service objects exist; auxiliary validation.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "List deployments with replica and availability details; confirms user-service deployment is scaled to zero replicas.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-social-network -o wide\")"
+    }
+  ]
+}

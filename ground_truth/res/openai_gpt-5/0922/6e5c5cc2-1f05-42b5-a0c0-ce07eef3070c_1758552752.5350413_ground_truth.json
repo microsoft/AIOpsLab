@@ -1,0 +1,107 @@
+{
+  "problem_id": "user_unregistered_mongodb-analysis-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation mongodb-profile-<POD_SUFFIX> --tail=50\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Obtains logs from another MongoDB instance (profile DB) for comparison of auth settings and behavior.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation mongodb-profile-758cb77f9f-nq96g --tail=50\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "758cb77f9f-nq96g",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 67
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation geo -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Checks the geo service deployment configuration for environment and connectivity expectations.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation geo -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap -n test-hotel-reservation failure-admin-geo -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Inspects failure/mitigation scripts that remove or alter admin privileges, explaining why the admin user is missing.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get configmap -n test-hotel-reservation failure-admin-geo -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap -n test-hotel-reservation mongo-geo-script -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Reads the MongoDB initialization script that creates admin/root users, verifying intended user setup.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get configmap -n test-hotel-reservation mongo-geo-script -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Lists ConfigMaps to discover initialization and failure scripts related to MongoDB user management.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get configmap -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation mongodb-geo -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Examines the MongoDB geo deployment configuration (e.g., --auth and mounted scripts) to understand auth setup and init sources.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation mongodb-geo -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation mongodb-geo-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Fetches MongoDB geo pod logs confirming 'UserNotFound' for admin, pinpointing the authentication root cause.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation mongodb-geo-5ff578bcb8-mhzrb --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5ff578bcb8-mhzrb",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 63
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-<POD_SUFFIX> -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Retrieves previous logs for the geo service pod to reveal the application error, showing MongoDB authentication failure.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-84fbc958c7-nz4rw --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-nz4rw",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 55
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 69
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Lists all pods in the namespace to identify failing components and targets for deeper inspection.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    }
+  ]
+}

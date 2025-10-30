@@ -1,0 +1,147 @@
+{
+  "problem_id": "misconfig_app_hotel_res-analysis-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to identify failing components (geo pod in Error state).",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod geo-<POD_SUFFIX> -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Describe the geo pod to inspect container state, restarts, and events indicating backoff/restarts.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod geo-c47ff745-qjkqm -n test-hotel-reservation\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "c47ff745-qjkqm",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 37
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs geo-<POD_SUFFIX> -n test-hotel-reservation -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Attempt to retrieve previous container logs for crash details (failed to retrieve but part of diagnostic flow).",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs geo-c47ff745-qjkqm -n test-hotel-reservation --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "c47ff745-qjkqm",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 29
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 69
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs geo-<POD_SUFFIX> -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Get current geo pod logs revealing DB URL misconfiguration (mongodb-geo:27777) and 'no reachable servers' panic.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs geo-c47ff745-qjkqm -n test-hotel-reservation\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "c47ff745-qjkqm",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 29
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "List services to verify MongoDB service port (mongodb-geo exposed on 27017, not 27777), confirming mismatch.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy geo -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Inspect geo Deployment spec to review container image, command, and env for potential misconfiguration source.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get deploy geo -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs mongodb-geo-<POD_SUFFIX> -n test-hotel-reservation --tail=50\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Check MongoDB (geo) logs confirming healthy startup and listening on 27017, ruling out DB outage.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs mongodb-geo-5ff578bcb8-7b74f -n test-hotel-reservation --tail=50\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5ff578bcb8-7b74f",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 37
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmaps -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Review ConfigMaps for initialization scripts and potential configuration influences (auth/roles), providing context.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl get configmaps -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs rate-<POD_SUFFIX> -n test-hotel-reservation --tail=50\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Verify another service (rate) connects successfully to MongoDB at 27017, supporting that only geo is misconfigured.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl logs rate-7bdc978679-z7sq7 -n test-hotel-reservation --tail=50\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-z7sq7",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 30
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs profile-<POD_SUFFIX> -n test-hotel-reservation --tail=50\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Verify profile service health and DB connectivity to 27017, further isolating the issue to geo configuration.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl logs profile-8b6dd7c6c-q9vwx -n test-hotel-reservation --tail=50\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "8b6dd7c6c-q9vwx",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 33
+        }
+      ]
+    },
+    {
+      "command": "submit({\"system_level\": \"Application\", \"fault_type\": \"Misconfiguration\"})",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit final diagnosis that the issue is an application-level misconfiguration.",
+      "sequence_number": 11,
+      "original_command": "submit({\"system_level\": \"Application\", \"fault_type\": \"Misconfiguration\"})"
+    }
+  ]
+}

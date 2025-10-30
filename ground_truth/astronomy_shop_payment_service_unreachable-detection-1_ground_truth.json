@@ -1,0 +1,75 @@
+{
+  "problem_id": "astronomy_shop_payment_service_unreachable-detection-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "List all pods in the astronomy-shop namespace to identify any pods in error state and select a target for deeper investigation.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod fraud-detection-<POD_SUFFIX> -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect detailed status and events of the failing pod to gather evidence of crashes and restart/backoff behavior.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod fraud-detection-65868bcdb5-lfm4m -n astronomy-shop\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-lfm4m",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 49
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs fraud-detection-<POD_SUFFIX> -n astronomy-shop -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Fetch logs from the previously terminated container instance to diagnose the failure leading to restarts.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs fraud-detection-65868bcdb5-lfm4m -n astronomy-shop --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-lfm4m",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 41
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 73
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pod fraud-detection-<POD_SUFFIX> -n astronomy-shop -o json\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Retrieve structured pod state including exit codes and restart counts to conclusively confirm the anomaly.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get pod fraud-detection-65868bcdb5-lfm4m -n astronomy-shop -o json\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-lfm4m",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 44
+        }
+      ]
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the final determination that an anomaly is present based on collected evidence.",
+      "sequence_number": 5,
+      "original_command": "submit(\"Yes\")"
+    }
+  ]
+}

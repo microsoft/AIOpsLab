@@ -1,0 +1,63 @@
+{
+  "total_problems": 100,
+  "total_commands": 915,
+  "probe_commands": 811,
+  "execute_commands": 104,
+  "commands_with_placeholders": 321,
+  "total_placeholders_used": 425,
+  "placeholder_types": {
+    "k8s_pod_suffix": 336,
+    "k8s_replicaset_suffix": 88,
+    "ip_address": 1
+  },
+  "avg_commands_per_problem": 9.15,
+  "avg_importance_score": 6.25,
+  "importance_score_distribution": {
+    "1": 5,
+    "2": 26,
+    "3": 86,
+    "4": 90,
+    "5": 155,
+    "6": 163,
+    "7": 111,
+    "8": 87,
+    "9": 100,
+    "10": 92
+  },
+  "command_type_distribution": {
+    "probe_command": 811,
+    "execute_command": 104,
+    "probe_percentage": 88.63,
+    "execute_percentage": 11.37
+  },
+  "problems_by_command_count": {
+    "8": 7,
+    "10": 4,
+    "12": 5,
+    "4": 12,
+    "5": 9,
+    "15": 2,
+    "9": 8,
+    "14": 3,
+    "17": 2,
+    "3": 6,
+    "13": 3,
+    "7": 9,
+    "16": 2,
+    "19": 3,
+    "11": 3,
+    "18": 5,
+    "6": 11,
+    "20": 1,
+    "21": 1,
+    "23": 2,
+    "1": 1,
+    "2": 1
+  },
+  "timestamp": "2025-10-01T12:54:58.647399",
+  "min_importance_score": 1,
+  "max_importance_score": 10,
+  "min_commands_per_problem": 1,
+  "max_commands_per_problem": 23,
+  "placeholder_coverage": 35.08
+}

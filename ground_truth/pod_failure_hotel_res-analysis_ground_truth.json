@@ -1,0 +1,77 @@
+{
+  "problem_id": "pod_failure_hotel_res-analysis",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List pods in the namespace to identify failing components and select the problematic pod.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod user-<POD_SUFFIX> -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Describe the failing pod to inspect events and error messages indicating the container start failure.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod user-66d5d6f874-89nm4 -n test-hotel-reservation\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "66d5d6f874-89nm4",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 38
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy user -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Retrieve the Deployment spec to compare desired image/command against the running pod.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get deploy user -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation profile rate recommendation reservation search user -o jsonpath='{range .items[*]}{.metadata.name}:{.spec.template.spec.containers[0].command}{\\\"\\\\n\\\"}{end}'\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Compare container command configuration across related deployments to validate expected entrypoints.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation profile rate recommendation reservation search user -o jsonpath='{range .items[*]}{.metadata.name}:{.spec.template.spec.containers[0].command}{\\\"\\\\n\\\"}{end}'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod profile-<POD_SUFFIX> -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Describe a healthy reference pod to contrast working configuration with the failing one.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl describe pod profile-8b6dd7c6c-qkc4w -n test-hotel-reservation\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "8b6dd7c6c-qkc4w",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 41
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pod user-<POD_SUFFIX> -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Fetch the failing pod's full YAML to confirm the actual image/command mismatch causing the crash.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get pod user-66d5d6f874-89nm4 -n test-hotel-reservation -o yaml\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "66d5d6f874-89nm4",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 33
+        }
+      ]
+    }
+  ]
+}

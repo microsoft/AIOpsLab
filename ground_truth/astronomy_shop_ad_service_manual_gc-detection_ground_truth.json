@@ -1,0 +1,59 @@
+{
+  "problem_id": "astronomy_shop_ad_service_manual_gc-detection",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the astronomy-shop namespace to identify failing components.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod ad-<POD_SUFFIX> -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Describe the ad pod to inspect detailed status and events, revealing OOMKilled restarts.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod ad-94bd576b5-phvwg -n astronomy-shop\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-phvwg",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 36
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop ad-<POD_SUFFIX> -c ad -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Fetch previous container logs for the ad container to corroborate the failure context.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop ad-94bd576b5-phvwg -c ad --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-phvwg",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 46
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 66
+        }
+      ]
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the anomaly detection result indicating issues were found.",
+      "sequence_number": 4,
+      "original_command": "submit(\"Yes\")"
+    }
+  ]
+}

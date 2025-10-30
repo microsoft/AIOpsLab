@@ -1,0 +1,93 @@
+{
+  "problem_id": "redeploy_without_PV-analysis-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "List all pods in the test-hotel-reservation namespace to verify workload readiness and status.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all services in the namespace with details to confirm service exposure and endpoints.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/frontend --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Inspect recent frontend deployment logs to check for runtime errors and service readiness.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/frontend --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/consul --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Inspect Consul deployment logs to verify service discovery health and registrations.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/consul --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/search --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Check search service logs for initialization and registration status.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/search --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/profile --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Check profile service logs for DB connectivity and readiness.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/profile --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/recommendation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Check recommendation service logs for DB initialization and service registration.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/recommendation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/rate --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Check rate service logs for DB and cache initialization and readiness.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/rate --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/reservation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Check reservation service logs for DB connectivity and readiness.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/reservation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/user --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Check user service logs for DB initialization and successful Consul registration.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/user --tail=200\")"
+    },
+    {
+      "command": "submit(\"None\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the analysis conclusion indicating no faults were detected.",
+      "sequence_number": 11,
+      "original_command": "submit(\"None\")"
+    }
+  ]
+}

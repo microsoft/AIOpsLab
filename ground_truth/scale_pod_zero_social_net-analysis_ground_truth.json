@@ -1,0 +1,45 @@
+{
+  "problem_id": "scale_pod_zero_social_net-analysis",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the test-social-network namespace to assess running workloads and identify missing components.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List services in the namespace with details to verify service endpoints and exposure.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "List deployments with status to detect that user-service has 0 replicas available.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy user-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect the user-service deployment manifest to confirm spec.replicas is set to 0 (scaled to zero).",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get deploy user-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "submit({\"system_level\": \"Application\", \"fault_type\": \"Misconfiguration\"})",
+      "type": "execute_command",
+      "importance_score": 9,
+      "description": "Submit the analysis classification for the detected issue.",
+      "sequence_number": 5,
+      "original_command": "submit({\"system_level\": \"Application\", \"fault_type\": \"Misconfiguration\"})"
+    }
+  ]
+}

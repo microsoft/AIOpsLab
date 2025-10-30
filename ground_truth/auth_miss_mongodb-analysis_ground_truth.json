@@ -1,0 +1,93 @@
+{
+  "problem_id": "auth_miss_mongodb-analysis",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to identify failing components and their statuses.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod url-shorten-mongodb-<POD_SUFFIX> -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Describe the failing MongoDB pod to inspect container state, mounts, and events.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod url-shorten-mongodb-54866bdb8d-xjhjk -n test-social-network\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "54866bdb8d-xjhjk",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 53
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs url-shorten-mongodb-<POD_SUFFIX> -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Fetch container logs from the failing pod to reveal the fatal error indicating an invalid/expired SSL certificate.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs url-shorten-mongodb-54866bdb8d-xjhjk -n test-social-network\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "54866bdb8d-xjhjk",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 45
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pod url-shorten-mongodb-<POD_SUFFIX> -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Get detailed status of the other MongoDB pod to compare health and placement.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get pod url-shorten-mongodb-77894f9b76-nvj7d -n test-social-network -o wide\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "77894f9b76-nvj7d",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 48
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod url-shorten-mongodb-<POD_SUFFIX> -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Describe the healthy MongoDB pod to compare configuration (volumes, TLS secret) with the failing one.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl describe pod url-shorten-mongodb-77894f9b76-nvj7d -n test-social-network\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "77894f9b76-nvj7d",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 53
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy url-shorten-mongodb -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Retrieve the Deployment spec to confirm TLS secret mounting and configuration that may cause the certificate issue.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get deploy url-shorten-mongodb -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "submit({\"system_level\": \"Application\", \"fault_type\": \"Misconfiguration\"})",
+      "type": "execute_command",
+      "importance_score": 8,
+      "description": "Submit the diagnostic conclusion for evaluation.",
+      "sequence_number": 7,
+      "original_command": "submit({\"system_level\": \"Application\", \"fault_type\": \"Misconfiguration\"})"
+    }
+  ]
+}

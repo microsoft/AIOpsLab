@@ -1,0 +1,137 @@
+{
+  "problem_id": "astronomy_shop_payment_service_unreachable-detection",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "List all pods in the astronomy-shop namespace to identify unhealthy pods and restarts.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get events -n astronomy-shop --sort-by=.lastTimestamp\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Show recent namespace events to surface BackOffs, probe failures, and restarts in time order.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get events -n astronomy-shop --sort-by=.lastTimestamp\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop ad-<POD_SUFFIX> -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Fetch previous logs for the ad pod to investigate the last crash prior to restart.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop ad-94bd576b5-8vcgx --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-8vcgx",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 46
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 60
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop ad-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "View current logs for the ad pod to check runtime behavior after restart.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop ad-94bd576b5-8vcgx\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-8vcgx",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 46
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-<POD_SUFFIX> -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Fetch previous logs for the fraud-detection pod to inspect its last failed run.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-8tpnx --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-8tpnx",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 73
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "View current logs for the fraud-detection pod to verify ongoing issues.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop fraud-detection-65868bcdb5-8tpnx\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-8tpnx",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 59
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Describe the fraud-detection pod to confirm CrashLoopBackOff status, exit codes, and events.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-65868bcdb5-8tpnx\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-8tpnx",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 67
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n astronomy-shop ad-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Describe the ad pod to confirm prior crash details and restart history.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl describe pod -n astronomy-shop ad-94bd576b5-8vcgx\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-8vcgx",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 54
+        }
+      ]
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the anomaly detection result indicating issues were found.",
+      "sequence_number": 9,
+      "original_command": "submit(\"Yes\")"
+    }
+  ]
+}

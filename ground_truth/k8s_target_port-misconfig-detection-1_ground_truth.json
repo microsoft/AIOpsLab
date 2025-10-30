@@ -1,0 +1,69 @@
+{
+  "problem_id": "k8s_target_port-misconfig-detection-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List all pods in the namespace to verify overall workload health and readiness.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "List services and their exposed ports; reveals user-service is exposed on port 9090.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network nginx-thrift-7c48f57-mqkdj -c nginx-thrift --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Inspect gateway (nginx-thrift) logs for request errors indicating backend connectivity issues.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network nginx-thrift-7c48f57-mqkdj -c nginx-thrift --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network compose-post-service-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Check compose-post-service logs; shows connection refused to user-service at port 9090, pointing to a port mismatch.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network compose-post-service-64f6c9b656-blh5r --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "64f6c9b656-blh5r",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 69
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network user-service-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Verify user-service is running (not crashing) to rule out pod-level issues; aids focus on service configuration.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network user-service-6d5985bd55-zdn6p --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "6d5985bd55-zdn6p",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 61
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-social-network user-service -o wide\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Show actual endpoint IP:port for user-service; reveals endpoints on port 8080, confirming targetPort/port mismatch with service (9090).",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-social-network user-service -o wide\")"
+    }
+  ]
+}

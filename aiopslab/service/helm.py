@@ -6,6 +6,10 @@
 import subprocess
 
 from aiopslab.service.kubectl import KubeCtl
+from aiopslab.config import Config, get_kube_context
+from aiopslab.paths import BASE_DIR
+
+config = Config(BASE_DIR / "config.yml")
 
 
 class Helm:
@@ -20,6 +24,7 @@ class Helm:
             version (str): Version of the chart
             extra_args (List[str)]: Extra arguments for the helm install command
             remote_chart (bool): Whether the chart is remote (from a Helm repo)
+            values_file (str): Path to values file to override default values
         """
         print("== Helm Install ==")
         release_name = args.get("release_name")
@@ -28,10 +33,15 @@ class Helm:
         version = args.get("version")
         extra_args = args.get("extra_args")
         remote_chart = args.get("remote_chart", False)
+        values_file = args.get("values_file")
+
+        kube_context = get_kube_context()
 
         if not remote_chart:
             # Install dependencies for chart before installation
             dependency_command = f"helm dependency update {chart_path}"
+            if kube_context:
+                dependency_command += f" --kube-context {kube_context}"
             dependency_process = subprocess.Popen(
                 dependency_command,
                 shell=True,
@@ -41,9 +51,14 @@ class Helm:
             dependency_output, dependency_error = dependency_process.communicate()
 
         command = f"helm install {release_name} {chart_path} -n {namespace} --create-namespace"
+        if kube_context:
+            command += f" --kube-context {kube_context}"
 
         if version:
             command += f" --version {version}"
+
+        if values_file:
+            command += f" -f {values_file}"
 
         if extra_args:
             command += " " + " ".join(extra_args)
@@ -68,11 +83,15 @@ class Helm:
         release_name = args.get("release_name")
         namespace = args.get("namespace")
 
+        kube_context = get_kube_context()
+
         if not Helm.exists_release(release_name, namespace):
             print(f"Release {release_name} does not exist. Skipping uninstall.")
             return
 
         command = f"helm uninstall {release_name} -n {namespace}"
+        if kube_context:
+            command += f" --kube-context {kube_context}"
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
         output, error = process.communicate()
 
@@ -92,7 +111,10 @@ class Helm:
         Returns:
             bool: True if release exists
         """
+        kube_context = get_kube_context()
         command = f"helm list -n {namespace}"
+        if kube_context:
+            command += f" --kube-context {kube_context}"
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
         output, error = process.communicate()
 
@@ -141,6 +163,8 @@ class Helm:
         values_file = args.get("values_file")
         set_values = args.get("set_values", {})
 
+        kube_context = get_kube_context()
+
         command = [
             "helm",
             "upgrade",
@@ -151,6 +175,9 @@ class Helm:
             "-f",
             values_file,
         ]
+
+        if kube_context:
+            command.extend(["--kube-context", kube_context])
 
         # Add --set options if provided
         for key, value in set_values.items():
@@ -178,7 +205,12 @@ class Helm:
             url (str): URL of the repository
         """
         print(f"== Helm Repo Add: {name} ==")
+        kube_context = get_kube_context()
         command = f"helm repo add {name} {url}"
+        # Note: helm repo add doesn't typically need --kube-context
+        # as it operates on local helm configuration, but keeping for consistency
+        if kube_context:
+            command += f" --kube-context {kube_context}"
         process = subprocess.Popen(
             command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )

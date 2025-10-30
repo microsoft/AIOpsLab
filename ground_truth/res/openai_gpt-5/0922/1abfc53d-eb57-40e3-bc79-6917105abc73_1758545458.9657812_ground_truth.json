@@ -1,0 +1,77 @@
+{
+  "problem_id": "k8s_target_port-misconfig-mitigation-3",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "List pods in the namespace to confirm workloads are running and identify target components.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc,ingress -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List Services and Ingress resources to inspect service ports and potential misconfigurations.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc,ingress -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Check Endpoints to see actual target IP:port mappings for Services and detect mismatched targetPort.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/compose-post-service --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Review client-side errors indicating connection refused to the post-storage-service, evidencing the impact.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/compose-post-service --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe svc post-storage-service -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Describe the post-storage-service to confirm the Service targetPort is misconfigured (set to 9999 instead of 9090).",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl describe svc post-storage-service -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n test-social-network -l service=post-storage-service\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Describe the backing pod to verify the container listens on port 9090, confirming the mismatch with Service targetPort.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl describe pod -n test-social-network -l service=post-storage-service\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap post-storage-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Inspect the service configuration to verify expected port (9090) and corroborate the correct targetPort value.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get configmap post-storage-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl patch service post-storage-service -n test-social-network --type='json' -p='[{\\\"op\\\":\\\"replace\\\",\\\"path\\\":\\\"/spec/ports/0/targetPort\\\",\\\"value\\\":9090}]'\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Patch the Service to replace the incorrect targetPort with 9090, directly fixing the routing issue.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl patch service post-storage-service -n test-social-network --type='json' -p='[{\\\"op\\\":\\\"replace\\\",\\\"path\\\":\\\"/spec/ports/0/targetPort\\\",\\\"value\\\":9090}]'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints post-storage-service -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Verify that the Service now routes to the correct target port by checking the updated Endpoints.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl get endpoints post-storage-service -n test-social-network -o wide\")"
+    }
+  ]
+}

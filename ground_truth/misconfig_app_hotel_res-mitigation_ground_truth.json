@@ -1,0 +1,163 @@
+{
+  "problem_id": "misconfig_app_hotel_res-mitigation",
+  "key_commands": [
+    {
+      "command": "submit()",
+      "type": "execute_command",
+      "importance_score": 3,
+      "description": "Submit mitigation completion for evaluation",
+      "sequence_number": 1,
+      "original_command": "submit()"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-<POD_SUFFIX> -c hotel-reserv-geo --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Confirm geo service successfully connects to DB and starts up",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-c47ff745-nd9q2 -c hotel-reserv-geo --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "c47ff745-nd9q2",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 55
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/mongodb-geo --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Verify MongoDB deployment health and readiness after service change",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation deploy/mongodb-geo --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc mongodb-geo -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Confirm mongodb-geo service now exposes both 27017 and 27777 ports",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get svc mongodb-geo -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl patch svc mongodb-geo -n test-hotel-reservation --type=\\'merge\\' -p \\'{\\\\\"spec\\\\\":{\\\\\"ports\\\\\":[{\\\\\"name\\\\\":\\\\\"mongo\\\\\",\\\\\"port\\\\\":27017,\\\\\"targetPort\\\\\":27017,\\\\\"protocol\\\\\":\\\\\"TCP\\\\\"},{\\\\\"name\\\\\":\\\\\"mongo-compat\\\\\",\\\\\"port\\\\\":27777,\\\\\"targetPort\\\\\":27017,\\\\\"protocol\\\\\":\\\\\"TCP\\\\\"}]}}\\'\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Patch MongoDB service to expose compatibility port 27777 mapped to targetPort 27017, enabling geo to connect",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl patch svc mongodb-geo -n test-hotel-reservation --type=\\'merge\\' -p \\'{\\\\\"spec\\\\\":{\\\\\"ports\\\\\":[{\\\\\"name\\\\\":\\\\\"mongo\\\\\",\\\\\"port\\\\\":27017,\\\\\"targetPort\\\\\":27017,\\\\\"protocol\\\\\":\\\\\"TCP\\\\\"},{\\\\\"name\\\\\":\\\\\"mongo-compat\\\\\",\\\\\"port\\\\\":27777,\\\\\"targetPort\\\\\":27017,\\\\\"protocol\\\\\":\\\\\"TCP\\\\\"}]}}\\'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-<POD_SUFFIX> -c hotel-reserv-geo --tail=100\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Check current geo service logs post-patch to assess connection attempts",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-c47ff745-nd9q2 -c hotel-reserv-geo --tail=100\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "c47ff745-nd9q2",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 55
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Verify pod statuses after applying the service patch",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmaps -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Review ConfigMaps related to Mongo initialization and roles",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl get configmaps -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl patch svc mongodb-geo -n test-hotel-reservation --type='merge' -p '{\\\"spec\\\":{\\\"ports\\\":[{\\\"name\\\":\\\"mongo\\\",\\\"port\\\":27017,\\\"targetPort\\\":27017,\\\"protocol\\\":\\\"TCP\\\"},{\\\"name\\\":\\\"mongo-compat\\\",\\\"port\\\":27777,\\\"targetPort\\\":27017,\\\"protocol\\\":\\\"TCP\\\"}]}}'\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Patch mongodb-geo service to add compatibility port 27777 mapped to targetPort 27017 (core fix)",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl patch svc mongodb-geo -n test-hotel-reservation --type='merge' -p '{\\\"spec\\\":{\\\"ports\\\":[{\\\"name\\\":\\\"mongo\\\",\\\"port\\\":27017,\\\"targetPort\\\":27017,\\\"protocol\\\":\\\"TCP\\\"},{\\\"name\\\":\\\"mongo-compat\\\",\\\"port\\\":27777,\\\"targetPort\\\":27017,\\\"protocol\\\":\\\"TCP\\\"}]}}'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Enumerate all deployments for broader context",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy geo -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Inspect geo deployment configuration and image details for additional context",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl get deploy geo -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "List services and ports to confirm mongodb-geo exposes only 27017 (port mismatch root cause)",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl get svc -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-<POD_SUFFIX> -c hotel-reserv-geo -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Fetch previous container logs to identify crash reason (DB URL mongodb-geo:27777, connection failure)",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-c47ff745-nd9q2 -c hotel-reserv-geo --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "c47ff745-nd9q2",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 55
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 89
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod geo-<POD_SUFFIX> -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Describe the failing geo pod to inspect container state and recent events",
+      "sequence_number": 14,
+      "original_command": "exec_shell(\"kubectl describe pod geo-c47ff745-nd9q2 -n test-hotel-reservation\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "c47ff745-nd9q2",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 37
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to detect failing components",
+      "sequence_number": 15,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    }
+  ]
+}

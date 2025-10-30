@@ -1,0 +1,85 @@
+{
+  "problem_id": "k8s_target_port-misconfig-localization-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "List all pods in the namespace to verify components are running.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all services and their ports to identify candidates for connectivity issues.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs deploy/nginx-thrift -n test-social-network --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 1,
+      "description": "Check frontend logs for any surface errors related to downstream connectivity.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs deploy/nginx-thrift -n test-social-network --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs deploy/user-service -n test-social-network --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Inspect user-service logs to confirm the service starts without obvious runtime errors.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs deploy/user-service -n test-social-network --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs deploy/compose-post-service -n test-social-network --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect compose-post-service logs showing connection refused to user-service:9090, indicating a potential port mismatch.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs deploy/compose-post-service -n test-social-network --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints user-service -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Check user-service Endpoints to see the actual backend port exposed (shows 10.244.1.56:9999), revealing a mismatch.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get endpoints user-service -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe deploy/user-service -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Describe user-service deployment to verify the container's declared port (9090), supporting the mismatch diagnosis.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl describe deploy/user-service -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc user-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Retrieve user-service Service YAML confirming misconfigured targetPort: 9999.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl get svc user-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network -o jsonpath='{range .items[*]}{.metadata.name}{\\\"\\\\t\\\"}{range .spec.ports[*]}{.port}{\\\"->\\\"}{.targetPort}{\\\"\\\\t\\\"}{end}{\\\"\\\\n\\\"}{end}'\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Cross-check all services' port to targetPort mappings; confirms only user-service maps 9090->9999.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network -o jsonpath='{range .items[*]}{.metadata.name}{\\\"\\\\t\\\"}{range .spec.ports[*]}{.port}{\\\"->\\\"}{.targetPort}{\\\"\\\\t\\\"}{end}{\\\"\\\\n\\\"}{end}'\")"
+    },
+    {
+      "command": "submit([\"user-service\"])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the identified faulty component (user-service) due to Service targetPort misconfiguration.",
+      "sequence_number": 10,
+      "original_command": "submit([\"user-service\"])"
+    }
+  ]
+}

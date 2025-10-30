@@ -1,0 +1,125 @@
+{
+  "problem_id": "noop_detection_social_network-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl exec -n test-social-network pod/nginx-thrift-7c48f57-7rqf7 -c nginx-thrift -- sh -lc 'curl -s -o /dev/null -w \\\"%{http_code}\\\\n\\\" \\\"http://<IP_ADDRESS>:8080/wrk2-api/home-timeline/read?user_id=1&start=0&stop=10\\\"'\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "In-pod HTTP probe from nginx-thrift to validate application endpoint responsiveness",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl exec -n test-social-network pod/nginx-thrift-7c48f57-7rqf7 -c nginx-thrift -- sh -lc 'curl -s -o /dev/null -w \\\"%{http_code}\\\\n\\\" \\\"http://127.0.0.1:8080/wrk2-api/home-timeline/read?user_id=1&start=0&stop=10\\\"'\")",
+      "placeholders_used": [
+        {
+          "type": "ip_address",
+          "original": "127.0.0.1",
+          "placeholder": "<IP_ADDRESS>",
+          "position": 159
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network -l service=home-timeline-service --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Tail home-timeline-service logs to confirm startup and identify downstream issues",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network -l service=home-timeline-service --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network pod/nginx-thrift-7c48f57-7rqf7 --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Pod-level nginx-thrift logs to corroborate frontend health",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network pod/nginx-thrift-7c48f57-7rqf7 --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/nginx-thrift -c nginx-thrift --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Explicitly tail the nginx-thrift application container logs for issues",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/nginx-thrift -c nginx-thrift --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/nginx-thrift --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Check frontend (nginx-thrift) logs for any request handling or upstream errors",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/nginx-thrift --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/compose-post-service --tail=200 | sed -n '1,200p'\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "Fetch compose-post-service logs to confirm service startup status",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/compose-post-service --tail=200 | sed -n '1,200p'\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/social-graph-service --tail=200; kubectl logs -n test-social-network deploy/post-storage-service --tail=200; kubectl logs -n test-social-network deploy/text-service --tail=200; kubectl logs -n test-social-network deploy/user-timeline-service --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Aggregate logs from multiple core services; exposes repeated MongoDB index/connection errors across services",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/social-graph-service --tail=200; kubectl logs -n test-social-network deploy/post-storage-service --tail=200; kubectl logs -n test-social-network deploy/text-service --tail=200; kubectl logs -n test-social-network deploy/user-timeline-service --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/user-mongodb --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Inspect user-mongodb logs to validate DB startup, listening state, and client connections",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/user-mongodb --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network -l service=user-service --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Check user-service logs; reveals MongoDB connection/index creation errors indicating anomalies",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network -l service=user-service --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Verify service endpoints to ensure backends are discoverable and ready",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get events -n test-social-network --sort-by=.lastTimestamp\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Review recent Kubernetes events to surface scheduling, image, or mount issues",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl get events -n test-social-network --sort-by=.lastTimestamp\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Inspect deployments, container images, and selectors for configuration sanity",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List services to confirm service exposure and ports",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all pods in the namespace to verify workload health and readiness",
+      "sequence_number": 14,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    }
+  ]
+}

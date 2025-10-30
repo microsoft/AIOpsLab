@@ -1,0 +1,77 @@
+{
+  "problem_id": "scale_pod_zero_social_net-mitigation-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get configmap -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List ConfigMaps in the namespace to verify presence of required configs (e.g., user-service) related to earlier mount failures.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get configmap -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy user-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Inspect the user-service deployment configuration and status to ensure replicas and mounts are correct.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get deploy user-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-social-network user-service -o wide\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Confirm the user-service endpoints are populated to ensure traffic can be routed.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-social-network user-service -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network -l service=user-service -o wide\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Verify that the user-service pod is created and running after scaling.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network -l service=user-service -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl scale deploy user-service -n test-social-network --replicas=1\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Scale the user-service deployment to one replica to restore service availability.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl scale deploy user-service -n test-social-network --replicas=1\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Review deployment statuses to pinpoint that user-service has zero replicas and requires scaling.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get events -n test-social-network --sort-by=.metadata.creationTimestamp\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Inspect recent cluster events for the namespace to identify failures or scaling actions contributing to the issue.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get events -n test-social-network --sort-by=.metadata.creationTimestamp\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "List services in the namespace to understand service exposure and endpoints configuration.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to assess current workload status and detect anomalies.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    }
+  ]
+}

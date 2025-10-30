@@ -1,0 +1,75 @@
+{
+  "problem_id": "revoke_auth_mongodb-analysis-2",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl exec -n test-hotel-reservation deploy/mongodb-rate -- cat /docker-entrypoint-initdb.d/k8s-rate-mongo.sh\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Examine the MongoDB initialization script to verify user creation and role grants that should permit the rate service to access rate-db.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl exec -n test-hotel-reservation deploy/mongodb-rate -- cat /docker-entrypoint-initdb.d/k8s-rate-mongo.sh\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe deployment -n test-hotel-reservation rate\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Describe the rate deployment to check container image, command, environment, and rollout status for potential misconfigurations.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe deployment -n test-hotel-reservation rate\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Get detailed pod information (IPs, nodes) to correlate client IPs in MongoDB logs with the rate service pod and confirm CrashLoopBackOff.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation mongodb-rate-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Review MongoDB pod logs to verify auth settings and observe authentication/authorization events related to the rate service.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation mongodb-rate-56cc8659c9-xqjxm --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "56cc8659c9-xqjxm",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 64
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation rate-<POD_SUFFIX> --tail=200 -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect previous logs of the failing rate pod to capture the crash reason (authorization error against MongoDB).",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation rate-7bdc978679-6dvtd --tail=200 --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-6dvtd",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 56
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 81
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to identify failing components and overall cluster state.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    }
+  ]
+}

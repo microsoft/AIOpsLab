@@ -22,7 +22,9 @@ class Shell:
         k8s_host = config.get("k8s_host", "localhost")  # Default to localhost
         
         if k8s_host == "kind":
-            return Shell.docker_exec("kind-control-plane", command, timeout=timeout)
+            kind_cluster_name = config.get("kind_cluster_name", "kind")
+            container_name = f"{kind_cluster_name}-control-plane"
+            return Shell.docker_exec(container_name, command)
 
         elif k8s_host == "localhost":
             # print(
@@ -59,6 +61,8 @@ class Shell:
                 return error_message
             else:
                 output_message = out.stdout.decode("utf-8") + out.stderr.decode("utf-8")
+                print(f"===== Output Message from local ====")
+                print(output_message)
                 return output_message
 
         except Exception as e:
@@ -88,6 +92,8 @@ class Shell:
                 return error_message
             else:
                 output_message = stdout.read().decode("utf-8")
+                print(f"===== Output Message from ssh ====")
+                print(output_message)
                 return output_message
 
         except Exception as e:
@@ -117,6 +123,8 @@ class Shell:
                 return f"[ERROR] Docker command execution failed: {error_message}"
             else:
                 output_message = out.stdout.decode("utf-8")
+                print(f"===== Output Message from docker ====")
+                print(output_message)
                 return output_message
 
         except Exception as e:

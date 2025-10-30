@@ -1,0 +1,45 @@
+{
+  "problem_id": "user_unregistered_mongodb-detection-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to identify services with errors or restarts.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Inspect the geo service logs to identify the specific error causing the pod failure (SASL authentication failure).",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation geo-84fbc958c7-vths5 --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-vths5",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 55
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-hotel-reservation mongodb-geo-<POD_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect MongoDB logs for authentication details, confirming 'UserNotFound' for admin on the admin DB.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n test-hotel-reservation mongodb-geo-5ff578bcb8-chl2b --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5ff578bcb8-chl2b",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 63
+        }
+      ]
+    }
+  ]
+}

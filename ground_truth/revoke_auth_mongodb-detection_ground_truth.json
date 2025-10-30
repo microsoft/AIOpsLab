@@ -1,0 +1,75 @@
+{
+  "problem_id": "revoke_auth_mongodb-detection",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to identify failing components (geo pod in Error state).",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod geo-<POD_SUFFIX> -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Describe the failing geo pod to inspect container state, restarts, and events indicating crash/backoff.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod geo-84fbc958c7-74sj5 -n test-hotel-reservation\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-74sj5",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 37
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs geo-<POD_SUFFIX> -n test-hotel-reservation -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Retrieve previous logs from the geo container to surface the authorization error against MongoDB.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs geo-84fbc958c7-74sj5 -n test-hotel-reservation --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "84fbc958c7-74sj5",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 29
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 69
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs mongodb-geo-<POD_SUFFIX> -n test-hotel-reservation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Check MongoDB pod logs to corroborate authentication/authorization failures and DB initialization details.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs mongodb-geo-5ff578bcb8-nwfmf -n test-hotel-reservation --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5ff578bcb8-nwfmf",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 37
+        }
+      ]
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the detection result indicating anomalies are present.",
+      "sequence_number": 5,
+      "original_command": "submit(\"Yes\")"
+    }
+  ]
+}

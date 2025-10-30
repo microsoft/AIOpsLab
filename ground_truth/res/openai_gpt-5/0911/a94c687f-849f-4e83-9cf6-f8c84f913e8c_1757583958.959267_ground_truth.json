@@ -1,0 +1,91 @@
+{
+  "problem_id": "user_unregistered_mongodb-detection-2",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "List all pods in the namespace to identify failing components (rate pod in Error state).",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod rate-<POD_SUFFIX> -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Describe the failing rate pod to review container state and events indicating crash/backoff.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod rate-7bdc978679-dhdcz -n test-hotel-reservation\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-dhdcz",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 38
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs rate-<POD_SUFFIX> -n test-hotel-reservation -<REPLICA_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Fetch previous container logs of rate pod to capture crash reason showing MongoDB SASL authentication failure.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs rate-7bdc978679-dhdcz -n test-hotel-reservation --previous\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "7bdc978679-dhdcz",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 30
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 70
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy rate -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Inspect rate deployment configuration for environment and connection settings to MongoDB.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get deploy rate -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy mongodb-rate -n test-hotel-reservation -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Inspect mongodb-rate deployment to verify auth mode and init script mounts.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get deploy mongodb-rate -n test-hotel-reservation -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get configmap mongo-rate-script -n test-hotel-reservation -o yaml && echo '---' && kubectl get configmap failure-admin-rate -n test-hotel-reservation -o yaml && echo '---' && kubectl logs deploy/mongodb-rate -n test-hotel-reservation --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Review MongoDB init scripts and mongodb-rate logs; confirms authentication events and UserNotFound errors for admin, correlating with rate pod failures.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get configmap mongo-rate-script -n test-hotel-reservation -o yaml && echo '---' && kubectl get configmap failure-admin-rate -n test-hotel-reservation -o yaml && echo '---' && kubectl logs deploy/mongodb-rate -n test-hotel-reservation --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get all -n test-hotel-reservation -o wide\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Summarize all resources to validate cluster-wide status and isolate the failing service.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get all -n test-hotel-reservation -o wide\")"
+    },
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit detection result indicating anomalies were found based on evidence.",
+      "sequence_number": 8,
+      "original_command": "submit(\"Yes\")"
+    }
+  ]
+}

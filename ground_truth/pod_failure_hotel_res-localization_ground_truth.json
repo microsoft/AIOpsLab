@@ -1,0 +1,37 @@
+{
+  "problem_id": "pod_failure_hotel_res-localization",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List pods in the namespace to detect failing components.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-hotel-reservation\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod user-<POD_SUFFIX> -n test-hotel-reservation\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect the failing user pod for detailed status and events to identify the root cause.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod user-66d5d6f874-wdvpm -n test-hotel-reservation\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "66d5d6f874-wdvpm",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 38
+        }
+      ]
+    },
+    {
+      "command": "submit([\"user\"])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the identified faulty component to finalize the diagnosis.",
+      "sequence_number": 3,
+      "original_command": "submit([\"user\"])"
+    }
+  ]
+}

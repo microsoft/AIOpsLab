@@ -1,0 +1,43 @@
+{
+  "problem_id": "auth_miss_mongodb-localization-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to identify any failing components.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network url-shorten-mongodb-<POD_SUFFIX> --tail=200 && echo '---' && kubectl describe pod -n test-social-network url-shorten-mongodb-6555<POD_SUFFIX>",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Retrieve logs and detailed pod description of the failing MongoDB pod to diagnose the root cause (Invalid SSL configuration).",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network url-shorten-mongodb-65559575d4-w4wf6 --tail=200 && echo '---' && kubectl describe pod -n test-social-network url-shorten-mongodb-65559575d4-w4wf6\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65559575d4-w4wf6",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 68
+        },
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65559575d4-w4wf6",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 177
+        }
+      ]
+    },
+    {
+      "command": "submit([\"url-shorten-mongodb\"])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the identified faulty component to complete the task.",
+      "sequence_number": 3,
+      "original_command": "submit([\"url-shorten-mongodb\"])"
+    }
+  ]
+}

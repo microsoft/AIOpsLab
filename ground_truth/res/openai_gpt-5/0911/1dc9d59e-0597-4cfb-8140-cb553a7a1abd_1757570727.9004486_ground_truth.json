@@ -1,0 +1,117 @@
+{
+  "problem_id": "k8s_target_port-misconfig-detection-2",
+  "key_commands": [
+    {
+      "command": "submit(\"Yes\")",
+      "type": "execute_command",
+      "importance_score": 9,
+      "description": "Submit that anomalies are detected (service targetPort misconfiguration)",
+      "sequence_number": 1,
+      "original_command": "submit(\"Yes\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get cm -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "List ConfigMaps to verify presence of configurations referenced by pods (e.g., jaeger, text-service).",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl get cm -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 3,
+      "description": "List deployments to cross-check component readiness and context before drilling into misconfiguration",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get deploy -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/user-mongodb --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Check MongoDB logs to confirm database readiness and incoming connections.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/user-mongodb --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/text-service --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Verify text-service itself is running without errors, supporting diagnosis that failure stems from Service port mapping rather than application crash",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/text-service --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc text-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Fetch full Service spec for text-service; confirms port: 9090 with targetPort: 9999, the root cause of the issue",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl get svc text-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/user-service --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Examine user-service logs; reveals MongoDB connection/index creation errors.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/user-service --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe deploy/text-service -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Describe text-service deployment to verify container port is 9090/TCP, establishing mismatch with endpoint port",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl describe deploy/text-service -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/nginx-thrift --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 2,
+      "description": "Review API gateway (nginx-thrift) logs for front-door errors impacting requests.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/nginx-thrift --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 10,
+      "description": "Inspect service endpoints to see actual target IP:port; reveals text-service endpoints using port 9999, a key indicator of targetPort misconfiguration",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl get endpoints -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get events -n test-social-network --sort-by=.lastTimestamp\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect recent events to identify warnings/errors such as FailedMount and restarts.",
+      "sequence_number": 11,
+      "original_command": "exec_shell(\"kubectl get events -n test-social-network --sort-by=.lastTimestamp\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n test-social-network deploy/compose-post-service --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Check upstream client logs; shows repeated connection refused to text-service:9090, indicating a possible service-to-pod port mismatch",
+      "sequence_number": 12,
+      "original_command": "exec_shell(\"kubectl logs -n test-social-network deploy/compose-post-service --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all services and their exposed ports to identify the text-service configuration at a high level",
+      "sequence_number": 13,
+      "original_command": "exec_shell(\"kubectl get svc -n test-social-network -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List all pods in the namespace to verify components are running and identify targets for deeper inspection",
+      "sequence_number": 14,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    }
+  ]
+}

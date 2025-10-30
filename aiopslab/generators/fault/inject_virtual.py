@@ -34,23 +34,33 @@ class VirtualizationFaultInjector(FaultInjector):
     ############# FAULT LIBRARY ################
 
     # V.1 - misconfig_k8s: Misconfigure service port in Kubernetes - Misconfig
-    def inject_misconfig_k8s(self, microservices: list[str]):
+    def inject_misconfig_k8s(
+        self,
+        microservices: list[str],
+        from_port: int = 9090,
+        to_port: int = 9999,
+    ):
         """Inject a fault to misconfigure service's target port in Kubernetes."""
         for service in microservices:
             service_config = self._modify_target_port_config(
-                from_port=9090,
-                to_port=9999,
+                from_port=from_port,
+                to_port=to_port,
                 configs=self.kubectl.get_service_json(service, self.testbed),
             )
 
             print(f"Misconfig fault for service: {service} | namespace: {self.testbed}")
             self.kubectl.patch_service(service, self.testbed, service_config)
 
-    def recover_misconfig_k8s(self, microservices: list[str]):
+    def recover_misconfig_k8s(
+        self,
+        microservices: list[str],
+        from_port: int = 9999,
+        to_port: int = 9090,
+    ):
         for service in microservices:
             service_config = self._modify_target_port_config(
-                from_port=9999,
-                to_port=9090,
+                from_port=from_port,
+                to_port=to_port,
                 configs=self.kubectl.get_service_json(service, self.testbed),
             )
 
@@ -135,34 +145,44 @@ class VirtualizationFaultInjector(FaultInjector):
             )
 
     # V.3 - scale_pods_to_zero: Scale pods to zero - Deploy/Operation
-    def inject_scale_pods_to_zero(self, microservices: list[str]):
+    def inject_scale_pods_to_zero(
+        self,
+        microservices: list[str],
+        replicas: int = 0,
+    ):
         """Inject a fault to scale pods to zero for a service."""
         for service in microservices:
             self.kubectl.exec_command(
-                f"kubectl scale deployment {service} --replicas=0 -n {self.namespace}"
+                f"kubectl scale deployment {service} --replicas={replicas} -n {self.namespace}"
             )
             print(
-                f"Scaled deployment {service} to 0 replicas | namespace: {self.namespace}"
+                f"Scaled deployment {service} to {replicas} replicas | namespace: {self.namespace}"
             )
 
-    def recover_scale_pods_to_zero(self, microservices: list[str]):
+    def recover_scale_pods_to_zero(
+        self,
+        microservices: list[str],
+        replicas: int = 1,
+    ):
         for service in microservices:
             self.kubectl.exec_command(
-                f"kubectl scale deployment {service} --replicas=1 -n {self.namespace}"
+                f"kubectl scale deployment {service} --replicas={replicas} -n {self.namespace}"
             )
             print(
-                f"Scaled deployment {service} back to 1 replica | namespace: {self.namespace}"
+                f"Scaled deployment {service} back to {replicas} replicas | namespace: {self.namespace}"
             )
 
     # V.4 - assign_to_non_existent_node: Assign to non-existent or NotReady node - Dependency
-    def inject_assign_to_non_existent_node(self, microservices: list[str]):
+    def inject_assign_to_non_existent_node(
+        self,
+        microservices: list[str],
+        node_selector: dict[str, str] | None = None,
+    ):
         """Inject a fault to assign a service to a non-existent or NotReady node."""
-        non_existent_node_name = "extra-node"
+        node_selector = node_selector or {"kubernetes.io/hostname": "extra-node"}
         for service in microservices:
             deployment_yaml = self._get_deployment_yaml(service)
-            deployment_yaml["spec"]["template"]["spec"]["nodeSelector"] = {
-                "kubernetes.io/hostname": non_existent_node_name
-            }
+            deployment_yaml["spec"]["template"]["spec"]["nodeSelector"] = node_selector
 
             # Write the modified YAML to a temporary file
             modified_yaml_path = self._write_yaml_to_file(service, deployment_yaml)
@@ -172,7 +192,8 @@ class VirtualizationFaultInjector(FaultInjector):
 
             apply_command = f"kubectl apply -f {modified_yaml_path} -n {self.namespace}"
             self.kubectl.exec_command(apply_command)
-            print(f"Redeployed {service} to node {non_existent_node_name}.")
+            print(
+                f"Redeployed {service} with node selector {node_selector}.")
 
     def recover_assign_to_non_existent_node(self, microservices: list[str]):
         for service in microservices:

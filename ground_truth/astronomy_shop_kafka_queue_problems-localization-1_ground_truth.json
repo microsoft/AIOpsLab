@@ -1,0 +1,61 @@
+{
+  "problem_id": "astronomy_shop_kafka_queue_problems-localization-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "Lists all pods in the astronomy-shop namespace to identify failing components.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop pod/fraud-detection-<POD_SUFFIX> --all-containers=true --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Retrieves recent logs from all containers in the fraud-detection pod to diagnose the crash.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop pod/fraud-detection-65868bcdb5-bq8rb --all-containers=true --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-bq8rb",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 63
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Provides detailed pod status and events confirming CrashLoopBackOff and exit reasons for fraud-detection.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl describe pod -n astronomy-shop fraud-detection-65868bcdb5-bq8rb\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "65868bcdb5-bq8rb",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 67
+        }
+      ]
+    },
+    {
+      "command": "submit([\"fraud<REPLICA_SUFFIX>\"])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submits the identified faulty component to complete the localization task.",
+      "sequence_number": 4,
+      "original_command": "submit([\"fraud-detection\"])",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-detection",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 14
+        }
+      ]
+    }
+  ]
+}

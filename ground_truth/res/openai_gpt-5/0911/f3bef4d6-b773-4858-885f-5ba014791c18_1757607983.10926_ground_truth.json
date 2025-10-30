@@ -1,0 +1,123 @@
+{
+  "problem_id": "astronomy_shop_loadgenerator_flood_homepage-localization-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to identify unhealthy components and restarts (ad pod showing multiple restarts).",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/ad --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Check current logs of the ad deployment for errors or startup issues.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/ad --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop pod/ad-<POD_SUFFIX> -<REPLICA_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Inspect previous container logs of the ad pod to review crash context.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop pod/ad-94bd576b5-28xm5 --previous --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-28xm5",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 50
+        },
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-previous",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 64
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/load<REPLICA_SUFFIX> --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "Review load generator logs to confirm widespread connection errors impacting the homepage.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/load-generator --tail=200\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_replicaset_suffix",
+          "original": "-generator",
+          "placeholder": "<REPLICA_SUFFIX>",
+          "position": 54
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc -n astronomy-shop -o wide\")",
+      "type": "probe_command",
+      "importance_score": 4,
+      "description": "List services and their ClusterIPs/ports to support mapping of failing connections.",
+      "sequence_number": 5,
+      "original_command": "exec_shell(\"kubectl get svc -n astronomy-shop -o wide\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/frontend --tail=200\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "Check frontend logs which show ECONNREFUSED to the ad service ClusterIP/port, indicating upstream ad issues.",
+      "sequence_number": 6,
+      "original_command": "exec_shell(\"kubectl logs -n astronomy-shop deploy/frontend --tail=200\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get svc/ad -n astronomy-shop -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Get ad service details to confirm ClusterIP and port match the connection refused errors seen by frontend.",
+      "sequence_number": 7,
+      "original_command": "exec_shell(\"kubectl get svc/ad -n astronomy-shop -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get endpoints -n astronomy-shop ad -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Verify ad service endpoints and backend pod mapping to ensure traffic targets the correct pod.",
+      "sequence_number": 8,
+      "original_command": "exec_shell(\"kubectl get endpoints -n astronomy-shop ad -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe deploy/ad -n astronomy-shop\")",
+      "type": "probe_command",
+      "importance_score": 5,
+      "description": "Describe the ad deployment for configuration and availability status.",
+      "sequence_number": 9,
+      "original_command": "exec_shell(\"kubectl describe deploy/ad -n astronomy-shop\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod -n astronomy-shop ad-<POD_SUFFIX>\")",
+      "type": "probe_command",
+      "importance_score": 7,
+      "description": "Describe the ad pod to confirm restarts and prior termination (exit code 137), supporting ad as the root cause.",
+      "sequence_number": 10,
+      "original_command": "exec_shell(\"kubectl describe pod -n astronomy-shop ad-94bd576b5-28xm5\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "94bd576b5-28xm5",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 54
+        }
+      ]
+    },
+    {
+      "command": "submit([\"ad\"])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the identified faulty service (ad) as the root cause to resolve the test case.",
+      "sequence_number": 11,
+      "original_command": "submit([\"ad\"])"
+    }
+  ]
+}

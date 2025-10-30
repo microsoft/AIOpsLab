@@ -18,6 +18,80 @@ from aiopslab.paths import TARGET_MICROSERVICES
 from .helpers import get_frontend_url
 
 
+def evaluate_misconfig_app_analysis_solution(task, soln: Any) -> dict:
+    """Populate analysis results using the hotel reservation semantics."""
+
+    if not isinstance(soln, dict):
+        print("Solution is not a dictionary")
+        task.results["system_level_correct"] = False
+        task.results["fault_type_correct"] = False
+        task.results["success"] = False
+        return task.results
+
+    is_sys_level_correct = is_exact_match_lower(
+        soln.get("system_level", ""), "Application"
+    )
+    is_fault_type_correct = is_exact_match_lower(
+        soln.get("fault_type", ""), "Misconfiguration"
+    )
+
+    task.results["system_level_correct"] = is_sys_level_correct
+    task.results["fault_type_correct"] = is_fault_type_correct
+    task.results["success"] = is_sys_level_correct and is_fault_type_correct
+
+    return task.results
+
+
+def evaluate_misconfig_app_mitigation(task) -> bool:
+    """Evaluate mitigation success using pod readiness checks."""
+
+    all_normal = True
+
+    for _ in range(12):  # 5 seconds interval, 12 times, total 1 minute
+        pod_list = task.kubectl.list_pods(task.namespace)
+        for pod in pod_list.items:
+            for container_status in pod.status.container_statuses:
+                if container_status.state.waiting:
+                    reason = container_status.state.waiting.reason
+                    if reason in [
+                        "CrashLoopBackOff",
+                        "Error",
+                        "ImagePullBackOff",
+                        "ErrImagePull",
+                    ]:
+                        print(
+                            f"Container {container_status.name} is in error state: {reason}"
+                        )
+                        all_normal = False
+                elif (
+                    container_status.state.terminated
+                    and container_status.state.terminated.reason != "Completed"
+                ):
+                    print(
+                        f"Container {container_status.name} is terminated with reason: "
+                        f"{container_status.state.terminated.reason}"
+                    )
+                    all_normal = False
+                elif not container_status.ready:
+                    print(f"Container {container_status.name} is not ready")
+                    all_normal = False
+
+            if not all_normal:
+                break
+
+        if not all_normal:
+            break
+
+        sleep(5)
+
+    previous_success = task.results.get("success")
+    task.results["success"] = all_normal if previous_success is None else (
+        previous_success and all_normal
+    )
+
+    return task.results["success"]
+
+
 class MisconfigAppHotelResBaseTask:
     def __init__(self):
         self.app = HotelReservation()
@@ -131,26 +205,7 @@ class MisconfigAppHotelResAnalysis(MisconfigAppHotelResBaseTask, AnalysisTask):
 
     def eval(self, soln: Any, trace: list[SessionItem], duration: float):
         print("== Evaluation ==")
-
-        if not isinstance(soln, dict):
-            print("Solution is not a dictionary")
-            self.results["system_level_correct"] = False
-            self.results["fault_type_correct"] = False
-            self.results["success"] = False
-            super().eval(soln, trace, duration)
-            return self.results
-
-        is_sys_level_correct = is_exact_match_lower(
-            soln.get("system_level", ""), "Application"
-        )
-        is_fault_type_correct = is_exact_match_lower(
-            soln.get("fault_type", ""), "Misconfiguration"
-        )
-
-        self.results["system_level_correct"] = is_sys_level_correct
-        self.results["fault_type_correct"] = is_fault_type_correct
-        self.results["success"] = is_sys_level_correct and is_fault_type_correct
-
+        evaluate_misconfig_app_analysis_solution(self, soln)
         super().eval(soln, trace, duration)
 
         return self.results
@@ -165,34 +220,5 @@ class MisconfigAppHotelResMitigation(MisconfigAppHotelResBaseTask, MitigationTas
     def eval(self, soln: Any, trace: list[SessionItem], duration: float) -> dict:
         print("== Evaluation ==")
         super().eval(soln, trace, duration)
-
-        # Check if all services (not only faulty service) is back to normal (Running)
-        all_normal = True
-        # Polling for 1 minute to check if all services are back to normal
-        for _ in range(12): # 5 seconds interval, 12 times, total 1 minute
-            pod_list = self.kubectl.list_pods(self.namespace)
-            for pod in pod_list.items:
-                # Check container statuses
-                for container_status in pod.status.container_statuses:
-                    if container_status.state.waiting:
-                        reason = container_status.state.waiting.reason
-                        if reason in ["CrashLoopBackOff", "Error", "ImagePullBackOff", "ErrImagePull"]:
-                            print(f"Container {container_status.name} is in error state: {reason}")
-                            all_normal = False
-                    elif container_status.state.terminated and container_status.state.terminated.reason != "Completed":
-                        print(f"Container {container_status.name} is terminated with reason: {container_status.state.terminated.reason}")
-                        all_normal = False
-                    elif not container_status.ready:
-                        print(f"Container {container_status.name} is not ready")
-                        all_normal = False
-
-                if not all_normal:
-                    break
-
-            if not all_normal:
-                break
-            # Wait for 5 seconds before checking again
-            sleep(5) 
-
-        self.results["success"] = all_normal
+        evaluate_misconfig_app_mitigation(self)
         return self.results

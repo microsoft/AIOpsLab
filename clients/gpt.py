@@ -8,6 +8,7 @@ Paper: https://arxiv.org/abs/2303.08774
 """
 import os
 import asyncio
+import argparse
 import tiktoken
 import wandb
 from aiopslab.orchestrator import Orchestrator
@@ -102,16 +103,40 @@ class Agent:
         return {k: v for k, v in dictionary.items() if filter_func(k, v)}
 
 
-if __name__ == "__main__":
+def main():
+    parser = argparse.ArgumentParser(description="Run GPT client on AIOpsLab problems")
+    parser.add_argument(
+        "--problem",
+        help="Specific problem ID to run. If omitted, runs the full registry in order.",
+    )
+    parser.add_argument(
+        "--max-steps",
+        type=int,
+        default=30,
+        help="Maximum number of steps to execute per problem (default: 30)",
+    )
+    args = parser.parse_args()
+
     # Load use_wandb from environment variable with a default of False
     use_wandb = os.getenv("USE_WANDB", "false").lower() == "true"
-    
+
     if use_wandb:
         # Initialize wandb running
         wandb.init(project="AIOpsLab", entity="AIOpsLab")
 
-    problems = ProblemRegistry().PROBLEM_REGISTRY
-    for pid in problems:
+    registry = ProblemRegistry()
+    problems = registry.PROBLEM_REGISTRY
+
+    if args.problem:
+        if args.problem not in problems:
+            raise ValueError(
+                f"Problem ID '{args.problem}' not found. Available IDs: {list(problems.keys())}"
+            )
+        selected = [args.problem]
+    else:
+        selected = list(problems.keys())
+
+    for pid in selected:
         agent = Agent()
 
         orchestrator = Orchestrator()
@@ -119,8 +144,12 @@ if __name__ == "__main__":
 
         problem_desc, instructs, apis = orchestrator.init_problem(pid)
         agent.init_context(problem_desc, instructs, apis)
-        asyncio.run(orchestrator.start_problem(max_steps=30))
+        asyncio.run(orchestrator.start_problem(max_steps=args.max_steps))
 
     if use_wandb:
         # Finish the wandb run
         wandb.finish()
+
+
+if __name__ == "__main__":
+    main()

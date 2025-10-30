@@ -1,0 +1,53 @@
+{
+  "problem_id": "assign_to_non_existent_node_social_net-localization-1",
+  "key_commands": [
+    {
+      "command": "exec_shell(\"kubectl get pods -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 6,
+      "description": "List all pods in the namespace to identify any non-running components, revealing the pending user-service pod.",
+      "sequence_number": 1,
+      "original_command": "exec_shell(\"kubectl get pods -n test-social-network\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl describe pod user-service-<POD_SUFFIX> -n test-social-network\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Inspect the pending pod to see scheduling events indicating node selector/taint issues preventing scheduling.",
+      "sequence_number": 2,
+      "original_command": "exec_shell(\"kubectl describe pod user-service-5b549cc8dc-rsq5r -n test-social-network\")",
+      "placeholders_used": [
+        {
+          "type": "k8s_pod_suffix",
+          "original": "5b549cc8dc-rsq5r",
+          "placeholder": "<POD_SUFFIX>",
+          "position": 46
+        }
+      ]
+    },
+    {
+      "command": "exec_shell(\"kubectl get deploy user-service -n test-social-network -o yaml\")",
+      "type": "probe_command",
+      "importance_score": 9,
+      "description": "Retrieve the Deployment spec to confirm the pod template has a nodeSelector targeting a non-existent node hostname.",
+      "sequence_number": 3,
+      "original_command": "exec_shell(\"kubectl get deploy user-service -n test-social-network -o yaml\")"
+    },
+    {
+      "command": "exec_shell(\"kubectl get nodes --show-labels\")",
+      "type": "probe_command",
+      "importance_score": 8,
+      "description": "List nodes and their labels to verify that no node has the required hostname label and to observe control-plane taint.",
+      "sequence_number": 4,
+      "original_command": "exec_shell(\"kubectl get nodes --show-labels\")"
+    },
+    {
+      "command": "submit([\"user-service\"])",
+      "type": "execute_command",
+      "importance_score": 10,
+      "description": "Submit the identified faulty component responsible for the misconfiguration causing scheduling failure.",
+      "sequence_number": 5,
+      "original_command": "submit([\"user-service\"])"
+    }
+  ]
+}
