@@ -103,7 +103,10 @@ _DEFAULT_SYSTEM_PROMPT = (
 
 
 class ChatCompletionConfig(BaseModel):
-    api_key: str = Field(..., min_length=1, description="API key for the chat completion endpoint.")
+    api_key: Optional[str] = Field(
+        default=None,
+        description="Optional API key for the chat completion endpoint.",
+    )
     model: str = Field(..., min_length=1, description="Model identifier exposed by the chat completion endpoint.")
     base_url: Optional[AnyHttpUrl] = Field(
         default=None,
@@ -264,6 +267,8 @@ class _ActionProvider:
 
 class _OpenAIActionProvider(_ActionProvider):
     def __init__(self, config: ChatCompletionConfig) -> None:
+        if not config.api_key:
+            raise ValueError("ChatCompletionConfig.api_key is required for OpenAI-compatible action provider.")
         headers = dict(config.extra_headers)
         self._client = AsyncOpenAI(
             api_key=config.api_key,
@@ -291,6 +296,61 @@ class _OpenAIActionProvider(_ActionProvider):
         if not content:
             raise RuntimeError("Chat completion response did not include any content.")
         return content.strip()
+
+
+class _HttpActionProvider(_ActionProvider):
+    def __init__(self, config: ChatCompletionConfig) -> None:
+        if config.base_url is None:
+            raise ValueError("base_url must be provided when api_key is omitted.")
+        self._config = config
+        base_url = str(config.base_url).rstrip("/")
+        self._endpoint = f"{base_url}/chat/completions"
+        headers = {"Content-Type": "application/json"}
+        headers.update(config.extra_headers)
+        self._headers = headers
+
+    async def generate(self, messages: Sequence[Dict[str, str]]) -> str:
+        payload: Dict[str, Any] = {
+            "model": self._config.model,
+            "messages": list(messages),
+            "temperature": self._config.temperature,
+            "top_p": self._config.top_p,
+            "max_tokens": self._config.max_tokens,
+            "presence_penalty": self._config.presence_penalty,
+            "frequency_penalty": self._config.frequency_penalty,
+        }
+        if self._config.stop_sequences is not None:
+            payload["stop"] = self._config.stop_sequences
+
+        async with httpx.AsyncClient(timeout=self._config.timeout) as client:
+            response = await client.post(self._endpoint, json=payload, headers=self._headers)
+
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            snippet = response.text[:200]
+            raise RuntimeError(f"Chat completion request failed: {exc.response.status_code} {snippet}") from exc
+
+        try:
+            data = response.json()
+        except ValueError as exc:
+            snippet = response.text[:200]
+            raise RuntimeError(f"Chat completion response was not valid JSON: {snippet}") from exc
+
+        choices = data.get("choices")
+        if not choices:
+            raise RuntimeError("Chat completion response did not contain choices.")
+        choice = choices[0]
+        content = None
+        message = choice.get("message")
+        if isinstance(message, dict):
+            content = message.get("content")
+        if not content:
+            # Some implementations use 'text' instead of structured messages.
+            content = choice.get("text")
+        if not content:
+            raise RuntimeError("Chat completion response did not include any content.")
+        return str(content).strip()
 
 
 @dataclass
@@ -328,7 +388,9 @@ _TRAINING_JOBS_LOCK = asyncio.Lock()
 
 
 def _create_action_provider(config: ChatCompletionConfig) -> _ActionProvider:
-    return _OpenAIActionProvider(config)
+    if config.api_key:
+        return _OpenAIActionProvider(config)
+    return _HttpActionProvider(config)
 
 
 def _create_echo_client(config: EchoServerConfig) -> "_EchoJobClient":
