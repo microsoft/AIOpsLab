@@ -30,6 +30,7 @@ transformers = "^4.49.0"
 fastapi = "^0.115.12"
 groq = "^0.28.0"
 flwr = "^1.19.0"
+httpx = "^0.28.1"
 
 
 [build-system]
