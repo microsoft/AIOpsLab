@@ -29,7 +29,12 @@ class OtelFaultInjector(FaultInjector):
         flagd_data = json.loads(configmap["data"]["demo.flagd.json"])
 
         if feature_flag in flagd_data["flags"]:
-            flagd_data["flags"][feature_flag]["defaultVariant"] = "on"
+            if feature_flag == "paymentFailure":
+                flagd_data["flags"][feature_flag]["defaultVariant"] = "100%"
+            elif feature_flag == "imageSlowLoad":
+                flagd_data["flags"][feature_flag]["defaultVariant"] = "10sec"
+            else:
+                flagd_data["flags"][feature_flag]["defaultVariant"] = "on"
         else:
             raise ValueError(
                 f"Feature flag '{feature_flag}' not found in ConfigMap '{self.configmap_name}'."
