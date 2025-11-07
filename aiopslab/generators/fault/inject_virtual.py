@@ -7,11 +7,9 @@ import yaml
 import time
 
 from aiopslab.service.kubectl import KubeCtl
-from aiopslab.service.helm import Helm
 from aiopslab.service.dock import Docker
 from aiopslab.generators.fault.base import FaultInjector
 from aiopslab.service.apps.base import Application
-from aiopslab.paths import TARGET_MICROSERVICES
 
 
 class VirtualizationFaultInjector(FaultInjector):
@@ -20,9 +18,6 @@ class VirtualizationFaultInjector(FaultInjector):
         self.namespace = namespace
         self.kubectl = KubeCtl()
         self.docker = Docker()
-        self.mongo_service_pod_map = {
-            "url-shorten-mongodb": "url-shorten-service",
-        }
 
     def delete_service_pods(self, target_service_pods: list[str]):
         """Kill the corresponding service pod to enforce the fault."""
@@ -56,83 +51,6 @@ class VirtualizationFaultInjector(FaultInjector):
 
             print(f"Recovering for service: {service} | namespace: {self.testbed}")
             self.kubectl.patch_service(service, self.testbed, service_config)
-
-    # V.2 - auth_miss_mongodb: Authentication missing for MongoDB - Auth
-    def inject_auth_miss_mongodb(self, microservices: list[str]):
-        """Inject a fault to enable TLS for a MongoDB service.
-
-        NOTE: modifies the values.yaml file for the service. The fault is created
-        by forcing the service to require TLS for connections, which will fail if
-        the certificate is not provided.
-
-        NOTE: mode: requireTLS, certificateKeyFile, and CAFile are required fields.
-        """
-        for service in microservices:
-            # Prepare the set values for helm upgrade
-            set_values = {
-                "url-shorten-mongodb.tls.mode": "requireTLS",
-                "url-shorten-mongodb.tls.certificateKeyFile": "/etc/tls/tls.pem",
-                "url-shorten-mongodb.tls.CAFile": "/etc/tls/ca.crt",
-            }
-
-            # Define Helm upgrade configurations
-            helm_args = {
-                "release_name": "social-network",
-                "chart_path": TARGET_MICROSERVICES
-                / "socialNetwork/helm-chart/socialnetwork/",
-                "namespace": self.namespace,
-                "values_file": TARGET_MICROSERVICES
-                / "socialNetwork/helm-chart/socialnetwork/values.yaml",
-                "set_values": set_values,
-            }
-
-            Helm.upgrade(**helm_args)
-
-            pods = self.kubectl.list_pods(self.namespace)
-            target_service_pods = [
-                pod.metadata.name
-                for pod in pods.items
-                if self.mongo_service_pod_map[service] in pod.metadata.name
-            ]
-            print(f"Target Service Pods: {target_service_pods}")
-            self.delete_service_pods(target_service_pods)
-
-            self.kubectl.exec_command(
-                f"kubectl rollout restart deployment {service} -n {self.namespace}"
-            )
-
-    def recover_auth_miss_mongodb(self, microservices: list[str]):
-        for service in microservices:
-            set_values = {
-                "url-shorten-mongodb.tls.mode": "disabled",
-                "url-shorten-mongodb.tls.certificateKeyFile": "",
-                "url-shorten-mongodb.tls.CAFile": "",
-            }
-
-            helm_args = {
-                "release_name": "social-network",
-                "chart_path": TARGET_MICROSERVICES
-                / "socialNetwork/helm-chart/socialnetwork/",
-                "namespace": self.namespace,
-                "values_file": TARGET_MICROSERVICES
-                / "socialNetwork/helm-chart/socialnetwork/values.yaml",
-                "set_values": set_values,
-            }
-
-            Helm.upgrade(**helm_args)
-
-            pods = self.kubectl.list_pods(self.namespace)
-            target_service_pods = [
-                pod.metadata.name
-                for pod in pods.items
-                if self.mongo_service_pod_map[service] in pod.metadata.name
-            ]
-            print(f"Target Service Pods: {target_service_pods}")
-
-            self.delete_service_pods(target_service_pods)
-            self.kubectl.exec_command(
-                f"kubectl rollout restart deployment {service} -n {self.namespace}"
-            )
 
     # V.3 - scale_pods_to_zero: Scale pods to zero - Deploy/Operation
     def inject_scale_pods_to_zero(self, microservices: list[str]):
@@ -348,12 +266,8 @@ class VirtualizationFaultInjector(FaultInjector):
 
 if __name__ == "__main__":
     namespace = "test-social-network"
-    microservices = ["mongodb-geo"]
-    # microservices = ["geo"]
-    fault_type = "auth_miss_mongodb"
-    # fault_type = "misconfig_app"
-    # fault_type = "revoke_auth"
+    microservices = ["user-service"]
+    fault_type = "scale_pods_to_zero"
     print("Start injection ...")
     injector = VirtualizationFaultInjector(namespace)
-    # injector._inject(fault_type, microservices)
-    injector._recover(fault_type, microservices)
+    injector._inject(fault_type, microservices)
