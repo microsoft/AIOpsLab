@@ -34,8 +34,16 @@ def in_tokens(trace: list[SessionItem]) -> int:
 
 
 def is_exact_match(pred: int | str | list, target: int | str | list) -> bool:
-    """Return True if the prediction is an exact match to the target."""
-    return pred == target
+    """Return True if the prediction is an exact match to the target.
+    Also considers ["x"] and "x" as equivalent.
+    """
+    # Normalize both sides to lists for consistent comparison
+    def normalize(value: int | str | list) -> list:
+        if isinstance(value, list):
+            return value
+        return [value]
+    
+    return normalize(pred) == normalize(target)
 
 
 def is_exact_match_lower(pred: str, target: str) -> bool:
