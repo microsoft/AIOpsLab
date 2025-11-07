@@ -2,14 +2,14 @@
 resource "azurerm_virtual_network" "aiopslab_network" {
   name                = "${var.resource_name_prefix}_aiopslabVnet"
   address_space       = ["10.0.0.0/16"]
-  location            = var.resource_location
-  resource_group_name = var.resource_group_name
+  location            = local.resource_location
+  resource_group_name = local.resource_group_name
 }
 
 # Create subnet
 resource "azurerm_subnet" "aiopslab_subnet" {
   name                 = "${var.resource_name_prefix}_aiopslabSubnet"
-  resource_group_name  = var.resource_group_name
+  resource_group_name  = local.resource_group_name
   virtual_network_name = azurerm_virtual_network.aiopslab_network.name
   address_prefixes     = ["10.0.1.0/24"]
 }
@@ -18,14 +18,14 @@ resource "azurerm_subnet" "aiopslab_subnet" {
 resource "azurerm_public_ip" "aiopslab_public_ip_1" {
   name                = "${var.resource_name_prefix}_aiopslabPublicIP_1"
   location            = var.resource_location
-  resource_group_name = var.resource_group_name
+  resource_group_name = local.resource_group_name
   allocation_method   = "Dynamic"
 }
 
 resource "azurerm_public_ip" "aiopslab_public_ip_2" {
   name                = "${var.resource_name_prefix}_aiopslabPublicIP_2"
   location            = var.resource_location
-  resource_group_name = var.resource_group_name
+  resource_group_name = local.resource_group_name
   allocation_method   = "Dynamic"
 }
 
@@ -33,7 +33,7 @@ resource "azurerm_public_ip" "aiopslab_public_ip_2" {
 resource "azurerm_network_security_group" "aiopslab_nsg_1" {
   name                = "${var.resource_name_prefix}_aiopslabNSG_1"
   location            = var.resource_location
-  resource_group_name = var.resource_group_name
+  resource_group_name = local.resource_group_name
 
   security_rule {
     name                       = "SSH"
@@ -51,7 +51,7 @@ resource "azurerm_network_security_group" "aiopslab_nsg_1" {
 resource "azurerm_network_security_group" "aiopslab_nsg_2" {
   name                = "${var.resource_name_prefix}_aiopslabNSG_2"
   location            = var.resource_location
-  resource_group_name = var.resource_group_name
+  resource_group_name = local.resource_group_name
 
   security_rule {
     name                       = "SSH"
@@ -70,7 +70,7 @@ resource "azurerm_network_security_group" "aiopslab_nsg_2" {
 resource "azurerm_network_interface" "aiopslab_nic_1" {
   name                = "${var.resource_name_prefix}_aiopslabNIC_1"
   location            = var.resource_location
-  resource_group_name = var.resource_group_name
+  resource_group_name = local.resource_group_name
 
   ip_configuration {
     name                          = "${var.resource_name_prefix}_aioplabNICConfiguration_1"
@@ -83,7 +83,7 @@ resource "azurerm_network_interface" "aiopslab_nic_1" {
 resource "azurerm_network_interface" "aiopslab_nic_2" {
   name                = "${var.resource_name_prefix}_aiopslabNIC_2"
   location            = var.resource_location
-  resource_group_name = var.resource_group_name
+  resource_group_name = local.resource_group_name
 
   ip_configuration {
     name                          = "${var.resource_name_prefix}_aioplabNICConfiguration_2"

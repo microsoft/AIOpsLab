@@ -1,0 +1,21 @@
+# AIOpsLab Deployment Configuration Template
+# Copy this file to config.yml and customize for your deployment
+
+# Azure Resource Configuration
+resource_group_name: "my-aiopslab-rg"
+resource_name_prefix: "aiopslab"
+resource_location: "westus2"
+create_resource_group: false  # Set to true to create a new resource group
+subscription_id: ""  # Optional: specify subscription ID if needed
+
+# VM Configuration
+username: "azureuser"
+
+# Deployment Settings
+ansible_inventory_file: "inventory_generated.yml"
+ssh_timeout: 300
+provisioning_timeout: 1200
+
+# Optional: Override default VM sizes or other settings
+# vm_size_controller: "Standard_D4s_v3"
+# vm_size_worker: "Standard_F16s_v2"
