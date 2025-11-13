@@ -6,13 +6,19 @@
 import time
 from aiopslab.generators.fault.base import FaultInjector
 from aiopslab.service.kubectl import KubeCtl
+from aiopslab.service.helm import Helm
+from aiopslab.paths import TARGET_MICROSERVICES
 
 
 class ApplicationFaultInjector(FaultInjector):
     def __init__(self, namespace: str):
         self.namespace = namespace
         self.kubectl = KubeCtl()
-        self.mongo_service_pod_map = {"mongodb-rate": "rate", "mongodb-geo": "geo"}
+        self.mongo_service_pod_map = {
+            "mongodb-rate": "rate",
+            "mongodb-geo": "geo",
+            "url-shorten-mongodb": "url-shorten-service",
+        }
 
     def delete_service_pods(self, target_service_pods: list[str]):
         """Kill the corresponding service pod to enforce the fault."""
@@ -163,8 +169,95 @@ class ApplicationFaultInjector(FaultInjector):
             if deployment:
                 for container in deployment.spec.template.spec.containers:
                     if container.name == f"hotel-reserv-{service}":
-                        container.image = f"yinfangchen/hotelreservation:latest"
+                        container.image = "yinfangchen/hotelreservation:latest"
                 self.kubectl.update_deployment(service, self.namespace, deployment)
+
+    # A.4 - auth_miss_mongodb: Authentication missing for MongoDB - Auth
+    def inject_auth_miss_mongodb(self, microservices: list[str]):
+        """Inject a fault to require TLS for MongoDB, breaking app connections."""
+        for service in microservices:
+            set_values = {
+                "url-shorten-mongodb.tls.mode": "requireTLS",
+                "url-shorten-mongodb.tls.certificateKeyFile": "/etc/tls/tls.pem",
+                "url-shorten-mongodb.tls.CAFile": "/etc/tls/ca.crt",
+            }
+
+            helm_args = {
+                "release_name": "social-network",
+                "chart_path": TARGET_MICROSERVICES
+                / "socialNetwork/helm-chart/socialnetwork/",
+                "namespace": self.namespace,
+                "values_file": TARGET_MICROSERVICES
+                / "socialNetwork/helm-chart/socialnetwork/values.yaml",
+                "set_values": set_values,
+            }
+
+            Helm.upgrade(**helm_args)
+
+            pods = self.kubectl.list_pods(self.namespace)
+            service_label = self.mongo_service_pod_map.get(service)
+            if not service_label:
+                print(
+                    f"Unknown service mapping for {service}; skipping pod restart enforcement."
+                )
+                continue
+
+            target_service_pods = [
+                pod.metadata.name
+                for pod in pods.items
+                if service_label in pod.metadata.name
+            ]
+            print(f"Target Service Pods: {target_service_pods}")
+            self.delete_service_pods(target_service_pods)
+
+            self.kubectl.exec_command(
+                f"kubectl rollout restart deployment {service} -n {self.namespace}"
+            )
+
+    def recover_auth_miss_mongodb(self, microservices: list[str]):
+        for service in microservices:
+            if service != "url-shorten-mongodb":
+                print(
+                    f"Skipping auth_miss_mongodb recovery for non-supported service {service}."
+                )
+                continue
+            set_values = {
+                "url-shorten-mongodb.tls.mode": "disabled",
+                "url-shorten-mongodb.tls.certificateKeyFile": "",
+                "url-shorten-mongodb.tls.CAFile": "",
+            }
+
+            helm_args = {
+                "release_name": "social-network",
+                "chart_path": TARGET_MICROSERVICES
+                / "socialNetwork/helm-chart/socialnetwork/",
+                "namespace": self.namespace,
+                "values_file": TARGET_MICROSERVICES
+                / "socialNetwork/helm-chart/socialnetwork/values.yaml",
+                "set_values": set_values,
+            }
+
+            Helm.upgrade(**helm_args)
+
+            pods = self.kubectl.list_pods(self.namespace)
+            service_label = self.mongo_service_pod_map.get(service)
+            if not service_label:
+                print(
+                    f"Unknown service mapping for {service}; skipping pod restart enforcement."
+                )
+                continue
+
+            target_service_pods = [
+                pod.metadata.name
+                for pod in pods.items
+                if service_label in pod.metadata.name
+            ]
+            print(f"Target Service Pods: {target_service_pods}")
+
+            self.delete_service_pods(target_service_pods)
+            self.kubectl.exec_command(
+                f"kubectl rollout restart deployment {service} -n {self.namespace}"
+            )
 
 
 if __name__ == "__main__":

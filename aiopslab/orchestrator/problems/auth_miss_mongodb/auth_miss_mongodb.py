@@ -10,7 +10,7 @@ from aiopslab.orchestrator.evaluators.quantitative import is_exact_match, is_sub
 from aiopslab.service.kubectl import KubeCtl
 from aiopslab.service.apps.socialnet import SocialNetwork
 from aiopslab.generators.workload.wrk import Wrk
-from aiopslab.generators.fault.inject_virtual import VirtualizationFaultInjector
+from aiopslab.generators.fault.inject_app import ApplicationFaultInjector
 from aiopslab.session import SessionItem
 from aiopslab.paths import TARGET_MICROSERVICES
 
@@ -40,7 +40,7 @@ class MongoDBAuthMissingBaseTask:
 
     def inject_fault(self):
         print("== Fault Injection ==")
-        injector = VirtualizationFaultInjector(namespace=self.namespace)
+        injector = ApplicationFaultInjector(namespace=self.namespace)
         injector._inject(
             fault_type="auth_miss_mongodb",
             microservices=[self.faulty_service],
@@ -49,7 +49,7 @@ class MongoDBAuthMissingBaseTask:
 
     def recover_fault(self):
         print("== Fault Recovery ==")
-        injector = VirtualizationFaultInjector(namespace=self.namespace)
+        injector = ApplicationFaultInjector(namespace=self.namespace)
         injector._recover(
             fault_type="auth_miss_mongodb",
             microservices=[self.faulty_service],
@@ -134,7 +134,7 @@ class MongoDBAuthMissingAnalysis(MongoDBAuthMissingBaseTask, AnalysisTask):
         # Ensure soln is a dictionary
         if isinstance(soln, dict):
             # Expected solution
-            expected_system_level = "Virtualization"
+            expected_system_level = "Application"
             expected_fault_type = "Misconfiguration"
 
             provided_system_level = soln.get("system_level", "").strip().lower()
