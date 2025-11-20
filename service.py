@@ -315,10 +315,20 @@ def step_rl_environment(
         "environment": env_metadata,
     }
 
-    state_value = observation.get("state") if isinstance(observation, dict) else observation
-    actions_left = 0
     if isinstance(observation, dict):
+        # Step 0 should surface the full default prompt; later steps should return
+        # what the environment/terminal displayed for the last action.
+        if step == 0:
+            state_value = observation.get("state")
+        else:
+            terminal_output = observation.get("last_response")
+            if terminal_output is None and isinstance(info, dict):
+                terminal_output = info.get("raw_response")
+            state_value = terminal_output if terminal_output is not None else observation.get("state")
         actions_left = observation.get("actions_left", 0)
+    else:
+        state_value = observation
+        actions_left = 0
 
     return RLEnvironmentStep(
         state=state_value,
