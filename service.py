@@ -88,6 +88,7 @@ class RLEnvironmentStep:
 
 _RL_ENVIRONMENTS: Dict[str, _ManagedRLEnvironment] = {}
 _RL_ENV_LOCK = Lock()
+_RL_SETUP_LOCK = Lock()
 
 
 def _create_rl_environment(
@@ -218,18 +219,40 @@ def reset_rl_environment(
     max_steps: Optional[int] = None,
     reward_config: "RewardConfig" | None = None,
     ground_truth_dir: Optional[os.PathLike[str] | str] = None,
+    env_id: Optional[str] = None,
 ) -> RLEnvironmentHandle:
     """Create and reset a managed RL environment for the requested problem."""
 
-    env = _create_rl_environment(
-        max_steps=max_steps,
-        reward_config=reward_config,
-        ground_truth_dir=ground_truth_dir,
-    )
-    try:
-        observation, info = env.reset(problem_id)
-    except Exception as exc:  # pragma: no cover - defensive path
-        raise RLEnvironmentError(f"Failed to reset environment: {exc}") from exc
+    if env_id is not None:
+        managed = _get_managed_env(env_id)
+        env = managed.env
+        if max_steps is not None:
+            env.max_steps = max_steps
+        if reward_config is not None:
+            env.reward_config = reward_config
+
+        with _RL_SETUP_LOCK:
+            try:
+                observation, info = env.reset(problem_id, max_steps=max_steps)
+            except Exception as exc:
+                raise RLEnvironmentError(f"Failed to reset environment: {exc}") from exc
+        
+        managed.initial_observation = observation
+        managed.initial_info = info
+        managed.done = False
+        
+        return RLEnvironmentHandle(env_id=env_id)
+
+    with _RL_SETUP_LOCK:
+        env = _create_rl_environment(
+            max_steps=max_steps,
+            reward_config=reward_config,
+            ground_truth_dir=ground_truth_dir,
+        )
+        try:
+            observation, info = env.reset(problem_id)
+        except Exception as exc:  # pragma: no cover - defensive path
+            raise RLEnvironmentError(f"Failed to reset environment: {exc}") from exc
 
     env_id = uuid4().hex
     managed = _ManagedRLEnvironment(
@@ -280,13 +303,9 @@ def step_rl_environment(
 
         managed.done = done_flag
         done = done_flag
-        if done_flag:
-            try:
-                env.close()
-            finally:
-                with _RL_ENV_LOCK:
-                    _RL_ENVIRONMENTS.pop(env_id, None)
-        else:
+        # We no longer automatically close the environment when done.
+        # The client is responsible for calling close_rl_environment (or reusing it).
+        if not done_flag:
             with _RL_ENV_LOCK:
                 _RL_ENVIRONMENTS[env_id] = managed
 
@@ -352,7 +371,8 @@ def close_rl_environment(env_id: str) -> None:
     managed = _get_managed_env(env_id)
 
     try:
-        managed.env.close()
+        with _RL_SETUP_LOCK:
+            managed.env.close()
     finally:
         managed.done = True
         with _RL_ENV_LOCK:
