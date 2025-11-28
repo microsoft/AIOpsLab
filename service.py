@@ -231,17 +231,28 @@ def reset_rl_environment(
         if reward_config is not None:
             env.reward_config = reward_config
 
+        # Generate a unique namespace for this environment to avoid collisions
+        unique_ns = f"ns-{env_id}"[:63]  # K8s namespaces have length limits
+        os.environ["AIOPSLAB_TARGET_NAMESPACE"] = unique_ns
+        
         with _RL_SETUP_LOCK:
             try:
                 observation, info = env.reset(problem_id, max_steps=max_steps)
             except Exception as exc:
                 raise RLEnvironmentError(f"Failed to reset environment: {exc}") from exc
+            finally:
+                # Clean up the env var so it doesn't leak
+                os.environ.pop("AIOPSLAB_TARGET_NAMESPACE", None)
         
         managed.initial_observation = observation
         managed.initial_info = info
         managed.done = False
         
         return RLEnvironmentHandle(env_id=env_id)
+
+    env_id = uuid4().hex
+    unique_ns = f"ns-{env_id}"[:63]
+    os.environ["AIOPSLAB_TARGET_NAMESPACE"] = unique_ns
 
     with _RL_SETUP_LOCK:
         env = _create_rl_environment(
@@ -253,8 +264,9 @@ def reset_rl_environment(
             observation, info = env.reset(problem_id)
         except Exception as exc:  # pragma: no cover - defensive path
             raise RLEnvironmentError(f"Failed to reset environment: {exc}") from exc
+        finally:
+            os.environ.pop("AIOPSLAB_TARGET_NAMESPACE", None)
 
-    env_id = uuid4().hex
     managed = _ManagedRLEnvironment(
         env=env,
         initial_observation=observation,

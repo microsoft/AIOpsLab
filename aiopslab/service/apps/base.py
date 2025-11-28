@@ -22,13 +22,25 @@ class Application:
 
         # NOTE: override this method to load additional attributes!
         """
+        import os
+        
         with open(self.config_file, "r") as file:
             metadata = json.load(file)
 
         self.name = metadata["Name"]
-        self.namespace = metadata["Namespace"]
+        
+        # Allow overriding the namespace via environment variable
+        override_ns = os.environ.get("AIOPSLAB_TARGET_NAMESPACE")
+        if override_ns:
+            self.namespace = override_ns
+        else:
+            self.namespace = metadata["Namespace"]
+            
         if "Helm Config" in metadata:
             self.helm_configs = metadata["Helm Config"]
+            if override_ns:
+                self.helm_configs["namespace"] = override_ns
+                
             chart_path = self.helm_configs.get("chart_path")
             
             if chart_path and not self.helm_configs.get("remote_chart", False):

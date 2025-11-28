@@ -86,9 +86,9 @@ class HotelReservation(Application):
         """Delete the entire namespace for the hotel reservation application."""
         self.kubectl.delete_namespace(self.namespace)
         time.sleep(10)
-        pvs = self.kubectl.exec_command(
-            "kubectl get pv --no-headers | grep 'test-hotel-reservation' | awk '{print $1}'"
-        ).splitlines()
+        # Use the dynamic namespace for filtering PVs
+        cmd = f"kubectl get pv --no-headers | grep '{self.namespace}' | awk '{{print $1}}'"
+        pvs = self.kubectl.exec_command(cmd).splitlines()
 
         for pv in pvs:
             # Check if the PV is in a 'Terminating' state and remove the finalizers if necessary
