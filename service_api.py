@@ -37,6 +37,13 @@ app = FastAPI(
 )
 
 
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Starting AIOpsLab RL Environment API...")
+    logger.info("Service initialized and ready to accept connections.")
+    logger.info("Available endpoints: /rl/reset, /rl/{env_id}/step, /rl/{env_id}")
+
+
 class RewardConfigPayload(BaseModel):
     success: Optional[float] = None
     invalid_submission: Optional[float] = None
