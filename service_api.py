@@ -590,16 +590,28 @@ async def _run_single_episode(
     semaphore: asyncio.Semaphore,
 ) -> JobRunResult:
     async with semaphore:
+        logger.info(f"Starting episode {run_index} for problem {problem.problem_id}")
         reward_config = _build_reward_config(problem.reward_config)
-        handle = await asyncio.to_thread(
-            service.reset_rl_environment,
-            problem.problem_id,
-            max_steps=problem.max_steps,
-            reward_config=reward_config,
-            ground_truth_dir=problem.ground_truth_dir,
-        )
+        
+        logger.info(f"Resetting RL environment for {problem.problem_id}...")
+        start_time = asyncio.get_event_loop().time()
+        try:
+            handle = await asyncio.to_thread(
+                service.reset_rl_environment,
+                problem.problem_id,
+                max_steps=problem.max_steps,
+                reward_config=reward_config,
+                ground_truth_dir=problem.ground_truth_dir,
+            )
+            end_time = asyncio.get_event_loop().time()
+            logger.info(f"Environment reset complete for {problem.problem_id} (took {end_time - start_time:.2f}s). Env ID: {handle.env_id}")
+        except Exception as e:
+            logger.error(f"Failed to reset environment for {problem.problem_id}: {e}")
+            raise e
+
         env_id = handle.env_id
         try:
+            logger.info(f"Getting initial state for Env ID: {env_id}")
             observation, info = await asyncio.to_thread(service.get_rl_environment_state, env_id)
             if not isinstance(observation, dict):
                 observation = {"state": observation}
@@ -616,6 +628,7 @@ async def _run_single_episode(
                 {"role": "user", "content": _format_observation_message(observation, info)},
             ]
 
+            logger.info(f"Posting run_started event to Echo for Env ID: {env_id}")
             start_error = await _post_echo_event(
                 job,
                 {
@@ -625,7 +638,10 @@ async def _run_single_episode(
                 },
             )
             if start_error:
+                logger.error(f"Failed to post run_started for {env_id}: {start_error}")
                 job.echo_failures += 1
+            else:
+                logger.info(f"Successfully posted run_started for {env_id}")
 
             action_provider = _create_action_provider(job.request.chat)
 
@@ -635,9 +651,19 @@ async def _run_single_episode(
             max_steps = problem.max_steps or observation.get("actions_left") or 30
 
             while not done and step_index < max_steps:
-                llm_message = await action_provider.generate(list(conversation))
+                logger.info(f"Env {env_id} | Step {step_index + 1}/{max_steps} | Requesting LLM action...")
+                try:
+                    llm_message = await action_provider.generate(list(conversation))
+                    logger.info(f"Env {env_id} | Step {step_index + 1} | LLM Response received: {llm_message[:100]}...")
+                except Exception as e:
+                    logger.error(f"Env {env_id} | Step {step_index + 1} | LLM generation failed: {e}")
+                    raise e
+
                 action_text = _extract_action_text(llm_message)
                 step_index += 1
+                
+                logger.info(f"Env {env_id} | Step {step_index} | Executing action: {action_text}")
+                step_start = asyncio.get_event_loop().time()
                 step_result = await asyncio.to_thread(
                     service.step_rl_environment,
                     env_id,
@@ -646,12 +672,17 @@ async def _run_single_episode(
                     llm_response=llm_message,
                     llm_raw_response=llm_message,
                 )
+                step_end = asyncio.get_event_loop().time()
+                logger.info(f"Env {env_id} | Step {step_index} | Execution complete ({step_end - step_start:.2f}s). Reward: {step_result.reward}")
 
                 total_reward += step_result.reward
                 done_flag = False
                 if isinstance(step_result.info, dict):
                     done_flag = step_result.info.get("environment", {}).get("done", False)
                 done = done_flag or step_result.actions_left <= 0
+                
+                if done:
+                    logger.info(f"Env {env_id} | Episode finished. Total Reward: {total_reward}")
 
                 steps.append(
                     JobRunStep(
@@ -679,6 +710,7 @@ async def _run_single_episode(
                 done=done,
             )
 
+            logger.info(f"Posting run_finished event to Echo for Env ID: {env_id}")
             echo_error = await _post_echo_event(
                 job,
                 {
@@ -689,21 +721,30 @@ async def _run_single_episode(
                 },
             )
             if echo_error:
+                logger.error(f"Failed to post run_finished for {env_id}: {echo_error}")
                 job.echo_failures += 1
                 run_result.echo_post_status = f"error: {echo_error}"
             else:
+                logger.info(f"Successfully posted run_finished for {env_id}")
                 run_result.echo_post_status = "ok"
 
             return run_result
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error in episode loop for {env_id}: {e}")
             try:
                 await asyncio.to_thread(service.close_rl_environment, env_id)
+                logger.info(f"Closed environment {env_id} after error.")
             except service.RLEnvironmentNotFoundError:
                 pass
             raise
         finally:
             try:
+                # Note: In reuse mode, we might not want to close here, but the current logic
+                # in service_api.py implies "run_single_episode" owns the lifecycle unless modified.
+                # The user previously asked for reuse, but the API layer creates a fresh one per episode 
+                # unless we pass env_id. Here we are creating fresh ones.
                 await asyncio.to_thread(service.close_rl_environment, env_id)
+                logger.info(f"Closed environment {env_id} (cleanup).")
             except service.RLEnvironmentNotFoundError:
                 pass
 
