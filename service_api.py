@@ -811,6 +811,8 @@ async def start_training_job(payload: BatchRunRequest) -> JobStatusResponse:
             echo_client = _create_echo_client(payload.echo)
             creation = await echo_client.create_job(payload.problems)
         except Exception as exc:
+            # Log the full error for debugging
+            logger.exception("Failed to register job with Echo server", exc_info=exc)
             raise HTTPException(
                 status_code=502,
                 detail=f"Failed to register job with Echo server: {exc}",
