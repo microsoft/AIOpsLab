@@ -88,7 +88,6 @@ class RLEnvironmentStep:
 
 _RL_ENVIRONMENTS: Dict[str, _ManagedRLEnvironment] = {}
 _RL_ENV_LOCK = Lock()
-_RL_SETUP_LOCK = Lock()
 
 
 def _create_rl_environment(
@@ -222,6 +221,8 @@ def reset_rl_environment(
     env_id: Optional[str] = None,
 ) -> RLEnvironmentHandle:
     """Create and reset a managed RL environment for the requested problem."""
+    # Import here to set thread-local in base.py
+    from aiopslab.service.apps import base as apps_base
 
     if env_id is not None:
         managed = _get_managed_env(env_id)
@@ -231,18 +232,17 @@ def reset_rl_environment(
         if reward_config is not None:
             env.reward_config = reward_config
 
-        # Generate a unique namespace for this environment to avoid collisions
-        unique_ns = f"ns-{env_id}"[:63]  # K8s namespaces have length limits
-        os.environ["AIOPSLAB_TARGET_NAMESPACE"] = unique_ns
+        # Set namespace in thread-local storage for this thread
+        unique_ns = f"ns-{env_id}"[:63]
+        apps_base._thread_local.target_namespace = unique_ns
         
-        with _RL_SETUP_LOCK:
-            try:
-                observation, info = env.reset(problem_id, max_steps=max_steps)
-            except Exception as exc:
-                raise RLEnvironmentError(f"Failed to reset environment: {exc}") from exc
-            finally:
-                # Clean up the env var so it doesn't leak
-                os.environ.pop("AIOPSLAB_TARGET_NAMESPACE", None)
+        try:
+            observation, info = env.reset(problem_id, max_steps=max_steps)
+        except Exception as exc:
+            raise RLEnvironmentError(f"Failed to reset environment: {exc}") from exc
+        finally:
+            # Clean up thread-local
+            apps_base._thread_local.target_namespace = None
         
         managed.initial_observation = observation
         managed.initial_info = info
@@ -252,20 +252,22 @@ def reset_rl_environment(
 
     env_id = uuid4().hex
     unique_ns = f"ns-{env_id}"[:63]
-    os.environ["AIOPSLAB_TARGET_NAMESPACE"] = unique_ns
+    
+    # Set namespace in thread-local storage for this thread
+    apps_base._thread_local.target_namespace = unique_ns
 
-    with _RL_SETUP_LOCK:
-        env = _create_rl_environment(
-            max_steps=max_steps,
-            reward_config=reward_config,
-            ground_truth_dir=ground_truth_dir,
-        )
-        try:
-            observation, info = env.reset(problem_id)
-        except Exception as exc:  # pragma: no cover - defensive path
-            raise RLEnvironmentError(f"Failed to reset environment: {exc}") from exc
-        finally:
-            os.environ.pop("AIOPSLAB_TARGET_NAMESPACE", None)
+    env = _create_rl_environment(
+        max_steps=max_steps,
+        reward_config=reward_config,
+        ground_truth_dir=ground_truth_dir,
+    )
+    try:
+        observation, info = env.reset(problem_id)
+    except Exception as exc:  # pragma: no cover - defensive path
+        raise RLEnvironmentError(f"Failed to reset environment: {exc}") from exc
+    finally:
+        # Clean up thread-local
+        apps_base._thread_local.target_namespace = None
 
     managed = _ManagedRLEnvironment(
         env=env,
@@ -383,8 +385,7 @@ def close_rl_environment(env_id: str) -> None:
     managed = _get_managed_env(env_id)
 
     try:
-        with _RL_SETUP_LOCK:
-            managed.env.close()
+        managed.env.close()
     finally:
         managed.done = True
         with _RL_ENV_LOCK:

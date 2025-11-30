@@ -2,7 +2,23 @@
 # Licensed under the MIT License.
 
 import json
+import os
+import threading
+from typing import Optional
 from aiopslab.paths import TARGET_MICROSERVICES
+
+# Thread-local storage for namespace (set by service.py for concurrent resets)
+_thread_local = threading.local()
+
+
+def get_target_namespace() -> Optional[str]:
+    """Get the target namespace from thread-local storage or environment."""
+    # First check thread-local (preferred for concurrency)
+    ns = getattr(_thread_local, 'target_namespace', None)
+    if ns:
+        return ns
+    # Fall back to environment variable
+    return os.environ.get("AIOPSLAB_TARGET_NAMESPACE")
 
 
 class Application:
@@ -22,15 +38,13 @@ class Application:
 
         # NOTE: override this method to load additional attributes!
         """
-        import os
-        
         with open(self.config_file, "r") as file:
             metadata = json.load(file)
 
         self.name = metadata["Name"]
         
-        # Allow overriding the namespace via environment variable
-        override_ns = os.environ.get("AIOPSLAB_TARGET_NAMESPACE")
+        # Allow overriding the namespace via thread-local or environment variable
+        override_ns = get_target_namespace()
         if override_ns:
             self.namespace = override_ns
         else:
