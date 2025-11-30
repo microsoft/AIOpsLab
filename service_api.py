@@ -10,10 +10,14 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 import asyncio
+import atexit
+import functools
 import json
 import logging
+import os
 import re
-from typing import Any, Dict, List, Literal, Optional, Sequence
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Callable, Dict, List, Literal, Optional, Sequence, TypeVar
 from uuid import uuid4
 
 import httpx
@@ -24,6 +28,8 @@ from pydantic import BaseModel, Field
 from pydantic import AnyHttpUrl
 
 import service
+
+T = TypeVar("T")
 
 
 app = FastAPI(
@@ -42,6 +48,16 @@ async def startup_event():
     logger.info("Starting AIOpsLab RL Environment API...")
     logger.info("Service initialized and ready to accept connections.")
     logger.info("Available endpoints: /rl/reset, /rl/{env_id}/step, /rl/{env_id}")
+    logger.info(
+        "Blocking executor configured with %s worker threads.",
+        _BLOCKING_POOL_SIZE,
+    )
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("Shutting down blocking executor...")
+    _shutdown_blocking_executor(wait=True)
 
 
 class RewardConfigPayload(BaseModel):
@@ -107,6 +123,31 @@ if not logger.handlers:
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
+
+_DEFAULT_POOL_SIZE = max(32, (os.cpu_count() or 4) * 4)
+_BLOCKING_POOL_SIZE = int(
+    os.getenv("AIOPSLAB_BLOCKING_POOL_SIZE", str(_DEFAULT_POOL_SIZE))
+)
+_BLOCKING_EXECUTOR = ThreadPoolExecutor(max_workers=_BLOCKING_POOL_SIZE)
+_BLOCKING_EXECUTOR_SHUTDOWN = False
+
+
+def _shutdown_blocking_executor(wait: bool = False) -> None:
+    global _BLOCKING_EXECUTOR_SHUTDOWN
+    if _BLOCKING_EXECUTOR_SHUTDOWN:
+        return
+    _BLOCKING_EXECUTOR.shutdown(wait=wait)
+    _BLOCKING_EXECUTOR_SHUTDOWN = True
+
+
+atexit.register(_shutdown_blocking_executor, False)
+
+
+async def _run_blocking(func: Callable[..., T], /, *args, **kwargs) -> T:
+    """Run a blocking callable in the shared executor to avoid starving asyncio workers."""
+    loop = asyncio.get_running_loop()
+    bound = functools.partial(func, *args, **kwargs)
+    return await loop.run_in_executor(_BLOCKING_EXECUTOR, bound)
 
 
 _DEFAULT_SYSTEM_PROMPT = (
@@ -368,6 +409,24 @@ class _HttpActionProvider(_ActionProvider):
 
 
 @dataclass
+class CachedEnvironment:
+    env_id: str
+    problem_id: str
+    dirty: bool = False
+    in_use: bool = False
+
+
+def _env_flag(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.lower() in {"1", "true", "yes", "on"}
+
+
+_ENABLE_ENV_REUSE = _env_flag("AIOPSLAB_ENABLE_ENV_REUSE", False)
+
+
+@dataclass
 class _TrainingJob:
     job_id: str
     request: BatchRunRequest
@@ -381,6 +440,7 @@ class _TrainingJob:
     task: Optional[asyncio.Task] = None
     echo_client: Optional[_EchoJobClient] = None
     echo_job_id: Optional[str] = None
+    env_cache: Dict[str, List[CachedEnvironment]] = field(default_factory=dict)
 
     def status_payload(self) -> JobStatusResponse:
         return JobStatusResponse(
@@ -589,6 +649,9 @@ async def _run_training_job(job: _TrainingJob) -> None:
         if err:
             job.echo_failures += 1
 
+    if _ENABLE_ENV_REUSE:
+        await _cleanup_reusable_environments(job)
+
 
 async def _run_single_episode(
     job: _TrainingJob,
@@ -599,27 +662,44 @@ async def _run_single_episode(
     async with semaphore:
         logger.info(f"Starting episode {run_index} for problem {problem.problem_id}")
         reward_config = _build_reward_config(problem.reward_config)
-        
+        reuse_env = _ENABLE_ENV_REUSE
+        cached_env: Optional[CachedEnvironment] = None
+        if reuse_env:
+            cached_env = _acquire_cached_environment(job, problem.problem_id)
+
         logger.info(f"Resetting RL environment for {problem.problem_id}...")
         start_time = asyncio.get_event_loop().time()
         try:
-            handle = await asyncio.to_thread(
+            handle = await _run_blocking(
                 service.reset_rl_environment,
                 problem.problem_id,
                 max_steps=problem.max_steps,
                 reward_config=reward_config,
                 ground_truth_dir=problem.ground_truth_dir,
+                env_id=cached_env.env_id if cached_env else None,
             )
+            if cached_env is None and reuse_env:
+                cached_env = _register_cached_environment(job, problem.problem_id, handle.env_id)
             end_time = asyncio.get_event_loop().time()
-            logger.info(f"Environment reset complete for {problem.problem_id} (took {end_time - start_time:.2f}s). Env ID: {handle.env_id}")
+            logger.info(
+                f"Environment reset complete for {problem.problem_id} (took {end_time - start_time:.2f}s). Env ID: {handle.env_id}"
+            )
         except Exception as e:
             logger.error(f"Failed to reset environment for {problem.problem_id}: {e}")
+            if reuse_env and cached_env:
+                cached_env.dirty = True
+                cached_env.in_use = False
+                try:
+                    await _run_blocking(service.close_rl_environment, cached_env.env_id)
+                except service.RLEnvironmentNotFoundError:
+                    pass
+                _remove_cached_environment(job, cached_env)
             raise e
 
         env_id = handle.env_id
         try:
             logger.info(f"Getting initial state for Env ID: {env_id}")
-            observation, info = await asyncio.to_thread(service.get_rl_environment_state, env_id)
+            observation, info = await _run_blocking(service.get_rl_environment_state, env_id)
             if not isinstance(observation, dict):
                 observation = {"state": observation}
             if not isinstance(info, dict):
@@ -671,7 +751,7 @@ async def _run_single_episode(
                 
                 logger.info(f"Env {env_id} | Step {step_index} | Executing action: {action_text}")
                 step_start = asyncio.get_event_loop().time()
-                step_result = await asyncio.to_thread(
+                step_result = await _run_blocking(
                     service.step_rl_environment,
                     env_id,
                     step=step_index,
@@ -738,22 +818,34 @@ async def _run_single_episode(
             return run_result
         except Exception as e:
             logger.error(f"Error in episode loop for {env_id}: {e}")
+            if reuse_env and cached_env:
+                cached_env.dirty = True
+                cached_env.in_use = False
+                _remove_cached_environment(job, cached_env)
             try:
-                await asyncio.to_thread(service.close_rl_environment, env_id)
+                await _run_blocking(service.close_rl_environment, env_id)
                 logger.info(f"Closed environment {env_id} after error.")
             except service.RLEnvironmentNotFoundError:
                 pass
             raise
         finally:
-            try:
-                # Note: In reuse mode, we might not want to close here, but the current logic
-                # in service_api.py implies "run_single_episode" owns the lifecycle unless modified.
-                # The user previously asked for reuse, but the API layer creates a fresh one per episode 
-                # unless we pass env_id. Here we are creating fresh ones.
-                await asyncio.to_thread(service.close_rl_environment, env_id)
-                logger.info(f"Closed environment {env_id} (cleanup).")
-            except service.RLEnvironmentNotFoundError:
-                pass
+            if reuse_env:
+                if cached_env:
+                    if cached_env.dirty:
+                        try:
+                            await _run_blocking(service.close_rl_environment, env_id)
+                            logger.info(f"Closed environment {env_id} (cleanup, dirty).")
+                        except service.RLEnvironmentNotFoundError:
+                            pass
+                        _remove_cached_environment(job, cached_env)
+                    else:
+                        cached_env.in_use = False
+            else:
+                try:
+                    await _run_blocking(service.close_rl_environment, env_id)
+                    logger.info(f"Closed environment {env_id} (cleanup).")
+                except service.RLEnvironmentNotFoundError:
+                    pass
 
 
 @app.get("/health")
@@ -795,6 +887,47 @@ def _handle_service_error(exc: Exception) -> HTTPException:
     if isinstance(exc, (service.RLEnvironmentError, ValueError)):
         return HTTPException(status_code=400, detail=str(exc))
     return HTTPException(status_code=500, detail=str(exc))
+
+
+def _acquire_cached_environment(job: _TrainingJob, problem_id: str) -> Optional[CachedEnvironment]:
+    entries = job.env_cache.get(problem_id)
+    if not entries:
+        return None
+    for entry in entries:
+        if not entry.in_use and not entry.dirty:
+            entry.in_use = True
+            return entry
+    return None
+
+
+def _register_cached_environment(job: _TrainingJob, problem_id: str, env_id: str) -> CachedEnvironment:
+    cached = CachedEnvironment(env_id=env_id, problem_id=problem_id, in_use=True)
+    job.env_cache.setdefault(problem_id, []).append(cached)
+    return cached
+
+
+def _remove_cached_environment(job: _TrainingJob, cached_env: CachedEnvironment) -> None:
+    entries = job.env_cache.get(cached_env.problem_id)
+    if not entries:
+        return
+    try:
+        entries.remove(cached_env)
+    except ValueError:
+        return
+    if not entries:
+        job.env_cache.pop(cached_env.problem_id, None)
+
+
+async def _cleanup_reusable_environments(job: _TrainingJob) -> None:
+    if not job.env_cache:
+        return
+    tasks = [
+        _run_blocking(service.close_rl_environment, env.env_id)
+        for envs in job.env_cache.values()
+        for env in envs
+    ]
+    await asyncio.gather(*tasks, return_exceptions=True)
+    job.env_cache.clear()
 
 
 @app.post("/rl/reset", response_model=ResetResponse)

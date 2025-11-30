@@ -100,8 +100,8 @@ class TaskActions:
         Returns:
             str: Path to the directory where metrics are saved.
         """
-        prometheus_url = (
-            "http://localhost:32000"  # Replace with your Prometheus server URL
+        prometheus_url = os.environ.get(
+            "PROMETHEUS_URL", "http://localhost:32000"
         )
         prometheus_api = PrometheusAPI(prometheus_url, namespace)
         prometheus_api.initialize_pod_and_service_lists(namespace)
