@@ -13,7 +13,7 @@ def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Run an AIOpsLab agent")
     parser.add_argument("--agent", type=str, required=True, 
-                        choices=["gpt", "qwen", "deepseek", "vllm"],
+                        choices=["gpt", "qwen", "deepseek", "vllm", "litellm"],
                         help="The agent implementation to use")
     parser.add_argument("--problem-id", type=str, 
                         default="misconfig_app_hotel_res-mitigation-1",
@@ -55,6 +55,9 @@ async def run_agent(agent_name, problem_id, max_steps, model, temperature, top_p
             top_p=top_p,
             max_tokens=max_tokens,
         )
+    elif agent_name == "litellm":
+        # LiteLLM agent accepts a model parameter
+        agent = agent_cls(model=model)
     else:
          # For other agents, just instantiate without parameters
         agent = agent_cls()

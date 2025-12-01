@@ -368,3 +368,74 @@ class LLaMAClient:
             self.cache.add_to_cache(payload, response)
             self.cache.save_cache()
         return response
+
+
+class LiteLLMClient:
+    """Abstraction for LiteLLM with support for multiple models and proper exception handling.
+    
+    This client wraps LiteLLM's completion API and handles exceptions safely,
+    particularly addressing the AttributeError when accessing exception.request
+    on exceptions that don't have this attribute.
+    """
+
+    def __init__(self, model="openai/gpt-4o-mini"):
+        try:
+            import litellm
+            self.litellm = litellm
+        except ImportError:
+            raise ImportError("litellm is required for LiteLLMClient. Install it with: pip install litellm")
+        self.cache = Cache()
+        self.model = model
+
+    def _safe_get_exception_details(self, exception: Exception) -> dict:
+        """Safely extract details from an exception without assuming attributes exist.
+        
+        Args:
+            exception: The exception to extract details from.
+            
+        Returns:
+            A dictionary with safely extracted exception details.
+        """
+        return {
+            "message": str(exception),
+            "type": type(exception).__name__,
+            "request": getattr(exception, 'request', None),
+            "response": getattr(exception, 'response', None),
+            "status_code": getattr(exception, 'status_code', None),
+            "llm_provider": getattr(exception, 'llm_provider', None),
+            "model": getattr(exception, 'model', None),
+        }
+
+    def inference(self, payload: list[dict[str, str]]) -> list[str]:
+        if self.cache is not None:
+            cache_result = self.cache.get_from_cache(payload)
+            if cache_result is not None:
+                return cache_result
+
+        try:
+            response = self.litellm.completion(
+                messages=payload,
+                model=self.model,
+                max_tokens=1024,
+                temperature=0.5,
+                top_p=0.95,
+                frequency_penalty=0.0,
+                presence_penalty=0.0,
+                n=1,
+                timeout=60,
+            )
+        except Exception as e:
+            # Safely handle exceptions that may not have standard attributes
+            details = self._safe_get_exception_details(e)
+            print(f"LiteLLM Exception: {repr(e)}")
+            print(f"Exception details: {details}")
+            raise e
+
+        return [c.message.content for c in response.choices]  # type: ignore
+
+    def run(self, payload: list[dict[str, str]]) -> list[str]:
+        response = self.inference(payload)
+        if self.cache is not None:
+            self.cache.add_to_cache(payload, response)
+            self.cache.save_cache()
+        return response

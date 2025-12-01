@@ -1,10 +1,11 @@
 """Agent registry for AIOpsLab."""
 
-from clients.gpt import GPTAgent
+from clients.gpt import Agent as GPTAgent
 from clients.qwen import QwenAgent
 from clients.deepseek import DeepSeekAgent
 from clients.vllm import vLLMAgent
 from clients.openrouter import OpenRouterAgent
+from clients.litellm_agent import LiteLLMAgent
 
 class AgentRegistry:
     """Registry for agent implementations."""
@@ -16,6 +17,7 @@ class AgentRegistry:
             "deepseek": DeepSeekAgent,
             "vllm": vLLMAgent,
             "openrouter": OpenRouterAgent,
+            "litellm": LiteLLMAgent,
         }
     
     def register(self, name, agent_cls):
