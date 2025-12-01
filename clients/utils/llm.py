@@ -390,11 +390,22 @@ class LiteLLMClient:
     def _safe_get_exception_details(self, exception: Exception) -> dict:
         """Safely extract details from an exception without assuming attributes exist.
         
+        This method uses getattr() with default None to safely access exception
+        attributes that may not exist on all exception types. This prevents the
+        AttributeError: 'Exception' object has no attribute 'request' issue.
+        
         Args:
             exception: The exception to extract details from.
             
         Returns:
-            A dictionary with safely extracted exception details.
+            A dictionary with the following keys:
+                - message (str): The exception message
+                - type (str): The exception class name
+                - request (Any | None): Request data if available
+                - response (Any | None): Response data if available  
+                - status_code (int | None): HTTP status code if available
+                - llm_provider (str | None): LLM provider name if available
+                - model (str | None): Model name if available
         """
         return {
             "message": str(exception),
