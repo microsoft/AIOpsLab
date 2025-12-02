@@ -54,7 +54,7 @@ def trim_history_to_token_limit(history, max_tokens=120000, model="gpt-4"):
 
     return trimmed
 
-class Agent:
+class GPTAgent:
     def __init__(self):
         self.history = []
         self.llm = GPTClient()
@@ -112,7 +112,7 @@ if __name__ == "__main__":
 
     problems = ProblemRegistry().PROBLEM_REGISTRY
     for pid in problems:
-        agent = Agent()
+        agent = GPTAgent()
 
         orchestrator = Orchestrator()
         orchestrator.register_agent(agent, name="gpt-w-shell")
