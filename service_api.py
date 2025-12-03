@@ -535,6 +535,55 @@ def _dump_json(payload: Any) -> str:
         return json.dumps(str(payload))
 
 
+def _trim_conversation_from_end(
+    conversation: List[Dict[str, str]], 
+    max_tokens: int = 28000
+) -> List[Dict[str, str]]:
+    """从后往前截断对话历史，保留最新消息
+    
+    策略：始终保留系统提示（conversation[0]），从后往前累加消息
+    直到达到token限制。适合AIOps场景，因为最新的诊断信息最重要。
+    
+    Args:
+        conversation: 对话历史列表
+        max_tokens: 最大token数（默认28000，为32768模型上限预留buffer）
+    
+    Returns:
+        截断后的对话历史
+    """
+    if len(conversation) <= 2:
+        return conversation
+    
+    # 粗略估算token数（4字符≈1token）
+    def estimate_tokens(msg: Dict[str, str]) -> int:
+        return len(json.dumps(msg, ensure_ascii=False)) // 4
+    
+    system_msg = conversation[0]  # 始终保留系统提示
+    messages = conversation[1:]
+    
+    kept = []
+    token_count = estimate_tokens(system_msg)
+    
+    # 从后往前累加消息
+    for msg in reversed(messages):
+        msg_tokens = estimate_tokens(msg)
+        if token_count + msg_tokens > max_tokens:
+            # 达到限制，停止添加
+            trimmed_count = len(messages) - len(kept)
+            if trimmed_count > 0:
+                logger.warning(
+                    f"⚠️ Token limit reached! Trimmed {trimmed_count} old messages "
+                    f"(kept {len(kept)} recent messages, ~{token_count} tokens)"
+                )
+            break
+        kept.insert(0, msg)
+        token_count += msg_tokens
+    
+    result = [system_msg] + kept
+    logger.info(f"📊 Conversation trimmed: {len(conversation)} → {len(result)} messages (~{token_count} tokens)")
+    return result
+
+
 def _format_observation_message(observation: Dict[str, Any], info: Dict[str, Any]) -> str:
     state = observation.get("state") if isinstance(observation, dict) else None
     metadata = {}
@@ -740,6 +789,8 @@ async def _run_single_episode(
             while not done and step_index < max_steps:
                 logger.info(f"Env {env_id} | Step {step_index + 1}/{max_steps} | Requesting LLM action...")
                 try:
+                    # Token限制：从后往前截断对话历史
+                    conversation = _trim_conversation_from_end(list(conversation), max_tokens=28000)
                     llm_message = await action_provider.generate(list(conversation))
                     logger.info(f"Env {env_id} | Step {step_index + 1} | LLM Response received: {llm_message[:100]}...")
                 except Exception as e:
