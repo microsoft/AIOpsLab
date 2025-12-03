@@ -1,392 +1,466 @@
+#!/usr/bin/env python3
+"""
+Minimal Echo callback receiver used during local RL experiments.
+
+The RL training service can be configured with an ``EchoServerConfig`` that
+points at this application.  Every time a rollout finishes the training
+service will POST the trajectory payload to ``/callbacks/runs``.  We keep the
+last N payloads in memory so that developers can inspect them via ``GET`` and
+optionally export them to disk for further analysis.
+
+Run locally with:
+    uvicorn Echo.server:app --reload --port 8098
+"""
+
 from __future__ import annotations
 
-import asyncio
-import logging
-import os
-import traceback
-from dataclasses import dataclass
+import json
+from pathlib import Path
 from threading import Lock
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import uuid4
 
-if TYPE_CHECKING:  # pragma: no cover - import only for static analysis
-    from aiopslab.orchestrator import ProblemRLEnvironment
-    from aiopslab.orchestrator.rl_env import RewardConfig
+from fastapi import FastAPI, HTTPException, Path as PathParam
+from pydantic import BaseModel, Field, field_validator
 
 
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+app = FastAPI(
+    title="Mock Echo Callback Server",
+    description="Receives rollout results from the RL training service.",
+    version="0.1.0",
 )
-logger = logging.getLogger("aiopslab-service")
+
+_RUN_PAYLOADS: List[Dict[str, Any]] = []
+_MAX_HISTORY = 200
+_JOBS: Dict[str, "JobRecord"] = {}
+_JOBS_LOCK = Lock()
+
+# 自动保存结果的目录
+_AUTO_SAVE_DIR = Path("/root/projects/AI_SRE_Playground-echo/res")
+_RESULT_COUNTER = 0  # 结果文件计数器（已废弃，保留兼容）
+_COUNTER_LOCK = Lock()  # 计数器锁
 
 
-class SimulationError(RuntimeError):
-    """Raised when a simulation cannot be executed."""
-
-
-class RLEnvironmentError(RuntimeError):
-    """Base class for managed RL environment errors."""
-
-
-class RLEnvironmentNotFoundError(RLEnvironmentError):
-    """Raised when callers reference an unknown environment identifier."""
-
-
-class RLEnvironmentFinishedError(RLEnvironmentError):
-    """Raised when callers attempt to interact with a finished environment."""
-
-
-@dataclass
-class SimulationRequest:
+class RunCallbackPayload(BaseModel):
+    job_id: str
     problem_id: str
-    agent_name: str = "Qwen/Qwen2.5-Coder-0.5B-Instruct"
-    max_steps: Optional[int] = None
-    # vLLM specific parameters
-    model: Optional[str] = "Qwen/Qwen2.5-Coder-3B-Instruct"
-    repetition_penalty: Optional[float] = 1.0
-    temperature: Optional[float] = 1.0
-    top_p: Optional[float] = 1.0
-    max_tokens: Optional[int] = 1024  # Aligned with vLLMAgent default
-
-
-@dataclass
-class SimulationResponse:
-    agent: str
-    session_id: str
-    problem_id: str
-    start_time: float
-    end_time: float
-    trace: List[Dict[str, Any]]
-    results: Dict[str, Any]
-
-
-@dataclass
-class _ManagedRLEnvironment:
-    """Container that tracks the lifecycle of a managed RL environment."""
-
-    env: "ProblemRLEnvironment"
-    initial_observation: Dict[str, Any]
-    initial_info: Dict[str, Any]
-    done: bool = False
-
-
-@dataclass
-class RLEnvironmentHandle:
+    run_index: int
     env_id: str
+    total_reward: float
+    done: bool
+    trajectory: List[Dict[str, Any]]
 
 
-@dataclass
-class RLEnvironmentStep:
-    state: Any
-    actions_left: int
-    actions: Dict[str, Any]
-    reward: float
-    info: Dict[str, Any]
+def _append_payload(payload: Dict[str, Any]) -> None:
+    _RUN_PAYLOADS.append(payload)
+    if len(_RUN_PAYLOADS) > _MAX_HISTORY:
+        _RUN_PAYLOADS.pop(0)
 
 
-_RL_ENVIRONMENTS: Dict[str, _ManagedRLEnvironment] = {}
-_RL_ENV_LOCK = Lock()
+@app.post("/callbacks/runs")
+async def receive_run(payload: RunCallbackPayload) -> Dict[str, Any]:
+    """Record a completed rollout pushed by the training service."""
+
+    data = payload.model_dump()
+    _append_payload(data)
+    return {"status": "ok", "stored_runs": len(_RUN_PAYLOADS)}
 
 
-def _create_rl_environment(
-    *,
-    max_steps: Optional[int] = None,
-    reward_config: "RewardConfig" | None = None,
-    ground_truth_dir: Optional[os.PathLike[str] | str] = None,
-) -> "ProblemRLEnvironment":
-    """Factory used to create environments (patchable in tests)."""
+@app.get("/callbacks/runs")
+async def list_runs(limit: int = 20) -> Dict[str, Any]:
+    """Return the most recent rollout payloads (default: 20)."""
 
-    kwargs: Dict[str, Any] = {}
-    if max_steps is not None:
-        kwargs["max_steps"] = max_steps
-    if reward_config is not None:
-        kwargs["reward_config"] = reward_config
-    if ground_truth_dir is not None:
-        kwargs["ground_truth_dir"] = ground_truth_dir
-    from aiopslab.orchestrator import ProblemRLEnvironment as _ProblemRLEnvironment
-
-    return _ProblemRLEnvironment(**kwargs)
+    if limit <= 0:
+        raise HTTPException(status_code=400, detail="limit must be positive")
+    return {"runs": _RUN_PAYLOADS[-limit:]}
 
 
-def _get_managed_env(env_id: str) -> _ManagedRLEnvironment:
-    with _RL_ENV_LOCK:
-        managed = _RL_ENVIRONMENTS.get(env_id)
-    if managed is None:
-        raise RLEnvironmentNotFoundError(
-            f"Environment '{env_id}' not found. Did you call reset_rl_environment first?"
-        )
-    return managed
+@app.post("/callbacks/runs/export")
+async def export_runs(path: str) -> Dict[str, Any]:
+    """Persist the current run history to a JSONL file."""
+
+    target = Path(path).expanduser()
+    if not target.parent.exists():
+        target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("w", encoding="utf-8") as handle:
+        for payload in _RUN_PAYLOADS:
+            handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    return {"status": "ok", "written": len(_RUN_PAYLOADS), "path": str(target)}
 
 
-def list_problems() -> List[str]:
-    """Return the IDs of available problems."""
+@app.delete("/callbacks/runs")
+async def clear_runs() -> Dict[str, Any]:
+    """Clear the in-memory history."""
 
-    from aiopslab.orchestrator.problems.registry import ProblemRegistry
-
-    registry = ProblemRegistry()
-    return registry.get_problem_ids()
-
-
-def list_agents() -> List[str]:
-    """Return the IDs of registered agents."""
-
-    from clients.registry import AgentRegistry
-
-    registry = AgentRegistry()
-    return registry.get_agent_ids()
+    count = len(_RUN_PAYLOADS)
+    _RUN_PAYLOADS.clear()
+    return {"status": "ok", "cleared": count}
 
 
-def health_check() -> Dict[str, str]:
-    """Return a simple heartbeat payload for monitoring integrations."""
-
-    return {"status": "healthy", "service": "AIOpsLab"}
 
 
-def simulate(req: SimulationRequest) -> SimulationResponse:
-    """Run a full simulation for a given problem and agent."""
+def _find_next_available_slot(problem_id: str) -> Path:
+    """找到下一个可用的 res 文件夹来存放该任务"""
+    idx = 0
+    while True:
+        res_dir = _AUTO_SAVE_DIR / f"res{idx}"
+        task_file = res_dir / f"{problem_id}.json"
+        if not task_file.exists():
+            # 这个文件夹里没有这个任务，就放这里
+            res_dir.mkdir(parents=True, exist_ok=True)
+            return task_file
+        idx += 1
 
-    from aiopslab.orchestrator import Orchestrator
-    from aiopslab.orchestrator.problems.registry import ProblemRegistry
-    from clients.registry import AgentRegistry
 
-    logger.info(
-        "Starting simulation with problem=%s, agent=%s, max_steps=%s",
-        req.problem_id,
-        req.agent_name,
-        req.max_steps,
-    )
-
-    problem_registry = ProblemRegistry()
-    problem = problem_registry.get_problem(req.problem_id)
-    if problem is None:
-        available = problem_registry.get_problem_ids()
-        logger.error("Problem %s not found", req.problem_id)
-        raise SimulationError(
-            f"Problem {req.problem_id} not found. Available problems: {available}"
-        )
-
-    agent_registry = AgentRegistry()
-    agent_cls = agent_registry.get_agent(req.agent_name)
-    if agent_cls is None:
-        available_agents = agent_registry.get_agent_ids()
-        logger.error("Agent %s not registered", req.agent_name)
-        raise SimulationError(
-            f"Agent {req.agent_name} not registered. Available agents: {available_agents}"
-        )
-
-    if req.agent_name == "vllm":
-        vllm_params = {
-            "model": req.model,
-            "repetition_penalty": req.repetition_penalty,
-            "temperature": req.temperature,
-            "top_p": req.top_p,
-            "max_tokens": req.max_tokens,
+def _auto_save_single_result(problem_id: str, run_index: int, payload: Optional[Dict[str, Any]]) -> None:
+    """单个任务完成后立即保存（自动找空位）"""
+    try:
+        task_file = _find_next_available_slot(problem_id)
+        result = {
+            "problem_id": problem_id,
+            "run_index": run_index,
+            "payload": payload or {}
         }
-        agent = agent_cls(**vllm_params)
-    else:
-        agent = agent_cls()
-    logger.info("Created agent: %s", req.agent_name)
+        with task_file.open("w", encoding="utf-8") as f:
+            json.dump(result, f, ensure_ascii=False, indent=2)
+        
+        print(f"✅ 任务完成并保存: {problem_id} -> {task_file}")
+    except Exception as e:
+        print(f"❌ 保存单个结果失败 ({problem_id}): {e}")
 
-    max_steps = req.max_steps if req.max_steps is not None else 10
 
-    orchestrator = Orchestrator()
-    orchestrator.register_agent(agent, name=f"{req.agent_name}-agent")
-
+def _auto_save_results(job: "JobRecord") -> None:
+    """自动保存任务结果到本地文件（每个任务单独保存）"""
+    global _RESULT_COUNTER
     try:
-        problem_desc, instructs, apis = orchestrator.init_problem(req.problem_id)
-        agent.init_context(problem_desc, instructs, apis)
-        asyncio.run(orchestrator.start_problem(max_steps=max_steps))
-
-        raw = orchestrator.session.to_dict()
-        raw["trace"].insert(0, {"role": "system", "content": agent.system_message})
-        raw["trace"].insert(1, {"role": "user", "content": agent.task_message})
-        if raw["trace"] and raw["trace"][-1].get("role") == "env":
-            raw["trace"].pop()
-
-        return SimulationResponse(**raw)
-    except Exception as exc:
-        logger.error("Error during simulation: %s", exc)
-        traceback.print_exc()
-        raise SimulationError(f"Error during simulation: {exc}") from exc
-
-
-def reset_rl_environment(
-    problem_id: str,
-    *,
-    max_steps: Optional[int] = None,
-    reward_config: "RewardConfig" | None = None,
-    ground_truth_dir: Optional[os.PathLike[str] | str] = None,
-    env_id: Optional[str] = None,
-) -> RLEnvironmentHandle:
-    """Create and reset a managed RL environment for the requested problem."""
-    # Import here to set thread-local in base.py
-    from aiopslab.service.apps import base as apps_base
-
-    if env_id is not None:
-        managed = _get_managed_env(env_id)
-        env = managed.env
-        if max_steps is not None:
-            env.max_steps = max_steps
-        if reward_config is not None:
-            env.reward_config = reward_config
-
-        # Set namespace in thread-local storage for this thread
-        unique_ns = f"ns-{env_id}"[:63]
-        apps_base._thread_local.target_namespace = unique_ns
+        # 生成递增的文件编号
+        with _COUNTER_LOCK:
+            _RESULT_COUNTER += 1
+            counter = _RESULT_COUNTER
         
-        try:
-            observation, info = env.reset(problem_id, max_steps=max_steps)
-        except Exception as exc:
-            raise RLEnvironmentError(f"Failed to reset environment: {exc}") from exc
-        finally:
-            # Clean up thread-local
-            apps_base._thread_local.target_namespace = None
+        # 创建任务文件夹
+        job_dir = _AUTO_SAVE_DIR / f"result-{counter}"
+        job_dir.mkdir(parents=True, exist_ok=True)
         
-        managed.initial_observation = observation
-        managed.initial_info = info
-        managed.done = False
+        # 获取结果数据
+        results = job.status_payload(include_results=True)
         
-        return RLEnvironmentHandle(env_id=env_id)
+        # 保存总体摘要
+        summary = {
+            "_file_number": counter,
+            "_job_id": job.job_id,
+            "state": results["state"],
+            "total_runs": results["total_runs"],
+            "completed_runs": results["completed_runs"],
+            "problems": results.get("problems", [])
+        }
+        summary_path = job_dir / "_summary.json"
+        with summary_path.open("w", encoding="utf-8") as f:
+            json.dump(summary, f, ensure_ascii=False, indent=2)
+        
+        # 保存每个任务的结果到单独文件
+        runs = results.get("results", {}).get("runs", [])
+        for run in runs:
+            problem_id = run.get("problem_id", "unknown")
+            run_index = run.get("run_index", 0)
+            
+            # 文件名：任务ID.json
+            task_file = job_dir / f"{problem_id}.json"
+            
+            with task_file.open("w", encoding="utf-8") as f:
+                json.dump(run, f, ensure_ascii=False, indent=2)
+        
+        print(f"✅ 结果已自动保存到: {job_dir} (Job ID: {job.job_id})")
+        print(f"   - 摘要: _summary.json")
+        print(f"   - 任务数: {len(runs)} 个")
+    except Exception as e:
+        print(f"❌ 自动保存结果失败: {e}")
 
-    env_id = uuid4().hex
-    unique_ns = f"ns-{env_id}"[:63]
-    
-    # Set namespace in thread-local storage for this thread
-    apps_base._thread_local.target_namespace = unique_ns
 
-    env = _create_rl_environment(
-        max_steps=max_steps,
-        reward_config=reward_config,
-        ground_truth_dir=ground_truth_dir,
+class JobProblemRequest(BaseModel):
+    id: str = Field(..., min_length=1)
+    runs: int = Field(..., ge=1)
+
+
+class JobCreateRequest(BaseModel):
+    problems: List[JobProblemRequest]
+
+    @field_validator("problems")
+    @classmethod
+    def validate_problems(cls, value: List[JobProblemRequest]) -> List[JobProblemRequest]:
+        if not value:
+            raise ValueError("At least one problem must be provided.")
+        identifiers = [p.id for p in value]
+        if len(set(identifiers)) != len(identifiers):
+            raise ValueError("Problem identifiers must be unique.")
+        return value
+
+
+class JobCreateResponse(BaseModel):
+    job_id: str
+    expected_runs: int
+    callbacks: Dict[str, str]
+
+
+class JobEventRequest(BaseModel):
+    event: str = Field(..., min_length=1)
+    problem_id: Optional[str] = None
+    run_index: Optional[int] = Field(default=None, ge=0)
+    payload: Optional[Dict[str, Any]] = None
+    reason: Optional[str] = None
+    partial: Optional[List[Dict[str, Any]]] = None
+
+
+class JobProblemState:
+    __slots__ = ("problem_id", "runs_total", "runs_done", "runs_payloads")
+
+    def __init__(self, problem_id: str, runs_total: int) -> None:
+        self.problem_id = problem_id
+        self.runs_total = runs_total
+        self.runs_done = 0
+        self.runs_payloads: Dict[int, Dict[str, Any]] = {}
+
+    def mark_run_finished(self, run_index: Optional[int], payload: Optional[Dict[str, Any]]) -> None:
+        if run_index is None:
+            return
+        if run_index in self.runs_payloads:
+            # Duplicate notification; do not count twice but allow payload updates.
+            if payload is not None:
+                self.runs_payloads[run_index] = payload
+            return
+
+        if run_index >= self.runs_total:
+            raise ValueError(f"Run index {run_index} exceeds declared runs ({self.runs_total}) for problem {self.problem_id}.")
+
+        self.runs_done += 1
+        self.runs_payloads[run_index] = payload or {}
+
+    def as_status(self) -> Dict[str, Any]:
+        return {
+            "id": self.problem_id,
+            "runs_total": self.runs_total,
+            "runs_done": self.runs_done,
+        }
+
+    def iter_runs(self) -> List[Dict[str, Any]]:
+        return [
+            {
+                "problem_id": self.problem_id,
+                "run_index": run_idx,
+                "payload": payload,
+            }
+            for run_idx, payload in sorted(self.runs_payloads.items())
+        ]
+
+
+class JobRecord:
+    __slots__ = (
+        "job_id",
+        "state",
+        "problems",
+        "events",
+        "created_runs",
+        "last_results",
+        "failure_reason",
+        "failure_partial",
     )
-    try:
-        observation, info = env.reset(problem_id)
-    except Exception as exc:  # pragma: no cover - defensive path
-        raise RLEnvironmentError(f"Failed to reset environment: {exc}") from exc
-    finally:
-        # Clean up thread-local
-        apps_base._thread_local.target_namespace = None
 
-    managed = _ManagedRLEnvironment(
-        env=env,
-        initial_observation=observation,
-        initial_info=info,
+    def __init__(self, job_id: str, problems: List[JobProblemRequest]) -> None:
+        self.job_id = job_id
+        self.state: str = "pending"
+        self.problems: Dict[str, JobProblemState] = {
+            item.id: JobProblemState(item.id, item.runs) for item in problems
+        }
+        self.events: List[Dict[str, Any]] = []
+        self.created_runs: int = sum(item.runs for item in problems)
+        self.last_results: Optional[List[Dict[str, Any]]] = None
+        self.failure_reason: Optional[str] = None
+        self.failure_partial: Optional[List[Dict[str, Any]]] = None
+
+    def total_completed(self) -> int:
+        return sum(problem.runs_done for problem in self.problems.values())
+
+    def append_event(self, event_payload: Dict[str, Any]) -> None:
+        self.events.append(event_payload)
+
+    def mark_running(self) -> None:
+        if self.state == "pending":
+            self.state = "running"
+
+    def mark_done(self) -> None:
+        self.state = "done"
+        self.last_results = self.collect_results()
+
+    def mark_failed(self, reason: Optional[str], partial: Optional[List[Dict[str, Any]]]) -> None:
+        self.state = "failed"
+        self.failure_reason = reason
+        self.failure_partial = partial
+        self.last_results = self.collect_results()
+
+    def collect_results(self) -> List[Dict[str, Any]]:
+        runs: List[Dict[str, Any]] = []
+        for problem in self.problems.values():
+            runs.extend(problem.iter_runs())
+        return runs
+
+    def status_payload(self, include_results: bool = False) -> Dict[str, Any]:
+        payload = {
+            "job_id": self.job_id,
+            "state": self.state,
+            "total_runs": self.created_runs,
+            "completed_runs": self.total_completed(),
+            "problems": [problem.as_status() for problem in self.problems.values()],
+        }
+        if self.state == "failed" and self.failure_reason:
+            payload["failure_reason"] = self.failure_reason
+        if include_results and self.last_results is not None:
+            payload["results"] = {
+                "job_id": self.job_id,
+                "runs": self.last_results,
+            }
+        return payload
+
+
+def _get_job(job_id: str) -> JobRecord:
+    job = _JOBS.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found.")
+    return job
+
+
+@app.post("/jobs", response_model=JobCreateResponse)
+async def create_job(payload: JobCreateRequest) -> JobCreateResponse:
+    job_id = uuid4().hex
+    job_record = JobRecord(job_id, payload.problems)
+    with _JOBS_LOCK:
+        _JOBS[job_id] = job_record
+
+    status_path = f"/jobs/{job_id}/status"
+    event_path = f"/jobs/{job_id}/events"
+    return JobCreateResponse(
+        job_id=job_id,
+        expected_runs=job_record.created_runs,
+        callbacks={"status": status_path, "events": event_path},
     )
-    with _RL_ENV_LOCK:
-        _RL_ENVIRONMENTS[env_id] = managed
-
-    return RLEnvironmentHandle(env_id=env_id)
 
 
-def step_rl_environment(
-    env_id: str,
-    *,
-    step: int,
-    action: Optional[str] = None,
-    llm_response: Optional[str] = None,
-    llm_raw_response: Optional[str] = None,
-) -> RLEnvironmentStep:
-    """Advance a managed RL environment by one step."""
-
-    managed = _get_managed_env(env_id)
-    env = managed.env
-
-    if step < 0:
-        raise ValueError("step must be a non-negative integer")
-
-    done = managed.done
-    reward = 0.0
-    info: Dict[str, Any] = managed.initial_info
-    observation: Any = managed.initial_observation
-
-    if step == 0:
-        pass
-    else:
-        if managed.done:
-            raise RLEnvironmentFinishedError(
-                "Environment episode already finished. Please reset for a new run."
-            )
-        if not action:
-            raise ValueError("An action is required for step > 0")
-        try:
-            observation, reward, done_flag, info = env.step(action)
-        except Exception as exc:  # pragma: no cover - defensive path
-            raise RLEnvironmentError(f"Environment step failed: {exc}") from exc
-
-        managed.done = done_flag
-        done = done_flag
-        # We no longer automatically close the environment when done.
-        # The client is responsible for calling close_rl_environment (or reusing it).
-        if not done_flag:
-            with _RL_ENV_LOCK:
-                _RL_ENVIRONMENTS[env_id] = managed
-
-    actions: Dict[str, Any] = {}
-    if isinstance(info, dict):
-        actions = info.get("actions", {})
-    if not actions and isinstance(managed.initial_info, dict):
-        actions = managed.initial_info.get("actions", {})
-
-    session = getattr(env.orchestrator, "session", None)
-    history_len = 0
-    if session is not None and hasattr(session, "history"):
-        history_len = len(getattr(session, "history"))
-
-    env_metadata: Dict[str, Any]
-    if isinstance(info, dict):
-        env_metadata = dict(info)
-    else:
-        env_metadata = {"raw": info}
-    env_metadata["done"] = done
-
-    response_info: Dict[str, Any] = {
-        "llm_response": llm_response,
-        "llm_raw_response": llm_raw_response,
-        "len": history_len,
-        "environment": env_metadata,
+def _handle_job_event(job: JobRecord, data: JobEventRequest) -> None:
+    event_name = data.event.lower()
+    event_record = {
+        "event": data.event,
+        "problem_id": data.problem_id,
+        "run_index": data.run_index,
+        "payload": data.payload,
+        "reason": data.reason,
+        "partial": data.partial,
     }
+    job.append_event(event_record)
 
-    if isinstance(observation, dict):
-        # Step 0 should surface the full default prompt; later steps should return
-        # what the environment/terminal displayed for the last action.
-        if step == 0:
-            state_value = observation.get("state")
-        else:
-            terminal_output = observation.get("last_response")
-            if terminal_output is None and isinstance(info, dict):
-                terminal_output = info.get("raw_response")
-            state_value = terminal_output if terminal_output is not None else observation.get("state")
-        actions_left = observation.get("actions_left", 0)
-    else:
-        state_value = observation
-        actions_left = 0
+    if event_name in {"initializing", "run_started"}:
+        job.mark_running()
+        return
 
-    return RLEnvironmentStep(
-        state=state_value,
-        actions_left=actions_left,
-        actions=actions,
-        reward=reward,
-        info=response_info,
-    )
+    if event_name == "run_finished":
+        if not data.problem_id or data.problem_id not in job.problems:
+            raise HTTPException(status_code=400, detail="Unknown problem_id for run_finished event.")
+        problem_state = job.problems[data.problem_id]
+        try:
+            problem_state.mark_run_finished(data.run_index, data.payload)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        job.mark_running()
+        # 立即保存单个任务结果（自动找空位：res0没有就放res0，有就找res1...）
+        _auto_save_single_result(data.problem_id, data.run_index or 0, data.payload)
+        return
+
+    if event_name == "job_finished":
+        job.mark_done()
+        # 旧的汇总保存逻辑已废弃，改用单任务即时保存
+        # _auto_save_results(job)
+        return
+
+    if event_name == "job_failed":
+        job.mark_failed(data.reason, data.partial)
+        return
+
+    # Other events are simply recorded; no state mutation.
+    if job.state == "pending":
+        job.mark_running()
 
 
-def get_rl_environment_state(env_id: str) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-    """Return the cached observation/info for a managed environment."""
+@app.post("/jobs/{job_id}/events")
+async def post_job_event(
+    job_id: str = PathParam(..., description="Identifier returned by the job creation endpoint."),
+    payload: JobEventRequest = ...,
+) -> Dict[str, Any]:
+    with _JOBS_LOCK:
+        job = _get_job(job_id)
+        _handle_job_event(job, payload)
+        status = job.status_payload(include_results=False)
+    return {"status": "ok", "job": status}
 
-    managed = _get_managed_env(env_id)
-    return managed.initial_observation, managed.initial_info
+
+@app.get("/jobs/{job_id}/status")
+async def get_job_status(job_id: str) -> Dict[str, Any]:
+    with _JOBS_LOCK:
+        job = _get_job(job_id)
+        include_results = job.state in {"done", "failed"}
+        status = job.status_payload(include_results=include_results)
+    return status
 
 
-def close_rl_environment(env_id: str) -> None:
-    """Terminate and discard a managed RL environment."""
+@app.get("/jobs/{job_id}/events")
+async def get_job_events(job_id: str) -> Dict[str, Any]:
+    with _JOBS_LOCK:
+        job = _get_job(job_id)
+        events = list(job.events)
+    return {"job_id": job.job_id, "events": events}
 
-    managed = _get_managed_env(env_id)
 
-    try:
-        managed.env.close()
-    finally:
-        managed.done = True
-        with _RL_ENV_LOCK:
-            _RL_ENVIRONMENTS.pop(env_id, None)
+@app.get("/jobs/{job_id}/results")
+async def get_job_results(job_id: str) -> Dict[str, Any]:
+    with _JOBS_LOCK:
+        job = _get_job(job_id)
+        results = job.last_results or job.collect_results()
+        payload = {"job_id": job.job_id, "runs": results}
+        if job.state == "failed" and job.failure_reason:
+            payload["failure_reason"] = job.failure_reason
+            if job.failure_partial is not None:
+                payload["partial"] = job.failure_partial
+    return payload
+
+
+def load_runs(path: Optional[str] = None) -> None:
+    """Utility invoked from scripts to preload run history."""
+
+    if not path:
+        return
+    source = Path(path).expanduser()
+    if not source.exists():
+        raise FileNotFoundError(path)
+    with source.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(payload, dict):
+                _append_payload(payload)
+
+
+if __name__ == "__main__":
+    # Convenience entrypoint: python Echo/server.py --port 8098
+    import argparse
+    import uvicorn
+
+    parser = argparse.ArgumentParser(description="Run the mock Echo callback server.")
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--port", type=int, default=8098)
+    parser.add_argument("--load", help="Optional JSONL file to preload run history.")
+    args = parser.parse_args()
+
+    load_runs(args.load)
+    uvicorn.run("Echo.server:app", host=args.host, port=args.port, reload=False)
