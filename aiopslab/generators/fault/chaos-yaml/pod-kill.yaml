@@ -4,7 +4,7 @@ metadata:
   name: pod-kill-mesh
   namespace: default
 spec:
-  action: pod-kill
+  action: pod-failure
   mode: one
   selector:
     namespaces:

@@ -164,6 +164,11 @@ class SymptomFaultInjector(FaultInjector):
     def inject_pod_kill(self, microservices: List[str], duration: str = "200s"):
         """
         Inject a pod kill fault targeting specified microservices by label in the configured namespace.
+        
+        Note: This uses 'pod-failure' action instead of 'pod-kill' to prevent Kubernetes from immediately
+        recreating the pod. The 'pod-kill' action forcefully deletes pods, causing Kubernetes controllers
+        (Deployment/ReplicaSet) to immediately recreate them. The 'pod-failure' action makes pods unavailable
+        for the specified duration without deletion, allowing proper fault injection testing.
 
         Args:
             microservices (List[str]): A list of microservices labels to target for the pod kill experiment.
@@ -174,7 +179,7 @@ class SymptomFaultInjector(FaultInjector):
             "kind": "PodChaos",
             "metadata": {"name": "pod-kill", "namespace": self.namespace},
             "spec": {
-                "action": "pod-kill",
+                "action": "pod-failure",
                 "mode": "one",
                 "duration": duration,
                 "selector": {
