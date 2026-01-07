@@ -95,3 +95,48 @@ class KafkaQueueProblemsLocalization(KafkaQueueProblemsBaseTask, LocalizationTas
         self.results["is_subset"] = is_sub
 
         return self.results
+
+
+################## Mitigation Problem ##################
+class KafkaQueueProblemsMitigation(KafkaQueueProblemsBaseTask, MitigationTask):
+    def __init__(self):
+        KafkaQueueProblemsBaseTask.__init__(self)
+        MitigationTask.__init__(self, self.app)
+
+    def eval(self, soln: Any, trace: list[SessionItem], duration: float) -> dict:
+        print("== Evaluation ==")
+        super().eval(soln, trace, duration)
+
+        # Check if all services (not only faulty service) is back to normal (Running)
+        pod_list = self.kubectl.list_pods(self.namespace)
+        all_normal = True
+
+        for pod in pod_list.items:
+            if pod.status.container_statuses:
+                # Check container statuses
+                for container_status in pod.status.container_statuses:
+                    if (
+                        container_status.state.waiting
+                        and container_status.state.waiting.reason == "CrashLoopBackOff"
+                    ):
+                        print(
+                            f"Container {container_status.name} is in CrashLoopBackOff"
+                        )
+                        all_normal = False
+                    elif (
+                        container_status.state.terminated
+                        and container_status.state.terminated.reason != "Completed"
+                    ):
+                        print(
+                            f"Container {container_status.name} is terminated with reason: {container_status.state.terminated.reason}"
+                        )
+                        all_normal = False
+                    elif not container_status.ready:
+                        print(f"Container {container_status.name} is not ready")
+                        all_normal = False
+
+                if not all_normal:
+                    break
+
+        self.results["success"] = all_normal
+        return self.results

@@ -182,6 +182,7 @@ class ProblemRegistry:
             "astronomy_shop_image_slow_load-localization-1": ImageSlowLoadLocalization,
             "astronomy_shop_kafka_queue_problems-detection-1": KafkaQueueProblemsDetection,
             "astronomy_shop_kafka_queue_problems-localization-1": KafkaQueueProblemsLocalization,
+            "astronomy_shop_kafka_queue_problems-mitigation-1": KafkaQueueProblemsMitigation,
             "astronomy_shop_loadgenerator_flood_homepage-detection-1": LoadGeneratorFloodHomepageDetection,
             "astronomy_shop_loadgenerator_flood_homepage-localization-1": LoadGeneratorFloodHomepageLocalization,
             "astronomy_shop_payment_service_failure-detection-1": PaymentServiceFailureDetection,
