@@ -129,7 +129,7 @@ class Prometheus:
         """Check if Prometheus Helm release is deployed."""
         try:
             status_output = Helm.status(
-                release_name=self.name,
+                release_name=self.name.lower(),
                 namespace=self.namespace,
             )
             for line in status_output.splitlines():
