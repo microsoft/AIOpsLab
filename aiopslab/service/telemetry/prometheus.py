@@ -128,7 +128,10 @@ class Prometheus:
     def _is_prometheus_running(self) -> bool:
         """Check if Prometheus Helm release is deployed."""
         try:
-            status_output = Helm.status(**self.helm_configs)
+            status_output = Helm.status(
+                release_name=self.name,
+                namespace=self.namespace,
+            )
             for line in status_output.splitlines():
                 if line.strip().startswith("STATUS:"):
                     status_value = line.split(":", 1)[1].strip().lower()
@@ -137,3 +140,4 @@ class Prometheus:
         except Exception as e:
             logging.exception(f"Unexpected error while checking Prometheus status: {e}")
             return False
+
