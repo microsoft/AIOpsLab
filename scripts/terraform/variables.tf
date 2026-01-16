@@ -25,6 +25,7 @@ variable "admin_username" {
 variable "ssh_public_key_path" {
   type        = string
   description = "The path to the SSH public key file."
+  default     = "~/.ssh/id_rsa.pub"
 }
 
 variable "vm_size" {
