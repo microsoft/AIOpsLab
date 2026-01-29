@@ -3,6 +3,7 @@
 
 """Interface for helm operations"""
 
+import os
 import subprocess
 import time
 
@@ -29,6 +30,14 @@ class Helm:
         version = args.get("version")
         extra_args = args.get("extra_args")
         remote_chart = args.get("remote_chart", False)
+
+        # Check if chart path exists for local charts
+        if not remote_chart and chart_path and not os.path.exists(chart_path):
+            raise FileNotFoundError(
+                f"Helm chart not found at: {chart_path}\n"
+                f"This is likely because git submodules were not cloned.\n"
+                f"Run: git submodule update --init --recursive"
+            )
 
         if not remote_chart:
             # Install dependencies for chart before installation
@@ -141,6 +150,14 @@ class Helm:
         namespace = args.get("namespace")
         values_file = args.get("values_file")
         set_values = args.get("set_values", {})
+
+        # Check if chart path exists
+        if chart_path and not os.path.exists(chart_path):
+            raise FileNotFoundError(
+                f"Helm chart not found at: {chart_path}\n"
+                f"This is likely because git submodules were not cloned.\n"
+                f"Run: git submodule update --init --recursive"
+            )
 
         command = [
             "helm",
