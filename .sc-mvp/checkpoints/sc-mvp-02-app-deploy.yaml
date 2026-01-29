@@ -1,0 +1,102 @@
+checkpoint:
+  id: SC-MVP-02
+  name: App Deployment & Rollout Verification
+  description: >
+    Deploy and verify the Hotel Reservation App with idempotent rollout
+    validation, readiness checks, and artifact metadata capture.
+  branch: sc-mvp/app-deploy
+  commit_message: Define app deployment checkpoint with idempotent rollout verification
+  owner_email: vitrixlabph@gmail.com
+
+artifact_integrity:
+  sha256_original: SHA256-f465ef5a9022bb7d10c7bf324e816192c20493d5
+  sha256_microsoft_official: <SHA256-MICROSOFT-PLACEHOLDER>
+
+environment:
+  platform: kubernetes
+  namespace: sc-mvp-test
+  kube_context: default
+  idempotent: true
+
+deployment:
+  application: hotel-reservation-app
+  manifests:
+    - k8s/deployment.yaml
+    - k8s/service.yaml
+    - k8s/ingress.yaml # optional
+  apply_strategy:
+    type: declarative
+    command: kubectl apply -f k8s/
+    safe_reapply: true
+
+rollout_verification:
+  steps:
+    - name: rollout_status
+      command: >
+        kubectl rollout status deployment/hotel-reservation-app
+        -n sc-mvp-test
+      timeout_seconds: 300
+
+    - name: pod_readiness
+      command: >
+        kubectl get pods -n sc-mvp-test
+        -l app=hotel-reservation-app
+        -o json
+
+    - name: pod_availability
+      command: >
+        kubectl wait --for=condition=Available
+        deployment/hotel-reservation-app
+        -n sc-mvp-test
+        --timeout=300s
+
+    - name: service_accessibility
+      command: >
+        kubectl get svc hotel-reservation-app
+        -n sc-mvp-test
+        -o json
+
+metadata_capture:
+  timestamps:
+    apply_start: true
+    rollout_ready: true
+  pod_metrics:
+    status: true
+    restart_count: true
+  image_details:
+    tag: true
+    digest: true
+  output_formats:
+    - json
+    - csv
+  storage:
+    etl_ready: true
+    sqlite_compatible: true
+    path: artifacts/deployments/sc-mvp-02/
+
+logging:
+  capture:
+    stdout: true
+    stderr: true
+    kubectl_events: true
+  retention_policy:
+    preserve_on_success: true
+    preserve_on_failure: true
+
+failure_handling:
+  on_failure:
+    action: rollback
+    rollback_command: >
+      kubectl rollout undo deployment/hotel-reservation-app
+      -n sc-mvp-test
+  audit:
+    preserve_cluster_state: true
+    preserve_logs: true
+    mark_checkpoint_failed: true
+
+documentation:
+  included:
+    - deployment_manifests
+    - rollout_verification_steps
+    - idempotency_notes
+    - rerun_procedure
