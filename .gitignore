@@ -360,3 +360,9 @@ aiopslab/observer/prometheus/prometheus/Chart.lock
 # Ignore customized config files
 aiopslab/config.yml
 scripts/ansible/inventory.yml
+.claude/settings.local.json
+
+# Ignore local setup instructions
+running_on_wsl.txt
+validation_summary.txt
+cleanup.txt
