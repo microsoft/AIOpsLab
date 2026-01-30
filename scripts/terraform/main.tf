@@ -28,15 +28,29 @@ resource "azurerm_network_security_group" "nsg" {
   location            = data.azurerm_resource_group.rg.location
   resource_group_name = data.azurerm_resource_group.rg.name
 
+  # SSH access restricted to corporate VPN only
   security_rule {
     name                       = "SSH"
-    priority                   = 1001
+    priority                   = 100
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    source_address_prefix      = "*"
+    source_address_prefix      = "CorpNetPublic"
+    destination_address_prefix = "*"
+  }
+
+  # Kubernetes API server - for remote kubectl access (Mode B)
+  security_rule {
+    name                       = "KubernetesAPI"
+    priority                   = 110
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "6443"
+    source_address_prefix      = "CorpNetPublic"
     destination_address_prefix = "*"
   }
 }
