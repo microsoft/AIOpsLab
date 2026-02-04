@@ -3,7 +3,6 @@
 
 """MongoDB storage user unregistered problem in the HotelReservation application."""
 
-from time import sleep
 from typing import Any
 
 from aiopslab.orchestrator.tasks import *
@@ -167,32 +166,12 @@ class MisconfigAppHotelResMitigation(MisconfigAppHotelResBaseTask, MitigationTas
         super().eval(soln, trace, duration)
 
         # Check if all services (not only faulty service) is back to normal (Running)
-        all_normal = True
-        # Polling for 1 minute to check if all services are back to normal
-        for _ in range(12): # 5 seconds interval, 12 times, total 1 minute
-            pod_list = self.kubectl.list_pods(self.namespace)
-            for pod in pod_list.items:
-                # Check container statuses
-                for container_status in pod.status.container_statuses:
-                    if container_status.state.waiting:
-                        reason = container_status.state.waiting.reason
-                        if reason in ["CrashLoopBackOff", "Error", "ImagePullBackOff", "ErrImagePull"]:
-                            print(f"Container {container_status.name} is in error state: {reason}")
-                            all_normal = False
-                    elif container_status.state.terminated and container_status.state.terminated.reason != "Completed":
-                        print(f"Container {container_status.name} is terminated with reason: {container_status.state.terminated.reason}")
-                        all_normal = False
-                    elif not container_status.ready:
-                        print(f"Container {container_status.name} is not ready")
-                        all_normal = False
+        # Use wait_for_ready helper to poll for pod readiness
+        try:
+            self.kubectl.wait_for_ready(self.namespace, sleep=5, max_wait=60)
+            self.results["success"] = True
+        except Exception as e:
+            print(f"Pods are not all ready: {e}")
+            self.results["success"] = False
 
-                if not all_normal:
-                    break
-
-            if not all_normal:
-                break
-            # Wait for 5 seconds before checking again
-            sleep(5) 
-
-        self.results["success"] = all_normal
         return self.results

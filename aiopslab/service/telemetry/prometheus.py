@@ -128,6 +128,10 @@ class Prometheus:
     def _is_prometheus_running(self) -> bool:
         """Check if Prometheus Helm release is deployed."""
         try:
+            release_name = self.helm_configs.get("release_name")
+            namespace = self.helm_configs.get("namespace")
+            if not release_name or not namespace:
+                return False
             status_output = Helm.status(
                 release_name=self.name.lower(),
                 namespace=self.namespace,
