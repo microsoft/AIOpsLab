@@ -366,3 +366,4 @@ scripts/ansible/inventory.yml
 running_on_wsl.txt
 validation_summary.txt
 cleanup.txt
+SESSION_SUMMARY.md

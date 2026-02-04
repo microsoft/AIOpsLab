@@ -29,23 +29,42 @@ Moreover, AIOpsLab provides a built-in benchmark suite with a set of problems to
 ### Requirements
 - Python >= 3.11
 - [Helm](https://helm.sh/)
+- [Poetry](https://python-poetry.org/docs/) (recommended) or pip
 - Additional requirements depend on the deployment option selected, which is explained in the next section
 
-Recommended installation:
+### Step 1: Install Python 3.11
 ```bash
-sudo apt install python3.11 python3.11-venv python3.11-dev python3-pip # poetry requires python >= 3.11
+sudo apt update
+sudo apt install python3.11 python3.11-venv python3.11-dev -y
 ```
 
-We recommend [Poetry](https://python-poetry.org/docs/) for managing dependencies. You can also use a standard `pip install -e .` to install the dependencies.
+### Step 2: Install Poetry (Official Installer)
+```bash
+# Use the official installer (NOT apt - the apt version is outdated)
+curl -sSL https://install.python-poetry.org | python3.11 -
+export PATH="$HOME/.local/bin:$PATH"
 
+# Add to your shell profile for persistence
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+```
+
+> **Warning**: Do NOT use `sudo apt install python3-poetry` - it installs an outdated version that may not work with the lock file.
+
+### Step 3: Clone and Install
 ```bash
 git clone --recurse-submodules <CLONE_PATH_TO_THE_REPO>
 cd AIOpsLab
 poetry env use python3.11
-export PATH="$HOME/.local/bin:$PATH" # export poetry to PATH if needed
-poetry install # -vvv for verbose output
-poetry self add poetry-plugin-shell # installs poetry shell plugin
+poetry install
+poetry self add poetry-plugin-shell  # required for Poetry 2.0+
 poetry shell
+```
+
+> **Troubleshooting**: If you get a "lock file not compatible" error, run `poetry lock` first, then `poetry install`.
+
+Alternative installation with pip:
+```bash
+pip install -e .
 ```
 
 <h2 id="🚀quickstart">🚀 Quick Start </h2>
@@ -81,8 +100,32 @@ export no_proxy=localhost
 
 After finishing cluster creation, proceed to the next "Update `config.yml`" step.
 
-### b) Remote cluster
+### b) Remote cluster (Manual setup with Ansible)
 AIOpsLab supports any remote kubernetes cluster that your `kubectl` context is set to, whether it's a cluster from a cloud provider or one you build yourself. We have some Ansible playbooks to setup clusters on providers like [CloudLab](https://www.cloudlab.us/) and our own machines. Follow this [README](./scripts/ansible/README.md) to set up your own cluster, and then proceed to the next "Update `config.yml`" step.
+
+### c) Azure VMs with Terraform + Ansible (Recommended for cloud)
+For automated deployment on Azure, use our Terraform + Ansible scripts:
+
+```bash
+cd scripts/terraform
+terraform init
+terraform apply -var="resource_group_name=<your-rg>"
+
+# Generate Ansible inventory from Terraform output
+python generate_inventory.py
+
+# Run Ansible playbooks to setup K8s cluster
+cd ../ansible
+ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.yml setup_common.yml
+ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.yml remote_setup_controller_worker.yml
+
+# Verify kubectl works from your laptop
+kubectl get nodes
+```
+
+See [Terraform README](./scripts/terraform/README.md) for detailed options and configuration.
+
+> **Note**: This sets up Mode B where AIOpsLab runs on your laptop and connects to the remote K8s cluster. Some fault injectors require Docker on the local machine. For full functionality, consider running AIOpsLab on the controller VM (Mode A).
 
 ### Update `config.yml`
 ```bash
