@@ -132,7 +132,10 @@ class Prometheus:
             namespace = self.helm_configs.get("namespace")
             if not release_name or not namespace:
                 return False
-            status_output = Helm.status(release_name=release_name, namespace=namespace)
+            status_output = Helm.status(
+                release_name=self.name.lower(),
+                namespace=self.namespace,
+            )
             for line in status_output.splitlines():
                 if line.strip().startswith("STATUS:"):
                     status_value = line.split(":", 1)[1].strip().lower()
@@ -141,3 +144,4 @@ class Prometheus:
         except Exception as e:
             logging.exception(f"Unexpected error while checking Prometheus status: {e}")
             return False
+
