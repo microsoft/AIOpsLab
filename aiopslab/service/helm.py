@@ -4,11 +4,52 @@
 """Interface for helm operations"""
 
 import subprocess
+import os
 
 from aiopslab.service.kubectl import KubeCtl
 
 
 class Helm:
+    # Offline mode flag (can be set via config)
+    _offline_mode = False
+    _images_dir = None
+    _images_loaded = False
+    
+    @classmethod
+    def configure_offline_mode(cls, enabled: bool, images_dir: str = None):
+        """Configure offline mode for Helm deployments.
+        
+        Args:
+            enabled: Whether to enable offline mode
+            images_dir: Directory containing pre-downloaded image tar files
+        """
+        cls._offline_mode = enabled
+        cls._images_dir = images_dir
+        cls._images_loaded = False
+        if enabled:
+            print(f"== Offline Mode Enabled ==")
+            print(f"   Images directory: {images_dir}")
+    
+    @classmethod
+    def _ensure_images_loaded(cls):
+        """Load images from local tar files if offline mode is enabled."""
+        if not cls._offline_mode or cls._images_loaded:
+            return
+        
+        if not cls._images_dir or not os.path.exists(cls._images_dir):
+            print(f"Warning: Offline mode enabled but images_dir not found: {cls._images_dir}")
+            return
+        
+        try:
+            from aiopslab.plugins.offline_images import ensure_images_loaded
+            print("== Loading Offline Images ==")
+            ensure_images_loaded(cls._images_dir)
+            cls._images_loaded = True
+        except ImportError:
+            print("Warning: offline_images plugin not found, skipping image loading")
+        except Exception as e:
+            print(f"Warning: Failed to load offline images: {e}")
+    
     @staticmethod
     def install(**args):
         """Install a helm chart
@@ -21,6 +62,9 @@ class Helm:
             extra_args (List[str)]: Extra arguments for the helm install command
             remote_chart (bool): Whether the chart is remote (from a Helm repo)
         """
+        # Load offline images if configured
+        Helm._ensure_images_loaded()
+        
         print("== Helm Install ==")
         release_name = args.get("release_name")
         chart_path = args.get("chart_path")
