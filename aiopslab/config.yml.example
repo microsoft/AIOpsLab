@@ -13,3 +13,8 @@ qualitative_eval: false
 
 # Flag to enable/disable printing the session
 print_session: false
+
+# Offline mode configuration (for environments with restricted network access)
+# When enabled, images are loaded from local tar files instead of pulling from registries
+offline_mode: false
+images_dir: ./images  # Directory containing pre-downloaded image tar files
