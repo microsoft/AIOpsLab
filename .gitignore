@@ -198,3 +198,29 @@ aiopslab/observer/prometheus/prometheus/charts/alertmanager-1.7.0.tgz
 # Ignore customized config files
 aiopslab/config.yml
 scripts/ansible/inventory.yml
+
+# Additional security protections
+# Environment files
+.env*
+*.env
+env.local
+.env.local
+.env.*.local
+
+# API keys and secrets
+*api_key*
+*secret*
+*token*
+*.pem
+*.key
+*.crt
+
+# Log files that might contain sensitive data
+*_output.log
+flash_output.log
+debug.log
+*.log
+
+# Temporary files that might contain secrets
+temp_*.txt
+*_temp.txt
