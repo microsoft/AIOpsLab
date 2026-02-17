@@ -11,8 +11,10 @@ Usage:
 """
 
 import subprocess
+import shutil
 import sys
 import os
+import re
 import time
 import argparse
 import logging
@@ -70,7 +72,7 @@ class AIOpsLabDeployer:
         logger.info("Initializing Terraform...")
         return self.run_command(["terraform", "init"])
 
-    def terraform_plan(self, worker_count, vm_size, resource_group, prefix, ssh_key_path):
+    def terraform_plan(self, worker_count, vm_size, resource_group, prefix, ssh_key_path, allowed_ips="*"):
         """Create Terraform plan."""
         logger.info("Creating Terraform plan...")
 
@@ -80,12 +82,13 @@ class AIOpsLabDeployer:
             f"-var=vm_size={vm_size}",
             f"-var=resource_group_name={resource_group}",
             f"-var=prefix={prefix}",
-            f"-var=ssh_public_key_path={ssh_key_path}"
+            f"-var=ssh_public_key_path={ssh_key_path}",
+            f"-var=nsg_allowed_source={allowed_ips}"
         ]
 
         return self.run_command(["terraform", "plan"] + plan_vars)
 
-    def terraform_plan_only(self, worker_count, vm_size, resource_group, prefix, ssh_key_path):
+    def terraform_plan_only(self, worker_count, vm_size, resource_group, prefix, ssh_key_path, allowed_ips="*"):
         """Show Terraform plan without saving (dry-run)."""
         logger.info("Creating Terraform plan (dry-run)...")
 
@@ -94,7 +97,8 @@ class AIOpsLabDeployer:
             f"-var=vm_size={vm_size}",
             f"-var=resource_group_name={resource_group}",
             f"-var=prefix={prefix}",
-            f"-var=ssh_public_key_path={ssh_key_path}"
+            f"-var=ssh_public_key_path={ssh_key_path}",
+            f"-var=nsg_allowed_source={allowed_ips}"
         ]
 
         return self.run_command(["terraform", "plan"] + plan_vars)
@@ -104,7 +108,7 @@ class AIOpsLabDeployer:
         logger.info("Applying Terraform plan...")
         return self.run_command(["terraform", "apply", "main.tfplan"])
 
-    def terraform_destroy(self, resource_group, prefix, ssh_key_path):
+    def terraform_destroy(self, resource_group, prefix, ssh_key_path, allowed_ips="*"):
         """Destroy Terraform-managed infrastructure."""
         logger.info("Destroying Terraform infrastructure...")
 
@@ -114,7 +118,8 @@ class AIOpsLabDeployer:
             "-out=main.destroy.tfplan",
             f"-var=resource_group_name={resource_group}",
             f"-var=prefix={prefix}",
-            f"-var=ssh_public_key_path={ssh_key_path}"
+            f"-var=ssh_public_key_path={ssh_key_path}",
+            f"-var=nsg_allowed_source={allowed_ips}"
         ]
 
         logger.info("Creating destroy plan...")
@@ -123,38 +128,6 @@ class AIOpsLabDeployer:
 
         logger.info("Applying destroy plan...")
         return self.run_command(["terraform", "apply", "main.destroy.tfplan"])
-
-    def add_nsg_corpnet_rule(self, resource_group, prefix):
-        """Add NSG rule to restrict SSH to Microsoft CorpNet."""
-        logger.info("Adding NSG rule to restrict SSH to CorpNetPublic...")
-
-        nsg_name = f"{prefix}-nsg"
-
-        command = [
-            "az", "network", "nsg", "rule", "create",
-            "-g", resource_group,
-            "--nsg-name", nsg_name,
-            "--name", "SSH-CorpNet",
-            "--priority", "100",
-            "--protocol", "TCP",
-            "--source-address-prefixes", "CorpNetPublic",
-            "--destination-port-ranges", "22",
-            "--access", "Allow",
-            "--direction", "Inbound"
-        ]
-
-        try:
-            result = self.run_command(command, check=False)
-            if result:
-                logger.info("✅ NSG rule 'SSH-CorpNet' added successfully")
-                logger.info("   SSH access is now restricted to Microsoft Corporate Network")
-                return True
-            else:
-                logger.warning("⚠️  Failed to add NSG rule. You may need to add it manually.")
-                return False
-        except Exception as e:
-            logger.error(f"❌ Failed to add NSG rule: {e}")
-            return False
 
     def get_terraform_outputs(self):
         """Retrieve Terraform outputs as JSON."""
@@ -229,7 +202,7 @@ class AIOpsLabDeployer:
                 logger.error(f"Worker {idx} SSH not available")
                 return False
 
-        logger.info("✅ All hosts are SSH-ready")
+        logger.info("All hosts are SSH-ready")
         return True
 
     def add_ssh_host_keys(self, outputs):
@@ -261,14 +234,14 @@ class AIOpsLabDeployer:
 
                     logger.debug(f"Added SSH host key for {host}")
                 else:
-                    logger.warning(f"⚠️  Could not get SSH host key for {host}")
+                    logger.warning(f"Could not get SSH host key for {host}")
 
             except subprocess.TimeoutExpired:
-                logger.warning(f"⚠️  ssh-keyscan timeout for {host}")
+                logger.warning(f"ssh-keyscan timeout for {host}")
             except Exception as e:
-                logger.warning(f"⚠️  Failed to add SSH host key for {host}: {e}")
+                logger.warning(f"Failed to add SSH host key for {host}: {e}")
 
-        logger.info("✅ SSH host keys added")
+        logger.info("SSH host keys added")
         return True
 
     def run_ansible_playbook(self, playbook_name, extra_args=None, disable_host_key_checking=False):
@@ -297,7 +270,7 @@ class AIOpsLabDeployer:
         # Optionally disable host key checking (not recommended for production)
         env = os.environ.copy()
         if disable_host_key_checking:
-            logger.warning("⚠️  SSH host key checking is DISABLED. This is insecure on untrusted networks.")
+            logger.warning("SSH host key checking is DISABLED. This is insecure on untrusted networks.")
             env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
 
         try:
@@ -312,6 +285,219 @@ class AIOpsLabDeployer:
             logger.error(f"Ansible playbook failed with exit code {e.returncode}")
             return False
 
+    def _install_tool(self, name, install_cmd):
+        """Try to install a tool via a shell command. Returns True if tool is on PATH after."""
+        logger.info(f"Installing {name}...")
+        try:
+            subprocess.run(install_cmd, shell=True, check=True)
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            logger.warning(f"Install failed for {name}: {e}")
+            return False
+        # Refresh PATH check (poetry installs to ~/.local/bin)
+        if name == "poetry":
+            local_bin = str(Path.home() / ".local" / "bin")
+            if local_bin not in os.environ.get("PATH", ""):
+                os.environ["PATH"] = f"{local_bin}:{os.environ.get('PATH', '')}"
+        return shutil.which(name) is not None
+
+    def _find_python311_plus(self):
+        """Find a Python >= 3.11 binary. Returns (command_name, version_string) or (None, None)."""
+        for candidate in ["python3.11", "python3.12", "python3.13", "python3"]:
+            path = shutil.which(candidate)
+            if not path:
+                continue
+            try:
+                ver = subprocess.run(
+                    [path, "--version"], capture_output=True, text=True, check=True
+                ).stdout.strip()
+                minor = int(ver.split(".")[1])
+                if minor >= 11:
+                    return candidate, ver
+            except Exception:
+                continue
+        return None, None
+
+    def setup_aiopslab_mode_b(self, outputs, ssh_key_path):
+        """Configure AIOpsLab for Mode B (laptop with remote kubectl)."""
+        controller = outputs['controller']['value']
+        controller_ip = controller['public_ip']
+        admin_username = controller['username']
+        repo_root = self.script_dir.parent.parent
+        kubeconfig_path = Path.home() / ".kube" / "config"
+
+        # Derive private key path (strip .pub if needed)
+        ssh_private_key = ssh_key_path
+        if ssh_private_key.endswith('.pub'):
+            ssh_private_key = ssh_private_key[:-4]
+
+        # Track results: (step_name, status, detail)
+        results = []
+
+        # --- kubectl ---
+        logger.info("Checking kubectl...")
+        if not shutil.which("kubectl"):
+            installed = self._install_tool("kubectl",
+                'curl -LO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"'
+                ' && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl'
+                ' && rm -f kubectl')
+            if installed:
+                results.append(("kubectl", "INSTALLED", shutil.which("kubectl")))
+            else:
+                results.append(("kubectl", "FAILED", "Auto-install failed, install manually"))
+        else:
+            results.append(("kubectl", "OK", shutil.which("kubectl")))
+
+        # --- helm ---
+        logger.info("Checking helm...")
+        if not shutil.which("helm"):
+            installed = self._install_tool("helm",
+                'curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash')
+            if installed:
+                results.append(("helm", "INSTALLED", shutil.which("helm")))
+            else:
+                results.append(("helm", "FAILED", "Auto-install failed, install manually"))
+        else:
+            results.append(("helm", "OK", shutil.which("helm")))
+
+        # --- kubeconfig ---
+        logger.info("Checking kubeconfig...")
+        kubeconfig_ok = kubeconfig_path.exists()
+        if kubeconfig_ok:
+            results.append(("kubeconfig", "OK", str(kubeconfig_path)))
+        else:
+            results.append(("kubeconfig", "MISSING", "Ansible should have copied it to ~/.kube/config"))
+
+        # --- cluster access ---
+        has_kubectl = shutil.which("kubectl") is not None
+        if has_kubectl and kubeconfig_ok:
+            logger.info("Verifying kubectl connectivity...")
+            try:
+                self.run_command(["kubectl", "get", "nodes"], check=True)
+                results.append(("cluster access", "OK", "kubectl get nodes succeeded"))
+            except Exception:
+                results.append(("cluster access", "FAILED", "Check NSG rules and kubeconfig server IP"))
+        else:
+            results.append(("cluster access", "SKIPPED",
+                            "No kubectl" if not has_kubectl else "No kubeconfig"))
+
+        # --- config.yml ---
+        logger.info("Generating aiopslab/config.yml...")
+        config_example = repo_root / "aiopslab" / "config.yml.example"
+        config_dest = repo_root / "aiopslab" / "config.yml"
+
+        if not config_example.exists() and not config_dest.exists():
+            results.append(("config.yml", "FAILED", "config.yml.example not found"))
+        elif config_dest.exists():
+            content = config_dest.read_text()
+            content = re.sub(r'k8s_host:.*', f'k8s_host: {controller_ip}', content)
+            content = re.sub(r'k8s_user:.*', f'k8s_user: {admin_username}', content)
+            content = re.sub(r'ssh_key_path:.*', f'ssh_key_path: {ssh_private_key}', content)
+            config_dest.write_text(content)
+            results.append(("config.yml", "UPDATED", f"k8s_host={controller_ip}"))
+        else:
+            content = config_example.read_text()
+            content = content.replace("k8s_host: control_node_hostname", f"k8s_host: {controller_ip}")
+            content = content.replace("k8s_user: your_username", f"k8s_user: {admin_username}")
+            content = content.replace("ssh_key_path: ~/.ssh/id_rsa", f"ssh_key_path: {ssh_private_key}")
+            config_dest.write_text(content)
+            results.append(("config.yml", "OK", f"Generated with k8s_host={controller_ip}"))
+
+        # --- git submodules ---
+        logger.info("Checking git submodules...")
+        submodules_dir = repo_root / "aiopslab-applications"
+        has_content = (submodules_dir.exists()
+                       and any(f for f in submodules_dir.iterdir() if f.name != '.git'))
+        if has_content:
+            results.append(("git submodules", "OK", "aiopslab-applications present"))
+        else:
+            try:
+                self.run_command(
+                    ["git", "submodule", "update", "--init", "--recursive"],
+                    cwd=str(repo_root), check=True)
+                results.append(("git submodules", "OK", "Initialized successfully"))
+            except Exception:
+                git_path = repo_root / ".git"
+                is_worktree = git_path.is_file()
+                if is_worktree:
+                    results.append(("git submodules", "FAILED",
+                                    "Worktree detected -- run from Git Bash, not WSL"))
+                else:
+                    results.append(("git submodules", "FAILED",
+                                    "Run: git submodule update --init --recursive"))
+
+        # --- poetry ---
+        logger.info("Checking poetry...")
+        if not shutil.which("poetry"):
+            installed = self._install_tool("poetry",
+                'curl -sSL https://install.python-poetry.org | python3 -')
+            if installed:
+                results.append(("poetry", "INSTALLED", shutil.which("poetry")))
+            else:
+                results.append(("poetry", "FAILED", "Auto-install failed, install manually"))
+        else:
+            results.append(("poetry", "OK", shutil.which("poetry")))
+
+        # --- python 3.11+ ---
+        logger.info("Checking Python version...")
+        python_cmd, python_ver = self._find_python311_plus()
+        if python_cmd:
+            results.append(("python 3.11+", "OK", python_ver))
+        else:
+            results.append(("python 3.11+", "MISSING", "Install python3.11 or newer"))
+
+        # --- poetry env + install ---
+        has_poetry = shutil.which("poetry") is not None
+        if has_poetry and python_cmd:
+            logger.info("Running poetry env use + poetry install...")
+            try:
+                self.run_command(
+                    ["poetry", "env", "use", python_cmd],
+                    cwd=str(repo_root), check=True)
+                self.run_command(
+                    ["poetry", "install"],
+                    cwd=str(repo_root), check=True)
+                results.append(("poetry install", "OK", "Dependencies installed"))
+            except Exception:
+                results.append(("poetry install", "FAILED",
+                                f"Run: poetry env use {python_cmd} && poetry install"))
+        elif has_poetry:
+            results.append(("poetry install", "SKIPPED", "No compatible Python found"))
+        else:
+            results.append(("poetry install", "SKIPPED", "Poetry not available"))
+
+        # --- Summary table ---
+        ok_statuses = {"OK", "INSTALLED", "UPDATED", "SKIPPED"}
+        print("\n" + "="*70)
+        print("MODE B SETUP SUMMARY")
+        print("="*70)
+        print(f"  {'Step':<20} {'Status':<16} {'Detail'}")
+        print(f"  {'-'*18:<20} {'-'*14:<16} {'-'*30}")
+        needs_action = False
+        for name, status, detail in results:
+            print(f"  {name:<20} {status:<16} {detail}")
+            if status not in ok_statuses:
+                needs_action = True
+
+        if not needs_action:
+            print(f"\nAll steps completed. To start:")
+            print(f"  cd {repo_root}")
+            print(f"  eval $(poetry env activate)")
+            print(f"  python3 cli.py")
+        else:
+            print(f"\nSome steps need manual action. See details above.")
+            print(f"After resolving, start with:")
+            print(f"  cd {repo_root}")
+            print(f"  poetry env use python3.11 && poetry install")
+            print(f"  eval $(poetry env activate)")
+            print(f"  python3 cli.py")
+
+        print("="*70 + "\n")
+
+    def setup_aiopslab_mode_a(self, outputs):
+        """Configure AIOpsLab for Mode A (on controller VM). TODO."""
+        logger.warning("Mode A setup not yet implemented.")
+        logger.info("To set up manually, SSH into the controller and follow the docs.")
+
     def print_access_info(self, outputs):
         """Print SSH access information."""
         controller = outputs['controller']['value']
@@ -319,29 +505,24 @@ class AIOpsLabDeployer:
         ssh_config = outputs['ssh_config']['value']
 
         print("\n" + "="*70)
-        print("🎉 DEPLOYMENT COMPLETE!")
+        print("DEPLOYMENT COMPLETE!")
         print("="*70)
 
-        print(f"\n📋 Controller Node:")
+        print(f"\nController Node:")
         print(f"   Public IP:  {controller['public_ip']}")
         print(f"   Private IP: {controller['private_ip']}")
         print(f"   SSH:        ssh -i {ssh_config.get('private_key_path', '~/.ssh/id_rsa')} {controller['username']}@{controller['public_ip']}")
 
-        print(f"\n👷 Worker Nodes ({len(workers)}):")
+        print(f"\nWorker Nodes ({len(workers)}):")
         for idx, worker in enumerate(workers, start=1):
             print(f"   Worker {idx}:")
             print(f"      Public IP:  {worker['public_ip']}")
             print(f"      Private IP: {worker['private_ip']}")
             print(f"      SSH:        ssh -i {ssh_config.get('private_key_path', '~/.ssh/id_rsa')} {worker['username']}@{worker['public_ip']}")
 
-        print("\n📝 Next Steps:")
-        print(f"   1. SSH into controller: ssh -i {ssh_config.get('private_key_path', '~/.ssh/id_rsa')} {controller['username']}@{controller['public_ip']}")
-        print(f"   2. Check cluster: kubectl get nodes")
-        print(f"   3. Deploy AIOpsLab: cd ~/AIOpsLab && poetry install")
-
         print("\n" + "="*70 + "\n")
 
-    def deploy(self, worker_count, vm_size, resource_group, prefix, ssh_key_path, restrict_ssh_corpnet=False, disable_host_key_checking=False):
+    def deploy(self, worker_count, vm_size, resource_group, prefix, ssh_key_path, allowed_ips="*", disable_host_key_checking=False, mode="B"):
         """Execute full deployment workflow."""
         logger.info("="*70)
         logger.info("STARTING AIOPSLAB DEPLOYMENT")
@@ -350,10 +531,10 @@ class AIOpsLabDeployer:
         logger.info(f"VM Size: {vm_size}")
         logger.info(f"Resource Group: {resource_group}")
         logger.info(f"Prefix: {prefix}")
-        if restrict_ssh_corpnet:
-            logger.info(f"SSH Access: Restricted to CorpNetPublic")
+        logger.info(f"NSG Allowed Source: {allowed_ips}")
+        logger.info(f"Mode: {mode} ({'AIOpsLab on controller' if mode == 'A' else 'AIOpsLab on laptop'})")
         if disable_host_key_checking:
-            logger.warning(f"⚠️  Host key checking: DISABLED (insecure)")
+            logger.warning("Host key checking: DISABLED (insecure)")
 
         try:
             # Step 1: Initialize Terraform
@@ -362,7 +543,7 @@ class AIOpsLabDeployer:
                 return False
 
             # Step 2: Plan infrastructure
-            if not self.terraform_plan(worker_count, vm_size, resource_group, prefix, ssh_key_path):
+            if not self.terraform_plan(worker_count, vm_size, resource_group, prefix, ssh_key_path, allowed_ips):
                 logger.error("Terraform planning failed")
                 return False
 
@@ -376,12 +557,6 @@ class AIOpsLabDeployer:
             if not outputs:
                 logger.error("Failed to retrieve Terraform outputs")
                 return False
-
-            # Step 4.5: Add CorpNet NSG rule if requested
-            if restrict_ssh_corpnet:
-                if not self.add_nsg_corpnet_rule(resource_group, prefix):
-                    logger.warning("⚠️  NSG rule creation failed, but continuing deployment...")
-                    logger.warning("   You may need to add the rule manually later.")
 
             # Step 5: Generate Ansible inventory
             if not self.generate_ansible_inventory():
@@ -397,7 +572,7 @@ class AIOpsLabDeployer:
             if not disable_host_key_checking:
                 keys_added = self.add_ssh_host_keys(outputs)
                 if not keys_added:
-                    logger.error("❌ Failed to add SSH host keys automatically")
+                    logger.error("Failed to add SSH host keys automatically")
                     logger.error("This is required for secure Ansible execution.")
                     logger.error("Possible causes:")
                     logger.error("  - Firewall blocking SSH port 22")
@@ -421,17 +596,23 @@ class AIOpsLabDeployer:
             # Step 9: Print access info
             self.print_access_info(outputs)
 
-            logger.info("✅ DEPLOYMENT SUCCESSFUL!")
+            # Step 10: Set up AIOpsLab
+            if mode == 'B':
+                self.setup_aiopslab_mode_b(outputs, ssh_key_path)
+            elif mode == 'A':
+                self.setup_aiopslab_mode_a(outputs)
+
+            logger.info("DEPLOYMENT SUCCESSFUL!")
             return True
 
         except KeyboardInterrupt:
-            logger.warning("\n⚠️  Deployment interrupted by user")
+            logger.warning("\nDeployment interrupted by user")
             return False
         except Exception as e:
-            logger.error(f"❌ Deployment failed: {e}")
+            logger.error(f"Deployment failed: {e}")
             return False
 
-    def plan(self, worker_count, vm_size, resource_group, prefix, ssh_key_path):
+    def plan(self, worker_count, vm_size, resource_group, prefix, ssh_key_path, allowed_ips="*", mode="B"):
         """Show deployment plan without applying (dry-run)."""
         logger.info("="*70)
         logger.info("AIOPSLAB DEPLOYMENT PLAN (DRY-RUN)")
@@ -440,6 +621,8 @@ class AIOpsLabDeployer:
         logger.info(f"VM Size: {vm_size}")
         logger.info(f"Resource Group: {resource_group}")
         logger.info(f"Prefix: {prefix}")
+        logger.info(f"NSG Allowed Source: {allowed_ips}")
+        logger.info(f"Mode: {mode} ({'AIOpsLab on controller' if mode == 'A' else 'AIOpsLab on laptop'})")
         logger.info("")
         logger.info("This will show what resources would be created WITHOUT actually creating them.")
         logger.info("="*70)
@@ -452,33 +635,33 @@ class AIOpsLabDeployer:
                 return False
 
             # Step 2: Show plan only (no apply)
-            if not self.terraform_plan_only(worker_count, vm_size, resource_group, prefix, ssh_key_path):
+            if not self.terraform_plan_only(worker_count, vm_size, resource_group, prefix, ssh_key_path, allowed_ips):
                 logger.error("Terraform planning failed")
                 return False
 
             logger.info("")
             logger.info("="*70)
-            logger.info("✅ PLAN COMPLETE!")
+            logger.info("PLAN COMPLETE!")
             logger.info("="*70)
             logger.info("")
-            logger.info("📋 Review the plan above to see what would be created.")
+            logger.info("Review the plan above to see what would be created.")
             logger.info("")
             logger.info("To actually deploy, run:")
-            logger.info(f"  python3 deploy.py --apply --workers {worker_count} --vm-size {vm_size} \\")
-            logger.info(f"      --resource-group {resource_group} --prefix {prefix}")
+            apply_args = [a if a != "--plan" else "--apply" for a in sys.argv]
+            logger.info(f"  {' '.join(apply_args)}")
             logger.info("")
-            logger.info("⚠️  Note: This will create billable Azure resources.")
+            logger.info("Note: This will create billable Azure resources.")
             logger.info("")
             return True
 
         except KeyboardInterrupt:
-            logger.warning("\n⚠️  Plan interrupted by user")
+            logger.warning("\nPlan interrupted by user")
             return False
         except Exception as e:
-            logger.error(f"❌ Plan failed: {e}")
+            logger.error(f"Plan failed: {e}")
             return False
 
-    def destroy(self, resource_group, prefix, ssh_key_path):
+    def destroy(self, resource_group, prefix, ssh_key_path, allowed_ips="*"):
         """Destroy deployed infrastructure."""
         logger.info("="*70)
         logger.info("DESTROYING AIOPSLAB INFRASTRUCTURE")
@@ -486,21 +669,21 @@ class AIOpsLabDeployer:
 
         try:
             # Confirm destruction
-            confirm = input("⚠️  This will destroy all resources. Type 'yes' to confirm: ")
+            confirm = input("This will destroy all resources. Type 'yes' to confirm: ")
             if confirm.lower() != 'yes':
                 logger.info("Destruction cancelled")
                 return False
 
             # Destroy infrastructure
-            if self.terraform_destroy(resource_group, prefix, ssh_key_path):
-                logger.info("✅ Infrastructure destroyed successfully")
+            if self.terraform_destroy(resource_group, prefix, ssh_key_path, allowed_ips):
+                logger.info("Infrastructure destroyed successfully")
                 return True
             else:
-                logger.error("❌ Destruction failed")
+                logger.error("Destruction failed")
                 return False
 
         except KeyboardInterrupt:
-            logger.warning("\n⚠️  Destruction interrupted by user")
+            logger.warning("\nDestruction interrupted by user")
             return False
 
 
@@ -517,8 +700,11 @@ Examples:
   Deploy with 3 workers:
     python deploy.py --apply --workers 3 --vm-size Standard_D4s_v3
 
-  Deploy with SSH restricted to Microsoft CorpNet:
-    python deploy.py --apply --workers 2 --vm-size Standard_B2s --restrict-ssh-corpnet
+  Deploy with SSH restricted to a specific CIDR:
+    python deploy.py --apply --workers 2 --allowed-ips 203.0.113.0/24
+
+  Deploy with SSH restricted to an Azure service tag:
+    python deploy.py --apply --workers 2 --allowed-ips CorpNetPublic
 
   Destroy infrastructure:
     python deploy.py --destroy
@@ -579,9 +765,16 @@ Examples:
     )
 
     parser.add_argument(
-        '--restrict-ssh-corpnet',
-        action='store_true',
-        help='Restrict SSH access to Microsoft CorpNetPublic (adds NSG rule with priority 100)'
+        '--allowed-ips',
+        default='*',
+        help='Source address for NSG rules (SSH + K8s API). Use \'*\' for open access (default), a CIDR like \'203.0.113.0/24\', or an Azure service tag like \'CorpNetPublic\''
+    )
+
+    parser.add_argument(
+        '--mode',
+        choices=['A', 'B'],
+        default='B',
+        help='Deployment mode. A: AIOpsLab runs on controller VM. B: AIOpsLab runs on laptop with remote kubectl (default: B)'
     )
 
     parser.add_argument(
@@ -626,7 +819,9 @@ Examples:
             vm_size=args.vm_size,
             resource_group=args.resource_group,
             prefix=args.prefix,
-            ssh_key_path=ssh_key_path
+            ssh_key_path=ssh_key_path,
+            allowed_ips=args.allowed_ips,
+            mode=args.mode
         )
     elif args.apply:
         success = deployer.deploy(
@@ -635,14 +830,16 @@ Examples:
             resource_group=args.resource_group,
             prefix=args.prefix,
             ssh_key_path=ssh_key_path,
-            restrict_ssh_corpnet=args.restrict_ssh_corpnet,
-            disable_host_key_checking=args.disable_host_key_checking
+            allowed_ips=args.allowed_ips,
+            disable_host_key_checking=args.disable_host_key_checking,
+            mode=args.mode
         )
     elif args.destroy:
         success = deployer.destroy(
             resource_group=args.resource_group,
             prefix=args.prefix,
-            ssh_key_path=ssh_key_path
+            ssh_key_path=ssh_key_path,
+            allowed_ips=args.allowed_ips
         )
 
     sys.exit(0 if success else 1)
