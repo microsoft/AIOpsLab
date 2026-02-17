@@ -21,6 +21,11 @@ os_sku       = "22_04-lts"                          # Ubuntu 22.04 LTS
 admin_username      = "azureuser"                   # Admin username for VMs
 ssh_public_key_path = "~/.ssh/id_rsa.pub"          # Path to SSH public key
 
+# Network Security
+# nsg_allowed_source = "*"               # Open to all (default)
+# nsg_allowed_source = "203.0.113.0/24"  # Restrict to specific CIDR
+# nsg_allowed_source = "CorpNetPublic"   # Azure service tag (e.g. Microsoft corporate network)
+
 # Examples for different deployment scenarios:
 
 # Small Development Cluster (Low Cost)

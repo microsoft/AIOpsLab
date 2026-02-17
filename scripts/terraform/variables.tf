@@ -63,3 +63,9 @@ variable "worker_vm_count" {
   description = "The number of worker nodes to create."
   default     = 2
 }
+
+variable "nsg_allowed_source" {
+  type        = string
+  description = "Source address prefix for NSG rules (SSH + K8s API). Use '*' for open access, a CIDR like '203.0.113.0/24', or an Azure service tag like 'CorpNetPublic'."
+  default     = "*"
+}
