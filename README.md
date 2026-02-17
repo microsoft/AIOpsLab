@@ -56,8 +56,7 @@ git clone --recurse-submodules <CLONE_PATH_TO_THE_REPO>
 cd AIOpsLab
 poetry env use python3.11
 poetry install
-poetry self add poetry-plugin-shell  # required for Poetry 2.0+
-poetry shell
+eval $(poetry env activate)
 ```
 
 > **Troubleshooting**: If you get a "lock file not compatible" error, run `poetry lock` first, then `poetry install`.
