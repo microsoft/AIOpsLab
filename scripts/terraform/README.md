@@ -2,6 +2,8 @@
 
 **Fully automated deployment of production-ready Kubernetes clusters on Azure**
 
+> Tested on WSL2 (Ubuntu 22.04) + Windows 11 with Azure VMs (Ubuntu 22.04 LTS, amd64). Auto-install of tools (kubectl, helm, poetry) targets Linux/amd64.
+
 ## 🚀 Quick Start
 
 Deploy AIOpsLab with 3 workers in just one command:
@@ -185,13 +187,16 @@ terraform destroy -var="resource_group_name=<your-rg>"
 Run AIOpsLab directly on the controller VM:
 
 ```bash
-# SSH to controller
-ssh -i ~/.ssh/id_rsa azureuser@<controller-public-ip>
+# Deploy with --mode A (TODO: auto-setup not yet implemented)
+python3 deploy.py --apply --resource-group <your-rg> --mode A
 
-# Clone and setup AIOpsLab
+# Then SSH to controller and set up manually:
+ssh -i ~/.ssh/id_rsa azureuser@<controller-public-ip>
 git clone --recurse-submodules https://github.com/microsoft/AIOpsLab.git
 cd AIOpsLab
-poetry install && poetry shell
+poetry env use python3.11
+poetry install
+eval $(poetry env activate)
 
 # Configure for localhost
 cd aiopslab
@@ -204,22 +209,31 @@ cp config.yml.example config.yml
 
 ### Mode B: AIOpsLab on Your Laptop (Convenient for development)
 
-Run AIOpsLab locally, connecting to remote K8s cluster:
+`deploy.py --mode B` (the default) handles everything automatically:
 
 ```bash
-# Kubeconfig is automatically copied to ~/.kube/config by Ansible
-kubectl get nodes  # Should show your remote cluster
+python3 deploy.py --apply --resource-group <your-rg> --workers 2 --mode B
+```
 
-# Configure AIOpsLab
-cd aiopslab
-cp config.yml.example config.yml
-# Set k8s_host=<controller-hostname> and k8s_user=azureuser
+This automatically:
+- Installs kubectl, helm, and poetry if missing
+- Verifies kubeconfig and cluster connectivity
+- Generates `aiopslab/config.yml` with the correct controller IP
+- Runs `poetry env use python3.11 && poetry install`
+- Prints a summary table showing what succeeded and what needs manual action
+
+After deploy, just:
+```bash
+eval $(poetry env activate)
+python3 cli.py
 ```
 
 **Pros**: Use local IDE, no SSH needed for running experiments
 **Cons**: Some fault injectors (e.g., VirtualizationFaultInjector) require local Docker
 
 **Note**: If you see Docker connection errors in Mode B, either install Docker on your laptop or switch to Mode A.
+
+**Note**: If using a git worktree in WSL, `git submodule update` may fail due to cross-platform path issues. Run it from Git Bash instead.
 
 ---
 
