@@ -141,6 +141,9 @@ class Prometheus:
                     status_value = line.split(":", 1)[1].strip().lower()
                     return status_value == "deployed"
             return False
+        except RuntimeError:
+            logging.warning("Prometheus release not found, will install.")
+            return False
         except Exception as e:
             logging.exception(f"Unexpected error while checking Prometheus status: {e}")
             return False

@@ -44,6 +44,7 @@
           - gnupg
           - lsb-release
           - socat
+          - conntrack
     
     - name: Install OpenSSL development libraries (the wrk build needs it)
       apt:
