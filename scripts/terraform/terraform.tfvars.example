@@ -4,7 +4,6 @@
 # Resource Configuration
 prefix              = "aiopslab"                    # Prefix for all resource names
 resource_group_name = "aiopslab-rg"                 # Existing Azure resource group
-location            = "eastus"                      # Azure region (not used with existing RG)
 
 # VM Configuration
 worker_vm_count = 2                                 # Number of worker nodes (1-10)

@@ -10,12 +10,6 @@ variable "resource_group_name" {
   default     = "aiopslab-rg"
 }
 
-variable "location" {
-  type        = string
-  description = "The Azure region to deploy the resources in."
-  default     = "eastus"
-}
-
 variable "admin_username" {
   type        = string
   description = "The username for the VMs."
@@ -54,7 +48,7 @@ variable "os_offer" {
 
 variable "os_sku" {
   type        = string
-  description = "The SKU of the OS image. The default is Ubuntu 22.04 LTS."
+  description = "The SKU of the OS image. The default is Ubuntu 22.04 LTS (gen1). Use '22_04-lts-gen2' for gen2 VMs."
   default     = "22_04-lts"
 }
 

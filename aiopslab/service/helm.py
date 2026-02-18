@@ -167,9 +167,10 @@ class Helm:
             chart_path,
             "-n",
             namespace,
-            "-f",
-            values_file,
         ]
+
+        if values_file:
+            command.extend(["-f", values_file])
 
         # Add --set options if provided
         for key, value in set_values.items():
