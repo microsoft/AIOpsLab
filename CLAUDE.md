@@ -572,8 +572,8 @@ ssh_key_path: ~/.ssh/id_rsa
 ### NSG (Network Security Group) Rules
 
 The Terraform config creates NSG rules for:
-- **SSH (22)**: Restricted to `CorpNetPublic` (corporate VPN)
-- **K8s API (6443)**: Restricted to `CorpNetPublic` for remote kubectl
+- **SSH (22)**: Open to all (`*`) by default. Restrict via `--allowed-ips` flag or `nsg_allowed_source` variable.
+- **K8s API (6443)**: Open to all (`*`) by default. Restrict via `--allowed-ips` flag or `nsg_allowed_source` variable.
 
 To allow access from other IPs, modify `main.tf` or add rules via Azure CLI.
 
