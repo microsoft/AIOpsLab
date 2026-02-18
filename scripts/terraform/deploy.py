@@ -338,8 +338,10 @@ class AIOpsLabDeployer:
         if not shutil.which("kubectl"):
             installed = self._install_tool("kubectl",
                 'curl -LO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"'
+                ' && curl -LO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"'
+                ' && echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check'
                 ' && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl'
-                ' && rm -f kubectl')
+                ' && rm -f kubectl kubectl.sha256')
             if installed:
                 results.append(("kubectl", "INSTALLED", shutil.which("kubectl")))
             else:
@@ -350,6 +352,7 @@ class AIOpsLabDeployer:
         # --- helm ---
         logger.info("Checking helm...")
         if not shutil.which("helm"):
+            # Pipe-to-bash is the official Helm install method; no checksum alternative provided
             installed = self._install_tool("helm",
                 'curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash')
             if installed:
