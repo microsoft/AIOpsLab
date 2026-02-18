@@ -23,6 +23,7 @@ class SymptomFaultInjector(FaultInjector):
             "chart_path": "chaos-mesh/chaos-mesh",
             "namespace": "chaos-mesh",
             "version": "2.6.2",
+            "remote_chart": True,
         }
 
         container_runtime = self.kubectl.get_container_runtime()
