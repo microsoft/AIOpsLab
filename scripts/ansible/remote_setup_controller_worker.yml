@@ -63,17 +63,31 @@
       copy:
         src: /etc/kubernetes/admin.conf
         dest: "{{ kubeconfig_path }}"
-        mode: '0644'
+        mode: '0600'
         remote_src: true
         owner: "{{ k8s_user }}"
         group: "{{ k8s_user }}"
       become: true
+
+    - name: Restore admin.conf permissions
+      file:
+        path: /etc/kubernetes/admin.conf
+        mode: '0600'
+      become: true
+
     - name: Fetch admin.conf to localhost for kubeconfig (Mode B - remote access)
       fetch:
         src: /etc/kubernetes/admin.conf
         dest: "{{ lookup('env', 'HOME') }}/.kube/config"
         flat: yes
       become: true
+
+    - name: Set local kubeconfig permissions
+      delegate_to: localhost
+      become: false
+      file:
+        path: "{{ lookup('env', 'HOME') }}/.kube/config"
+        mode: '0600'
 
     - name: Update kubeconfig to use public IP for remote access
       delegate_to: localhost
@@ -93,9 +107,11 @@
     - name: Display kube_token
       debug:
         msg: "kube_token is {{ kube_token }}"
+      no_log: true
     - name: Display cert_hash
       debug:
         msg: "cert_hash is {{ cert_hash }}"
+      no_log: true
     - name: Install Flannel network plugin
       shell: |
         kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
