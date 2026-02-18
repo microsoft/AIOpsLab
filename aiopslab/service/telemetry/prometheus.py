@@ -4,7 +4,7 @@
 import os
 import json
 import yaml
-import time
+import logging
 from subprocess import CalledProcessError
 from aiopslab.service.helm import Helm
 from aiopslab.service.kubectl import KubeCtl
@@ -121,18 +121,27 @@ class Prometheus:
             if "No resources found" in result or "Error" in result:
                 return False
         except CalledProcessError as e:
+            logging.exception(f"Unexpected error while checking if the PersistentVolumeClaim exists: {e}")
             return False
         return True
 
     def _is_prometheus_running(self) -> bool:
-        """Check if Prometheus is already running in the cluster."""
-        command = (
-            f"kubectl get pods -n {self.namespace} -l app.kubernetes.io/name=prometheus"
-        )
+        """Check if Prometheus Helm release is deployed."""
         try:
-            result = KubeCtl().exec_command(command)
-            if "Running" in result:
-                return True
-        except CalledProcessError:
+            release_name = self.helm_configs.get("release_name")
+            namespace = self.helm_configs.get("namespace")
+            if not release_name or not namespace:
+                return False
+            status_output = Helm.status(
+                release_name=self.name.lower(),
+                namespace=self.namespace,
+            )
+            for line in status_output.splitlines():
+                if line.strip().startswith("STATUS:"):
+                    status_value = line.split(":", 1)[1].strip().lower()
+                    return status_value == "deployed"
             return False
-        return False
+        except Exception as e:
+            logging.exception(f"Unexpected error while checking Prometheus status: {e}")
+            return False
+

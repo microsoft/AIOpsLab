@@ -12,9 +12,18 @@ from kubernetes.client.rest import ApiException
 
 
 class KubeCtl:
+
     def __init__(self):
+
         """Initialize the KubeCtl object and load the Kubernetes configuration."""
-        config.load_kube_config()
+
+        import os
+        
+        # Support parallel execution via AIOPSLAB_CLUSTER environment variable
+        cluster_env = os.environ.get('AIOPSLAB_CLUSTER', 'kind')
+        context = f"kind-{cluster_env}"
+        config.load_kube_config(context=context)
+        
         self.core_v1_api = client.CoreV1Api()
         self.apps_v1_api = client.AppsV1Api()
 

@@ -15,6 +15,16 @@ from aiopslab.service.shell import Shell
 from aiopslab.observer.metric_api import PrometheusAPI
 from aiopslab.observer.trace_api import TraceAPI
 
+from aiopslab.orchestrator.actions.log_deduplication import greedy_compress_lines 
+
+import re
+
+LOG_COMMAND_PATTERN: str = (
+    r"\b(?:"
+    r"kubectl\s+(?:logs|get\s+events|describe|get\s+\S+\s+-w)"  # logs/events/describe/watch
+    r"|docker\s+(?:logs|events)"                               # docker logs/events
+    r")\b(?:[^\n]*)"
+)
 
 class TaskActions:
     """Base class for task actions."""
@@ -60,14 +70,14 @@ class TaskActions:
             except Exception as e:
                 return "Error: Your service/namespace does not exist. Use kubectl to check."
 
+        logs = greedy_compress_lines(logs) 
         print(logs)
-        logs = "\n".join(logs.split("\n"))
 
         return logs
 
     @staticmethod
     @action
-    def exec_shell(command: str) -> str:
+    def exec_shell(command: str, timeout: int = 30) -> str:
         """
         Execute any shell command in a predefined debugging environment.
         Note: this is NOT A STATEFUL OR INTERACTIVE shell session. So you cannot
@@ -75,17 +85,30 @@ class TaskActions:
 
         Args:
             command (str): The command to execute.
+            timeout (int): Timeout in seconds for the command execution. Default is 30.
 
         Returns:
             str: The output of the command.
         """
-        if "kubectl edit" in command or "edit svc" in command:
-            return "Error: Cannot use `kubectl edit`. Use `kubectl patch` instead."
-        
-        if "docker logs -f" in command:
-            return "Error: Cannot use `docker logs -f`. Use `docker logs` instead."
+        BLOCK_LIST: dict[str, str] = {
+            "kubectl edit": "Error: Cannot use `kubectl edit`. Use `kubectl patch` instead.",
+            "edit svc": "Error: Cannot use `kubectl edit`. Use `kubectl patch` instead.",
+            "kubectl port-forward": "Error: Cannot use `kubectl port-forward` because it is an interactive command.",
+            "docker logs -f": "Error: Cannot use `docker logs -f`. Use `docker logs` instead.",
+            "kubectl logs -f": "Error: Cannot use `kubectl logs -f`. Use `kubectl logs` instead.",
+        }
+        for pattern, error in BLOCK_LIST.items():
+            if pattern in command:
+                return error
 
-        return Shell.exec(command)
+        result = Shell.exec(command) 
+
+        if re.search(LOG_COMMAND_PATTERN, command):
+            result = greedy_compress_lines(result)
+
+        print(result)
+
+        return result
 
     @staticmethod
     @read
@@ -254,3 +277,4 @@ class TaskActions:
         # except requests.RequestException as e:
         #     print(f"An error occurred: {e}")
         #     return []
+
