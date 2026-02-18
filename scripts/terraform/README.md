@@ -141,8 +141,8 @@ For more control or debugging, you can run each step manually:
 ```bash
 cd scripts/terraform
 terraform init
-terraform plan -var="resource_group_name=<your-rg>" -var="cluster_size=3"
-terraform apply -var="resource_group_name=<your-rg>" -var="cluster_size=3"
+terraform plan -var="resource_group_name=<your-rg>" -var="worker_vm_count=3"
+terraform apply -var="resource_group_name=<your-rg>" -var="worker_vm_count=3"
 ```
 
 #### Step 2: Generate Ansible Inventory
@@ -330,8 +330,9 @@ git clone --recurse-submodules https://github.com/microsoft/AIOpsLab.git
 cd AIOpsLab
 
 # Setup
+poetry env use python3.11
 poetry install
-poetry shell
+eval $(poetry env activate)
 
 # Configure
 cd aiopslab
@@ -435,18 +436,7 @@ git submodule update --init --recursive
 
 ---
 
-## 📚 Documentation
-
-- **[DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)** - Comprehensive deployment guide
-- **[SECURITY.md](./SECURITY.md)** - Security best practices and considerations
-- **[DEPLOYMENT_VALIDATION.md](../../DEPLOYMENT_VALIDATION.md)** - Architecture and validation report
-- **[../ansible/README.md](../ansible/README.md)** - Ansible playbook documentation
-
----
-
 ## 🔐 Security Notes
-
-**⚠️ READ BEFORE PRODUCTION DEPLOYMENT: [SECURITY.md](./SECURITY.md)**
 
 ### Default Behavior (Secure)
 
@@ -459,8 +449,8 @@ The deployment script is **secure by default**:
 
 - [ ] **NSG Rules:** SSH is open to 0.0.0.0/0 by default - restrict it!
   ```bash
-  # Use --restrict-ssh-corpnet for Microsoft CorpNet
-  python deploy.py --apply --workers 2 --restrict-ssh-corpnet
+  # Use --allowed-ips to restrict access (e.g. Microsoft CorpNet)
+  python deploy.py --apply --workers 2 --allowed-ips CorpNetPublic
 
   # Or add custom IP after deployment
   az network nsg rule create -g aiopslab-rg --nsg-name aiopslab-nsg \
@@ -471,8 +461,6 @@ The deployment script is **secure by default**:
 - [ ] **SSH Keys:** Use 4096-bit RSA or Ed25519 with passphrases
 - [ ] **Production:** Consider Azure Bastion for secure access
 - [ ] **Environments:** Use separate resource groups for prod/dev/test
-
-**See [SECURITY.md](./SECURITY.md) for complete security documentation.**
 
 ---
 
@@ -499,28 +487,15 @@ The deployment script is **secure by default**:
 
 ```
 scripts/terraform/
-├── deploy.py                    # Main deployment script (NEW)
-├── deploy_old.py                # Original script (backup)
-├── generate_inventory.py        # Inventory generator (NEW)
+├── deploy.py                    # Main deployment script
+├── generate_inventory.py        # Inventory generator
 ├── main.tf                      # Infrastructure definition
 ├── variables.tf                 # Configuration variables
-├── outputs.tf                   # Outputs (UPDATED)
+├── outputs.tf                   # Outputs
 ├── providers.tf                 # Provider configuration
-├── terraform.tfvars.example     # Config template (NEW)
-├── DEPLOYMENT_GUIDE.md          # Full guide (NEW)
+├── terraform.tfvars.example     # Config template
 └── README.md                    # This file
 ```
-
----
-
-## 🔄 Migration from v1.0
-
-If you were using the old deployment method:
-
-1. **Backup your old deploy.py**: Already saved as `deploy_old.py`
-2. **Update Terraform**: Run `terraform init -upgrade`
-3. **Use new deploy.py**: Follow Quick Start above
-4. **Note**: Old deployments are incompatible with new outputs
 
 ---
 
@@ -543,4 +518,4 @@ Licensed under the MIT License.
 
 ---
 
-**Need Help?** See [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) or open an issue.
+**Need Help?** Open an issue on GitHub.
