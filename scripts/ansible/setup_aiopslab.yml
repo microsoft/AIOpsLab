@@ -1,0 +1,194 @@
+---
+# Mode A: Set up AIOpsLab on the controller VM
+#
+# Required extra-vars (passed from deploy.py):
+#   dev_mode:        bool   - true=rsync local repo, false=git clone
+#   repo_url:        string - git remote URL (clone mode only)
+#   repo_branch:     string - git branch (clone mode only)
+#   local_repo_path: string - path on Ansible controller (dev mode only)
+#   repo_dest:       string - destination on remote, e.g. /home/azureuser/AIOpsLab
+#   admin_username:  string - k8s_user for config.yml
+#
+- hosts: control_nodes
+  become: true
+  vars:
+    user_home: "{{ user_home_base }}/{{ k8s_user }}"
+    kubeconfig_path: "{{ user_home }}/.kube/config"
+    poetry_bin: "{{ user_home }}/.local/bin/poetry"
+  tasks:
+    # ── Python 3.11 ──────────────────────────────────────────────
+    - name: Check if python3.11 is available
+      command: python3.11 --version
+      register: python311_check
+      ignore_errors: true
+      changed_when: false
+
+    - name: Add deadsnakes PPA (Ubuntu)
+      apt_repository:
+        repo: ppa:deadsnakes/ppa
+        state: present
+      when: python311_check.rc != 0
+
+    - name: Install Python 3.11
+      apt:
+        name:
+          - python3.11
+          - python3.11-venv
+          - python3.11-dev
+        state: present
+        update_cache: true
+      when: python311_check.rc != 0
+
+    # ── Poetry ───────────────────────────────────────────────────
+    - name: Check if Poetry is installed
+      stat:
+        path: "{{ poetry_bin }}"
+      register: poetry_stat
+
+    - name: Install Poetry via official installer
+      become: true
+      become_user: "{{ k8s_user }}"
+      shell: |
+        curl -sSL https://install.python-poetry.org | python3 -
+      args:
+        creates: "{{ poetry_bin }}"
+      when: not poetry_stat.stat.exists
+
+    # ── Helm ────────────────────────────────────────────────────
+    - name: Check if Helm is installed
+      command: helm version --short
+      register: helm_check
+      ignore_errors: true
+      changed_when: false
+
+    - name: Install Helm via get-helm-3
+      shell: curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      when: helm_check.rc != 0
+
+    # ── Docker group ─────────────────────────────────────────────
+    - name: Add user to docker group (required by VirtualizationFaultInjector)
+      user:
+        name: "{{ k8s_user }}"
+        groups: docker
+        append: true
+
+    # ── Git ──────────────────────────────────────────────────────
+    - name: Ensure git is installed
+      apt:
+        name: git
+        state: present
+
+    # ── Get code (clone mode) ────────────────────────────────────
+    - name: Clone AIOpsLab repository
+      become: true
+      become_user: "{{ k8s_user }}"
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ repo_dest }}"
+        version: "{{ repo_branch }}"
+        recursive: true
+        force: false
+      when: not dev_mode
+
+    # ── Get code (dev mode — rsync) ─────────────────────────────
+    - name: Rsync local repo to controller
+      synchronize:
+        src: "{{ local_repo_path }}/"
+        dest: "{{ repo_dest }}/"
+        delete: true
+        rsync_opts:
+          - "--exclude=.venv/"
+          - "--exclude=__pycache__/"
+          - "--exclude=.terraform/"
+          - "--exclude=*.tfstate*"
+          - "--exclude=data/"
+          - "--exclude=.env"
+          - "--exclude=.git/"
+          - "--exclude=.claude/"
+      when: dev_mode
+
+    - name: Check if aiopslab-applications has content (dev mode)
+      stat:
+        path: "{{ repo_dest }}/aiopslab-applications/README.md"
+      register: submodule_check
+      when: dev_mode
+
+    - name: Clone aiopslab-applications submodule (dev mode, empty after rsync)
+      become: true
+      become_user: "{{ k8s_user }}"
+      git:
+        repo: "https://github.com/xlab-uiuc/aiopslab-applications.git"
+        dest: "{{ repo_dest }}/aiopslab-applications"
+        version: main
+        force: false
+      when: dev_mode and submodule_check.stat is defined and not submodule_check.stat.exists
+
+    # ── Fix ownership ────────────────────────────────────────────
+    - name: Set ownership on repo directory
+      file:
+        path: "{{ repo_dest }}"
+        owner: "{{ k8s_user }}"
+        group: "{{ k8s_user }}"
+        recurse: true
+
+    # ── Generate config.yml ──────────────────────────────────────
+    - name: Generate aiopslab/config.yml
+      template:
+        src: templates/config.yml.j2
+        dest: "{{ repo_dest }}/aiopslab/config.yml"
+        owner: "{{ k8s_user }}"
+        group: "{{ k8s_user }}"
+        mode: '0644'
+
+    # ── Poetry setup ─────────────────────────────────────────────
+    - name: Run poetry env use python3.11
+      become: true
+      become_user: "{{ k8s_user }}"
+      command: "{{ poetry_bin }} env use python3.11"
+      args:
+        chdir: "{{ repo_dest }}"
+      environment:
+        HOME: "{{ user_home }}"
+
+    - name: Run poetry install
+      become: true
+      become_user: "{{ k8s_user }}"
+      command: "{{ poetry_bin }} install"
+      args:
+        chdir: "{{ repo_dest }}"
+      environment:
+        HOME: "{{ user_home }}"
+      async: 600
+      poll: 15
+
+    # ── Verify cluster access ────────────────────────────────────
+    - name: Verify kubectl can reach the cluster
+      become: true
+      become_user: "{{ k8s_user }}"
+      command: kubectl get nodes
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: kubectl_nodes
+      changed_when: false
+
+    - name: Display cluster status
+      debug:
+        msg: "{{ kubectl_nodes.stdout_lines }}"
+
+    # ── Summary ──────────────────────────────────────────────────
+    - name: Print setup summary
+      debug:
+        msg:
+          - "============================================"
+          - "Mode A Setup Complete!"
+          - "============================================"
+          - ""
+          - "AIOpsLab location: {{ repo_dest }}"
+          - "Config: {{ repo_dest }}/aiopslab/config.yml"
+          - "Mode: {{ 'dev (rsync)' if dev_mode else 'clone (' + repo_url + ' @ ' + repo_branch + ')' }}"
+          - ""
+          - "To start AIOpsLab:"
+          - "  ssh {{ k8s_user }}@{{ ansible_host }}"
+          - "  cd {{ repo_dest }}"
+          - "  eval $({{ poetry_bin }} env activate)"
+          - "  python3 cli.py"
