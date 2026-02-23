@@ -27,7 +27,7 @@ class KubeCtl:
 
         if cluster_env:
             context = f"kind-{cluster_env}"
-        elif k8s_host == "kind" or k8s_host == "localhost":
+        elif k8s_host == "kind":
             context = "kind-kind"
         else:
             context = None  # use default kubeconfig context
