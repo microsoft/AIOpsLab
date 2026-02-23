@@ -496,10 +496,151 @@ class AIOpsLabDeployer:
 
         print("="*70 + "\n")
 
-    def setup_aiopslab_mode_a(self, outputs):
-        """Configure AIOpsLab for Mode A (on controller VM). TODO."""
-        logger.warning("Mode A setup not yet implemented.")
-        logger.info("To set up manually, SSH into the controller and follow the docs.")
+    def _detect_git_remote(self):
+        """Detect the git remote URL of the current repo."""
+        repo_root = self.script_dir.parent.parent
+        try:
+            url = self.run_command(
+                ["git", "remote", "get-url", "origin"],
+                capture_output=True, cwd=str(repo_root), check=True
+            )
+            if url:
+                return url
+        except Exception:
+            pass
+        return "https://github.com/microsoft/AIOpsLab.git"
+
+    def _detect_git_branch(self):
+        """Detect the current git branch."""
+        repo_root = self.script_dir.parent.parent
+        try:
+            branch = self.run_command(
+                ["git", "branch", "--show-current"],
+                capture_output=True, cwd=str(repo_root), check=True
+            )
+            if branch:
+                return branch
+        except Exception:
+            pass
+        return "main"
+
+    def setup_aiopslab_mode_a(self, outputs, ssh_key_path, disable_host_key_checking=False, dev_mode=False):
+        """Configure AIOpsLab for Mode A (on controller VM).
+
+        Runs the setup_aiopslab.yml Ansible playbook which installs Python 3.11,
+        Poetry, clones/rsyncs the repo, generates config.yml, and runs poetry install.
+        """
+        controller = outputs['controller']['value']
+        controller_ip = controller['public_ip']
+        admin_username = controller['username']
+        repo_root = self.script_dir.parent.parent
+        repo_dest = f"/home/{admin_username}/AIOpsLab"
+
+        # Build extra-vars for Ansible
+        extra_vars = {
+            "dev_mode": dev_mode,
+            "repo_dest": repo_dest,
+            "admin_username": admin_username,
+        }
+
+        if dev_mode:
+            extra_vars["local_repo_path"] = str(repo_root)
+            # synchronize module needs ansible.posix collection
+            logger.info("Ensuring ansible.posix collection is installed (needed for synchronize)...")
+            try:
+                self.run_command(
+                    ["ansible-galaxy", "collection", "install", "ansible.posix"],
+                    check=False
+                )
+            except Exception:
+                logger.warning("Could not install ansible.posix; synchronize may fail")
+            # Set dummy values for unused vars so Ansible doesn't complain about undefined
+            extra_vars["repo_url"] = ""
+            extra_vars["repo_branch"] = ""
+        else:
+            extra_vars["repo_url"] = self._detect_git_remote()
+            extra_vars["repo_branch"] = self._detect_git_branch()
+            extra_vars["local_repo_path"] = ""
+
+        if dev_mode:
+            mode_desc = "dev mode (rsync)"
+        else:
+            mode_desc = f"clone {extra_vars['repo_url']} @ {extra_vars['repo_branch']}"
+        logger.info(f"Setting up AIOpsLab on controller ({controller_ip}) — {mode_desc}")
+
+        success = self.run_ansible_playbook(
+            "setup_aiopslab.yml",
+            extra_args=["--extra-vars", json.dumps(extra_vars)],
+            disable_host_key_checking=disable_host_key_checking
+        )
+
+        # Derive private key path
+        ssh_private_key = ssh_key_path
+        if ssh_private_key.endswith('.pub'):
+            ssh_private_key = ssh_private_key[:-4]
+
+        print("\n" + "="*70)
+        if success:
+            print("MODE A SETUP COMPLETE")
+            print("="*70)
+            print(f"\n  AIOpsLab is installed at: {repo_dest}")
+            print(f"  Config: {repo_dest}/aiopslab/config.yml (k8s_host=localhost)")
+            print(f"  Mode: {'dev (rsync)' if dev_mode else 'clone'}")
+            print(f"\n  To start AIOpsLab:")
+            print(f"    ssh -i {ssh_private_key} {admin_username}@{controller_ip}")
+            print(f"    cd {repo_dest}")
+            print(f"    eval $(~/.local/bin/poetry env activate)")
+            print(f"    python3 cli.py")
+        else:
+            print("MODE A SETUP FAILED")
+            print("="*70)
+            print(f"\n  The Ansible playbook failed. You can try manually:")
+            print(f"    ssh -i {ssh_private_key} {admin_username}@{controller_ip}")
+            print(f"    # Then follow the setup steps in CLAUDE.md")
+        print("\n" + "="*70 + "\n")
+
+        return success
+
+    def setup_only(self, resource_group, ssh_key_path, mode="A", dev_mode=False, disable_host_key_checking=False):
+        """Re-run AIOpsLab setup without reprovisioning infrastructure.
+
+        Reads existing Terraform outputs and runs the Mode A or B setup directly.
+        Useful for iterating on code: edit locally, then re-sync to the controller.
+        """
+        logger.info("="*70)
+        logger.info("AIOPSLAB SETUP-ONLY (no Terraform changes)")
+        logger.info("="*70)
+        logger.info(f"Resource Group: {resource_group}")
+        logger.info(f"Mode: {mode} ({'AIOpsLab on controller' if mode == 'A' else 'AIOpsLab on laptop'})")
+        if dev_mode:
+            logger.info("Dev mode: will rsync local repo")
+
+        try:
+            # Read existing Terraform outputs (no init needed)
+            outputs = self.get_terraform_outputs()
+            if not outputs:
+                logger.error("Failed to read Terraform outputs. Has infrastructure been provisioned?")
+                logger.error("Run --apply first to provision, then use --setup-only to iterate.")
+                return False
+
+            # Regenerate inventory in case IPs changed or inventory was deleted
+            if not self.generate_ansible_inventory():
+                logger.error("Inventory generation failed")
+                return False
+
+            # Run the appropriate setup
+            if mode == 'A':
+                return self.setup_aiopslab_mode_a(outputs, ssh_key_path, disable_host_key_checking, dev_mode)
+            else:
+                self.setup_aiopslab_mode_b(outputs, ssh_key_path)
+                return True
+
+        except KeyboardInterrupt:
+            logger.warning("\nSetup interrupted by user")
+            return False
+        except Exception as e:
+            logger.error(f"Setup failed: {e}")
+            return False
 
     def print_access_info(self, outputs):
         """Print SSH access information."""
@@ -525,7 +666,7 @@ class AIOpsLabDeployer:
 
         print("\n" + "="*70 + "\n")
 
-    def deploy(self, worker_count, vm_size, resource_group, prefix, ssh_key_path, allowed_ips="*", disable_host_key_checking=False, mode="B"):
+    def deploy(self, worker_count, vm_size, resource_group, prefix, ssh_key_path, allowed_ips="*", disable_host_key_checking=False, mode="B", dev_mode=False):
         """Execute full deployment workflow."""
         logger.info("="*70)
         logger.info("STARTING AIOPSLAB DEPLOYMENT")
@@ -603,7 +744,7 @@ class AIOpsLabDeployer:
             if mode == 'B':
                 self.setup_aiopslab_mode_b(outputs, ssh_key_path)
             elif mode == 'A':
-                self.setup_aiopslab_mode_a(outputs)
+                self.setup_aiopslab_mode_a(outputs, ssh_key_path, disable_host_key_checking, dev_mode)
 
             logger.info("DEPLOYMENT SUCCESSFUL!")
             return True
@@ -712,6 +853,9 @@ Examples:
   Destroy infrastructure:
     python deploy.py --destroy
 
+  Re-run setup only (no Terraform changes):
+    python deploy.py --setup-only --mode A --dev --resource-group AIOpsBenchmark
+
   Deploy with custom settings:
     python deploy.py --apply --workers 5 --vm-size Standard_D8s_v3 \\
         --resource-group my-rg --prefix myaiops --ssh-key ~/.ssh/id_rsa.pub
@@ -734,6 +878,12 @@ Examples:
         '--destroy',
         action='store_true',
         help='Destroy all infrastructure'
+    )
+
+    parser.add_argument(
+        '--setup-only',
+        action='store_true',
+        help='Re-run AIOpsLab setup without reprovisioning infrastructure. Reads existing Terraform outputs and runs Mode A/B setup. Useful for iterating: edit code locally, then re-sync.'
     )
 
     parser.add_argument(
@@ -781,6 +931,12 @@ Examples:
     )
 
     parser.add_argument(
+        '--dev',
+        action='store_true',
+        help='Developer mode for Mode A: rsync local repo instead of git clone'
+    )
+
+    parser.add_argument(
         '--disable-host-key-checking',
         action='store_true',
         help='Disable SSH host key verification (INSECURE - rarely needed since keys are added automatically. Only use if ssh-keyscan fails or in CI/CD with ephemeral runners)'
@@ -799,14 +955,19 @@ Examples:
         logger.setLevel(logging.DEBUG)
 
     # Validate arguments
-    if not args.plan and not args.apply and not args.destroy:
+    if not args.plan and not args.apply and not args.destroy and not args.setup_only:
         parser.print_help()
         sys.exit(1)
 
     # Check for conflicting options
-    action_count = sum([args.plan, args.apply, args.destroy])
+    action_count = sum([args.plan, args.apply, args.destroy, args.setup_only])
     if action_count > 1:
-        logger.error("Cannot use --plan, --apply, and --destroy together. Choose one.")
+        logger.error("Cannot use --plan, --apply, --destroy, and --setup-only together. Choose one.")
+        sys.exit(1)
+
+    # Validate --dev only with --mode A
+    if args.dev and args.mode != 'A':
+        logger.error("--dev flag is only meaningful with --mode A")
         sys.exit(1)
 
     # Expand SSH key path
@@ -835,7 +996,8 @@ Examples:
             ssh_key_path=ssh_key_path,
             allowed_ips=args.allowed_ips,
             disable_host_key_checking=args.disable_host_key_checking,
-            mode=args.mode
+            mode=args.mode,
+            dev_mode=args.dev
         )
     elif args.destroy:
         success = deployer.destroy(
@@ -843,6 +1005,14 @@ Examples:
             prefix=args.prefix,
             ssh_key_path=ssh_key_path,
             allowed_ips=args.allowed_ips
+        )
+    elif args.setup_only:
+        success = deployer.setup_only(
+            resource_group=args.resource_group,
+            ssh_key_path=ssh_key_path,
+            mode=args.mode,
+            dev_mode=args.dev,
+            disable_host_key_checking=args.disable_host_key_checking
         )
 
     sys.exit(0 if success else 1)
