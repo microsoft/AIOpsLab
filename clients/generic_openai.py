@@ -2,7 +2,7 @@
 
 This agent works with any provider that implements the OpenAI Chat Completions
 API endpoint (/v1/chat/completions), such as Poe
-(https://creator.poe.com/docs/external-applications/responses-api),
+(https://creator.poe.com/docs/external-applications/openai-compatible-api),
 standard OpenAI deployments, vLLM, LocalAI, or other compatible services.
 
 Configure the endpoint and model via environment variables or constructor arguments:
