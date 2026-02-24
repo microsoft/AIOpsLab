@@ -318,7 +318,11 @@ class AIOpsLabDeployer:
         return None, None
 
     def setup_aiopslab_mode_b(self, outputs, ssh_key_path):
-        """Configure AIOpsLab for Mode B (laptop with remote kubectl)."""
+        """Configure AIOpsLab for Mode B (laptop with remote kubectl).
+
+        Returns:
+            bool: True if all critical steps succeeded, False otherwise.
+        """
         controller = outputs['controller']['value']
         controller_ip = controller['public_ip']
         admin_username = controller['username']
@@ -496,6 +500,8 @@ class AIOpsLabDeployer:
 
         print("="*70 + "\n")
 
+        return not needs_action
+
     def _detect_git_remote(self):
         """Detect the git remote URL of the current repo."""
         repo_root = self.script_dir.parent.parent
@@ -632,8 +638,7 @@ class AIOpsLabDeployer:
             if mode == 'A':
                 return self.setup_aiopslab_mode_a(outputs, ssh_key_path, disable_host_key_checking, dev_mode)
             else:
-                self.setup_aiopslab_mode_b(outputs, ssh_key_path)
-                return True
+                return self.setup_aiopslab_mode_b(outputs, ssh_key_path)
 
         except KeyboardInterrupt:
             logger.warning("\nSetup interrupted by user")

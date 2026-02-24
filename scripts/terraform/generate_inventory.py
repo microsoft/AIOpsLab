@@ -7,7 +7,6 @@ Generates inventory.yml from Terraform outputs for multi-VM Kubernetes cluster d
 import json
 import subprocess
 import sys
-import os
 import logging
 from pathlib import Path
 
@@ -16,14 +15,15 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
 
 
-def run_command(command, capture_output=True):
+def run_command(command, capture_output=True, cwd=None):
     """Execute a shell command and return output."""
     try:
         result = subprocess.run(
             command,
             capture_output=capture_output,
             text=True,
-            check=True
+            check=True,
+            cwd=cwd
         )
         return result.stdout.strip() if capture_output else None
     except subprocess.CalledProcessError as e:
@@ -32,10 +32,10 @@ def run_command(command, capture_output=True):
         return None
 
 
-def get_terraform_outputs():
+def get_terraform_outputs(cwd=None):
     """Retrieve all Terraform outputs as JSON."""
     logger.info("Retrieving Terraform outputs...")
-    output = run_command(["terraform", "output", "-json"])
+    output = run_command(["terraform", "output", "-json"], cwd=cwd)
 
     if not output:
         logger.error("Failed to retrieve Terraform outputs")
@@ -114,9 +114,9 @@ def write_inventory_yaml(inventory, output_path):
     try:
         import yaml
     except ImportError:
-        logger.error("PyYAML not installed. Installing...")
-        run_command([sys.executable, "-m", "pip", "install", "pyyaml"])
-        import yaml
+        logger.error("PyYAML is required but not installed.")
+        logger.error("Install it with: pip install pyyaml")
+        return False
 
     try:
         with open(output_path, 'w') as f:
@@ -136,12 +136,12 @@ def print_inventory_summary(inventory):
     print("\n" + "="*60)
     print("ANSIBLE INVENTORY SUMMARY")
     print("="*60)
-    print(f"\n📋 Controller Node:")
+    print(f"\n  Controller Node:")
     print(f"   Name: control_node")
     print(f"   IP:   {controller['ansible_host']}")
     print(f"   User: {controller['ansible_user']}")
 
-    print(f"\n👷 Worker Nodes ({len(workers)}):")
+    print(f"\n  Worker Nodes ({len(workers)}):")
     for name, info in workers.items():
         print(f"   {name}:")
         print(f"      IP:   {info['ansible_host']}")
@@ -168,8 +168,8 @@ def main():
     # Create ansible directory if it doesn't exist
     ansible_dir.mkdir(exist_ok=True)
 
-    # Get Terraform outputs
-    outputs = get_terraform_outputs()
+    # Get Terraform outputs (run terraform from the script's directory)
+    outputs = get_terraform_outputs(cwd=str(script_dir))
 
     # Validate outputs
     validate_outputs(outputs)
@@ -180,10 +180,10 @@ def main():
     # Write inventory file
     if write_inventory_yaml(inventory, inventory_path):
         print_inventory_summary(inventory)
-        logger.info("✅ Inventory generation completed successfully!")
+        logger.info("Inventory generation completed successfully")
         return 0
     else:
-        logger.error("❌ Failed to generate inventory")
+        logger.error("Failed to generate inventory")
         return 1
 
 
