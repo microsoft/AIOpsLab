@@ -351,9 +351,11 @@ class GenericOpenAIClient:
         base_url: Optional[str] = None,
         model: Optional[str] = None,
         api_key: Optional[str] = None,
+        max_tokens: int = 16000,
     ):
         self.cache = Cache()
         self.model = model or os.getenv("OPENAI_COMPATIBLE_MODEL", "gpt-4o")
+        self.max_tokens = max_tokens
         resolved_base_url = base_url or os.getenv("OPENAI_COMPATIBLE_BASE_URL")
         if not resolved_base_url:
             raise ValueError(
@@ -378,7 +380,7 @@ class GenericOpenAIClient:
             response = self.client.chat.completions.create(
                 messages=payload,  # type: ignore
                 model=self.model,
-                max_tokens=1024,
+                max_tokens=self.max_tokens,
                 temperature=0.5,
                 top_p=0.95,
                 frequency_penalty=0.0,
