@@ -330,6 +330,68 @@ class OpenRouterClient:
         return response
 
 
+class GenericOpenAIClient:
+    """Generic client for any OpenAI Responses API compatible endpoint.
+
+    Uses the OpenAI Responses API (client.responses.create) rather than the
+    Chat Completions API, making it suitable for providers that expose the
+    /v1/responses endpoint such as Poe, as well as standard OpenAI deployments.
+
+    Environment variables:
+        OPENAI_COMPATIBLE_API_KEY: API key for the target endpoint.
+        OPENAI_COMPATIBLE_BASE_URL: Base URL of the target endpoint.
+        OPENAI_COMPATIBLE_MODEL: Model name to use (default: gpt-4o).
+
+    All three can be overridden by passing explicit arguments to the constructor.
+    """
+
+    def __init__(
+        self,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        api_key: Optional[str] = None,
+    ):
+        self.cache = Cache()
+        self.model = model or os.getenv("OPENAI_COMPATIBLE_MODEL", "gpt-4o")
+        resolved_base_url = base_url or os.getenv("OPENAI_COMPATIBLE_BASE_URL")
+        if not resolved_base_url:
+            raise ValueError(
+                "base_url must be provided either as a constructor argument or via "
+                "the OPENAI_COMPATIBLE_BASE_URL environment variable."
+            )
+        resolved_api_key = api_key or os.getenv("OPENAI_COMPATIBLE_API_KEY")
+        if not resolved_api_key:
+            raise ValueError(
+                "api_key must be provided either as a constructor argument or via "
+                "the OPENAI_COMPATIBLE_API_KEY environment variable."
+            )
+        self.client = OpenAI(api_key=resolved_api_key, base_url=resolved_base_url)
+
+    def inference(self, payload: list[dict[str, str]]) -> list[str]:
+        if self.cache is not None:
+            cache_result = self.cache.get_from_cache(payload)
+            if cache_result is not None:
+                return cache_result
+
+        try:
+            response = self.client.responses.create(
+                model=self.model,
+                input=payload,  # type: ignore
+            )
+        except Exception as e:
+            print(f"Exception: {repr(e)}")
+            raise e
+
+        return [response.output_text]
+
+    def run(self, payload: list[dict[str, str]]) -> list[str]:
+        response = self.inference(payload)
+        if self.cache is not None:
+            self.cache.add_to_cache(payload, response)
+            self.cache.save_cache()
+        return response
+
+
 class LLaMAClient:
     """Abstraction for Meta's LLaMA-3 model."""
 
