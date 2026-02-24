@@ -13,7 +13,7 @@ These clients are some baselines that we have implemented and evaluated to help 
 - [ReAct](/clients/react.py): A naive LLM agent that uses the ReAct framework.
 - [FLASH](/clients/flash.py): A naive LLM agent that uses status supervision and hindsight integration components to ensure the high reliability of workflow execution.
 - [OpenRouter](/clients/openrouter.py): A naive OpenRouter LLM agent with only shell access.
-- [Generic OpenAI](/clients/generic_openai.py): A generic agent that works with any provider exposing the [OpenAI Responses API](https://platform.openai.com/docs/api-reference/responses) (`/v1/responses`), such as [Poe](https://creator.poe.com/docs/external-applications/responses-api), standard OpenAI deployments, or other compatible services.
+- [Generic OpenAI](/clients/generic_openai.py): A generic agent that works with any provider exposing the [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat) (`/v1/chat/completions`), such as [Poe](https://creator.poe.com/docs/external-applications/responses-api), vLLM, LocalAI, standard OpenAI deployments, or other compatible services. The `base_url` and model are fully configurable via environment variables.
 
 ### Using the vLLM Client
 
@@ -85,8 +85,8 @@ cp .env.example .env
 - `OPENROUTER_MODEL`: OpenRouter model to use (default: `openai/gpt-4o-mini`)
 - `USE_WANDB`: Enable Weights & Biases logging (default: `false`)
 
-### Generic OpenAI Responses API Client
-The [Generic OpenAI client](/clients/generic_openai.py) works with any provider that implements the OpenAI Responses API (`/v1/responses`), such as [Poe](https://creator.poe.com/docs/external-applications/responses-api).
+### Generic OpenAI-Compatible Client
+The [Generic OpenAI client](/clients/generic_openai.py) works with any provider that implements the OpenAI Chat Completions API (`/v1/chat/completions`), such as [Poe](https://creator.poe.com/docs/external-applications/responses-api), vLLM, LocalAI, or standard OpenAI.
 
 Set the following environment variables:
 - `OPENAI_COMPATIBLE_API_KEY`: API key for your target endpoint (required)

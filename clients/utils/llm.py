@@ -331,11 +331,12 @@ class OpenRouterClient:
 
 
 class GenericOpenAIClient:
-    """Generic client for any OpenAI Responses API compatible endpoint.
+    """Generic client for any OpenAI Chat Completions compatible endpoint.
 
-    Uses the OpenAI Responses API (client.responses.create) rather than the
-    Chat Completions API, making it suitable for providers that expose the
-    /v1/responses endpoint such as Poe, as well as standard OpenAI deployments.
+    Uses the standard Chat Completions API (client.chat.completions.create),
+    making it compatible with any provider that implements the OpenAI Chat
+    Completions spec — including Poe, OpenRouter, vLLM, LocalAI, DeepSeek,
+    and standard OpenAI/Azure OpenAI deployments — by overriding base_url.
 
     Environment variables:
         OPENAI_COMPATIBLE_API_KEY: API key for the target endpoint.
@@ -374,15 +375,23 @@ class GenericOpenAIClient:
                 return cache_result
 
         try:
-            response = self.client.responses.create(
+            response = self.client.chat.completions.create(
+                messages=payload,  # type: ignore
                 model=self.model,
-                input=payload,  # type: ignore
+                max_tokens=1024,
+                temperature=0.5,
+                top_p=0.95,
+                frequency_penalty=0.0,
+                presence_penalty=0.0,
+                n=1,
+                timeout=60,
+                stop=[],
             )
         except Exception as e:
             print(f"Exception: {repr(e)}")
             raise e
 
-        return [response.output_text]
+        return [c.message.content for c in response.choices]  # type: ignore
 
     def run(self, payload: list[dict[str, str]]) -> list[str]:
         response = self.inference(payload)

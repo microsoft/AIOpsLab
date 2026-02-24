@@ -1,8 +1,9 @@
-"""Generic OpenAI Responses API client (with shell access) for AIOpsLab.
+"""Generic OpenAI-compatible chat client (with shell access) for AIOpsLab.
 
-This agent works with any provider that implements the OpenAI Responses API
-endpoint (/v1/responses), such as Poe (https://creator.poe.com/docs/external-applications/responses-api),
-standard OpenAI deployments, or other compatible services.
+This agent works with any provider that implements the OpenAI Chat Completions
+API endpoint (/v1/chat/completions), such as Poe
+(https://creator.poe.com/docs/external-applications/responses-api),
+standard OpenAI deployments, vLLM, LocalAI, or other compatible services.
 
 Configure the endpoint and model via environment variables or constructor arguments:
     OPENAI_COMPATIBLE_API_KEY  — API key for the target endpoint
