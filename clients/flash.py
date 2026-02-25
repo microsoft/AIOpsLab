@@ -55,7 +55,7 @@ class FlashAgent:
         self.llm = GPTClient()
         self.hindsight_builder = HindsightBuilder()
 
-    def init_context(self, problem_desc: str, instructions: str, apis: dict):
+    def init_context(self, problem_desc: str, instructions: str, apis: dict[str, str]):
         self.shell_api = self._filter_dict(apis, lambda k, _: "exec_shell" in k)
         self.submit_api = self._filter_dict(apis, lambda k, _: "submit" in k)
         self.telemetry_apis = self._filter_dict(
@@ -105,7 +105,7 @@ class FlashAgent:
 
         return response[0]
 
-    async def diagnose_with_hindsight(self, input: str, history: dict):
+    async def diagnose_with_hindsight(self, input: str, history: list[dict[str, str]]):
         """Diagnose the incident and integrate hindsight from the environment status."""
         logger.info("Starting diagnosis with hindsight integration...")
         hindsight = self.hindsight_builder.develop_hindsight(input, history)
@@ -147,7 +147,7 @@ class HindsightBuilder:
         return prompt
 
 
-    def develop_hindsight(self, input: str, history: dict) -> str:
+    def develop_hindsight(self, input: str, history: list[dict[str, str]]) -> str:
         """
         Develop hindsight based on the input and provide guidance for the next action.
         """

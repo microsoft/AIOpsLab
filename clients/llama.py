@@ -14,7 +14,7 @@ class Agent:
         self.history = []
         self.llm = LLaMAClient()
 
-    def init_context(self, problem_desc: str, instructions: str, apis: str):
+    def init_context(self, problem_desc: str, instructions: str, apis: dict[str, str]):
         """Initialize the context for the agent."""
 
         self.telemetry_apis = self._filter_dict(apis, lambda k, _: "get_logs" in k)

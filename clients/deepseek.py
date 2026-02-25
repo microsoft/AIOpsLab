@@ -22,7 +22,7 @@ class DeepSeekAgent:
         self.history = []
         self.llm = DeepSeekClient()
 
-    def init_context(self, problem_desc: str, instructions: str, apis: str):
+    def init_context(self, problem_desc: str, instructions: str, apis: dict[str, str]):
         """Initialize the context for the agent."""
 
         self.shell_api = self._filter_dict(

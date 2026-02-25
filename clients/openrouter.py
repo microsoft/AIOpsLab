@@ -63,7 +63,7 @@ class OpenRouterAgent:
     def test(self):
         return self.llm.run([{"role": "system", "content": "hello"}])
 
-    def init_context(self, problem_desc: str, instructions: str, apis: str):
+    def init_context(self, problem_desc: str, instructions: str, apis: dict[str, str]):
         """Initialize the context for the agent."""
 
         self.shell_api = self._filter_dict(apis, lambda k, _: "exec_shell" in k)
