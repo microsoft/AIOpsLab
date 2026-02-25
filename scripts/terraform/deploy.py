@@ -815,7 +815,7 @@ class AIOpsLabDeployer:
             # Confirm destruction
             confirm = input("This will destroy all resources. Type 'yes' to confirm: ")
             if confirm.lower() != 'yes':
-                logger.info("Destruction cancelled")
+                logger.warning("Destruction cancelled")
                 return False
 
             # Destroy infrastructure
