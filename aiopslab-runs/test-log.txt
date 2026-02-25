@@ -1,0 +1,14 @@
+Test log file with agent patterns
+python3 clients/some-other-agent.py
+Namespace different-app
+Using agent: different-agent
+Application: different-application
+
+Results: {
+  "Detection_Accuracy": "High",
+  "TTD": 15.5,
+  "steps": 8,
+  "in_tokens": 1500,
+  "out_tokens": 800,
+  "reasoning_score": 9
+}

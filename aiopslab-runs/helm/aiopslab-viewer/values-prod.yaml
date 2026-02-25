@@ -1,0 +1,146 @@
+# Production values for aiopslab-viewer
+# This file contains production-specific overrides
+
+# Production configuration
+env:
+  NODE_ENV: production
+  LOG_LEVEL: info
+
+# Higher resource requirements for production
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 1000m
+    memory: 1Gi
+
+# Enable autoscaling for production
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Production ingress with TLS
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+  hosts:
+    - host: aiopslab-viewer.yourdomain.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: aiopslab-viewer-tls
+      hosts:
+        - aiopslab-viewer.yourdomain.com
+
+# Larger storage for production
+persistence:
+  database:
+    size: 5Gi
+    storageClass: "fast-ssd"
+  runs:
+    size: 50Gi
+    storageClass: "fast-ssd"
+
+# Production-grade health checks
+healthCheck:
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 5
+
+readinessProbe:
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+livenessProbe:
+  initialDelaySeconds: 120
+  periodSeconds: 60
+  timeoutSeconds: 15
+  failureThreshold: 3
+
+# Security configurations
+podSecurityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Enable network policies for production security
+networkPolicy:
+  enabled: true
+  ingress:
+    # Allow ingress from nginx ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 3000
+    # Allow internal cluster communication
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: aiopslab-viewer
+      ports:
+        - protocol: TCP
+          port: 3000
+        - protocol: TCP
+          port: 3443
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow HTTPS for external APIs if needed
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+
+# Pod anti-affinity for high availability
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - aiopslab-viewer
+          topologyKey: kubernetes.io/hostname
+
+# Tolerations for production nodes
+tolerations:
+  - key: "node-role.kubernetes.io/production"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+
+# Node selector for production nodes
+nodeSelector:
+  node-role.kubernetes.io/production: "true"

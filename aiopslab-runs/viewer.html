@@ -1,0 +1,1843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">AIOpsLab Session Analysis</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23667eea;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23764ba2;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='45' fill='url(%23grad)' stroke='white' stroke-width='2'/%3E%3Ctext x='50' y='60' font-family='Arial,sans-serif' font-size='24' font-weight='bold' text-anchor='middle' fill='white'%3EAI%3C/text%3E%3C/svg%3E">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: #fafbfc;
+            height: 100vh;
+            overflow: hidden;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .header {
+            background: white;
+            border-bottom: 1px solid #e1e5e9;
+            padding: 12px 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            z-index: 1000;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 1px;
+            color: #1a202c;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header h1::before {
+            content: "🔬";
+            font-size: 18px;
+        }
+
+        .header .subtitle {
+            font-size: 12px;
+            color: #6b7280;
+            font-weight: 400;
+            margin-top: 1px;
+        }
+
+        .run-attributes {
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .attribute-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+        }
+
+        .attribute-label {
+            color: #6b7280;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            font-size: 10px;
+        }
+
+        .attribute-value {
+            color: #374151;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .attribute-value.status-success {
+            color: #059669;
+            font-weight: 600;
+        }
+
+        .attribute-value.status-partial {
+            color: #d97706;
+            font-weight: 600;
+        }
+
+        .attribute-value.status-failed {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .status-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-partial {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-failed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .header .nav-links {
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .header .nav-links a {
+            color: #374151;
+            text-decoration: none;
+            background: white;
+            border: 1px solid #d1d5db;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.15s ease;
+            height: 32px;
+            display: flex;
+            align-items: center;
+        }
+
+        .header .nav-links a:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .refresh-btn {
+            color: white;
+            background: #059669;
+            border: 1px solid #059669;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-family: inherit;
+            margin-right: 8px;
+            height: 32px;
+            font-weight: 500;
+        }
+
+        .refresh-btn:hover {
+            background: #047857;
+            border-color: #047857;
+        }
+
+        .reset-view-btn {
+            color: #374151;
+            background: white;
+            border: 1px solid #d1d5db;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-family: inherit;
+            height: 32px;
+            font-weight: 500;
+        }
+
+        .reset-view-btn:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 95px);
+            background: #fafbfc;
+            position: relative;
+            margin: 0;
+            padding: 16px 20px;
+            gap: 16px;
+        }
+
+        .pane {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .pane:last-child {
+            border-right: 1px solid #e5e7eb;
+        }
+
+        .pane-header {
+            background: #f9fafb;
+            padding: 12px 16px;
+            border-bottom: 1px solid #e5e7eb;
+            font-weight: 600;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+
+        .pane-header > div:first-child {
+            display: flex;
+            align-items: center;
+        }
+
+        .pane-header .icon {
+            font-size: 16px;
+            margin-right: 6px;
+            color: #6b7280;
+        }
+
+        .upload-icon-btn {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 4px;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin-left: 8px;
+            font-size: 12px;
+            color: #059669;
+            transition: all 0.15s ease;
+        }
+
+        .upload-icon-btn:hover {
+            background: #dcfce7;
+            border-color: #86efac;
+            transform: none;
+        }
+
+        .word-wrap-btn {
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin-left: 8px;
+            font-size: 12px;
+            color: #6b7280;
+            transition: all 0.15s ease;
+        }
+
+        .word-wrap-btn:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+            color: #374151;
+        }
+
+        .word-wrap-btn.no-wrap {
+            background: #fef3c7;
+            border-color: #fcd34d;
+            color: #92400e;
+        }
+
+        .analyze-btn {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 4px;
+            width: auto;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin-left: 8px;
+            font-size: 11px;
+            color: #1d4ed8;
+            transition: all 0.15s ease;
+            padding: 0 8px;
+            font-weight: 500;
+        }
+
+        .analyze-btn:hover {
+            background: #dbeafe;
+            border-color: #93c5fd;
+            color: #1e40af;
+        }
+
+        .pane-content {
+            height: calc(100% - 50px);
+            overflow: hidden;
+            padding: 0;
+        }
+
+        .log-content {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            padding: 20px;
+            background: #000000;
+            color: #d4d4d4;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .log-content.no-wrap {
+            white-space: pre;
+            word-wrap: normal;
+            overflow-x: auto;
+        }
+
+        .markdown-content {
+            padding: 20px 24px;
+            line-height: 1.6;
+            color: #374151;
+            max-width: none;
+            font-size: 14px;
+        }
+
+        .markdown-content h1 {
+            color: #1a202c;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 8px;
+            margin-bottom: 20px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .markdown-content h2 {
+            color: #1a202c;
+            margin-top: 24px;
+            margin-bottom: 12px;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .markdown-content h3 {
+            color: #374151;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .markdown-content h4 {
+            color: #374151;
+            margin-top: 16px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .markdown-content ul, .markdown-content ol {
+            margin-left: 16px;
+            margin-bottom: 12px;
+        }
+
+        .markdown-content li {
+            margin-bottom: 4px;
+        }
+
+        .markdown-content code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            color: #e74c3c;
+        }
+
+        .markdown-content pre {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+        }
+
+        .markdown-content pre code {
+            background: none;
+            padding: 0;
+            color: #333;
+        }
+
+        .markdown-content blockquote {
+            border-left: 4px solid #3498db;
+            margin: 15px 0;
+            padding: 10px 15px;
+            background: #f8f9fa;
+            font-style: italic;
+        }
+
+        .markdown-content strong {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .markdown-content table.markdown-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 15px 0;
+            border: 1px solid #ddd;
+        }
+
+        .markdown-content table.markdown-table th,
+        .markdown-content table.markdown-table td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        .markdown-content table.markdown-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .markdown-content table.markdown-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .markdown-content table.markdown-table tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .markdown-content hr {
+            border: none;
+            border-top: 2px solid #e9ecef;
+            margin: 20px 0;
+        }
+
+        .markdown-content del {
+            color: #666;
+            text-decoration: line-through;
+        }
+
+        .markdown-content a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        .markdown-content a:hover {
+            text-decoration: underline;
+        }
+
+        .file-info {
+            background: #f0f9ff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #1e40af;
+            border: 1px solid #e0f2fe;
+        }
+
+        .tabs-container {
+            height: calc(100% - 50px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tabs-header {
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            overflow-x: auto;
+            min-height: 40px;
+        }
+
+        .tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            border-right: 1px solid #e5e7eb;
+            background: white;
+            color: #6b7280;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            transition: all 0.15s ease;
+            position: relative;
+        }
+
+        .tab:hover {
+            background: #f9fafb;
+            color: #374151;
+        }
+
+        .tab.active {
+            background: #2563eb;
+            color: white;
+            border-bottom: 2px solid #1d4ed8;
+        }
+
+        .tab .tab-icon {
+            margin-right: 6px;
+            font-size: 14px;
+        }
+
+        .tabs-content {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .tab-pane {
+            height: 100%;
+            overflow-y: auto;
+            display: none;
+            padding: 0;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        .tab-pane .markdown-content {
+            padding: 20px 30px;
+            line-height: 1.6;
+            color: #333;
+            max-width: none;
+            height: 100%;
+        }
+
+        /* Scrollbar for tabs */
+        .tabs-header::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .tabs-header::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .tabs-header::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 2px;
+        }
+
+        .scroll-hint {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            opacity: 0.8;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .scroll-text {
+            white-space: nowrap;
+        }
+
+        .scroll-nav-buttons {
+            display: flex;
+            gap: 6px;
+        }
+
+        .scroll-nav-btn {
+            background: white;
+            border: 1px solid #d1d5db;
+            color: #374151;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+        .scroll-nav-btn:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+            font-size: 16px;
+        }
+
+        .error {
+            color: #dc2626;
+            padding: 16px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 6px;
+            margin: 16px;
+            font-size: 13px;
+        }
+
+        /* Scrollbar styling */
+        .pane-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .pane-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .pane-content::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        .pane-content::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .log-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .log-content::-webkit-scrollbar-track {
+            background: #2d2d2d;
+        }
+
+        .log-content::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+
+        .log-content::-webkit-scrollbar-thumb:hover {
+            background: #777;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 0;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            border: 1px solid #e5e7eb;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f9fafb;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .modal-header h3 {
+            color: #1a202c;
+            margin: 0;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .close {
+            color: #6b7280;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.15s ease;
+        }
+
+        .close:hover {
+            opacity: 1;
+            color: #374151;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-body .form-group {
+            margin-bottom: 16px;
+        }
+
+        .modal-body .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .modal-body label {
+            color: #374151;
+            font-weight: 500;
+            margin-bottom: 6px;
+            display: block;
+            font-size: 13px;
+        }
+
+        .modal-body input[type="file"] {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            background: white;
+            font-size: 13px;
+            transition: border-color 0.15s ease;
+        }
+
+        .modal-body input[type="text"] {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            background: white;
+            font-size: 13px;
+            transition: border-color 0.15s ease;
+        }
+
+        .modal-body input[type="file"]:focus,
+        .modal-body input[type="text"]:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 1px #2563eb;
+        }
+
+        .form-help {
+            display: block;
+            margin-top: 4px;
+            font-size: 11px;
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        .modal-note {
+            background: #f9fafb;
+            border-radius: 4px;
+            padding: 12px;
+            margin-top: 12px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .modal-note p {
+            color: #6b7280;
+            margin: 0;
+            font-size: 12px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 16px 20px;
+            border-top: 1px solid #e5e7eb;
+            background: #f9fafb;
+            border-radius: 0 0 8px 8px;
+        }
+
+        .modal-btn {
+            padding: 6px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.15s ease;
+            font-size: 13px;
+            height: 32px;
+        }
+
+        .cancel-btn {
+            background: white;
+            color: #374151;
+        }
+
+        .cancel-btn:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+
+        .upload-btn {
+            background: #059669;
+            color: white;
+            border-color: #059669;
+        }
+
+        .upload-btn:hover:not(:disabled) {
+            background: #047857;
+            border-color: #047857;
+        }
+
+        .upload-btn:disabled {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+            color: #9ca3af;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .pane {
+                flex: none;
+                height: 50%;
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+            }
+            
+            .pane:last-child {
+                border-bottom: none;
+            }
+
+            .header .nav-links {
+                position: static;
+                transform: none;
+                margin-top: 10px;
+            }
+        }
+
+        /* Log syntax highlighting */
+        .log-timestamp {
+            color: #569cd6;
+        }
+        
+        .log-level-info {
+            color: #4ec9b0;
+        }
+        
+        .log-level-error {
+            color: #f44747;
+        }
+        
+        .log-level-warn {
+            color: #ffcc02;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 id="sessionTitle">AIOpsLab Session Analysis</h1>
+        <div class="subtitle" id="sessionSubtitle">Loading session details...</div>
+        <div class="run-attributes" id="runAttributes" style="display: none;">
+            <div class="attribute-group">
+                <span class="attribute-label">Status</span>
+                <span class="attribute-value" id="runStatus">N/A</span>
+            </div>
+            <div class="attribute-group">
+                <span class="attribute-label">Date</span>
+                <span class="attribute-value" id="runDate">N/A</span>
+            </div>
+            <div class="attribute-group">
+                <span class="attribute-label">Duration</span>
+                <span class="attribute-value" id="runDuration">N/A</span>
+            </div>
+            <div class="attribute-group">
+                <span class="attribute-label">Reasoning Score</span>
+                <span class="attribute-value" id="reasoningScore">N/A</span>
+            </div>
+            <div class="attribute-group">
+                <span class="attribute-label">Steps</span>
+                <span class="attribute-value" id="runSteps">N/A</span>
+            </div>
+            <div class="attribute-group">
+                <span class="attribute-label">Agent</span>
+                <span class="attribute-value agent-value" id="runAgent" style="font-family: monospace; color: #2563eb;">N/A</span>
+            </div>
+            <div class="attribute-group">
+                <span class="attribute-label">Application</span>
+                <span class="attribute-value application-value" id="runApplication" style="font-family: monospace; color: #059669;">N/A</span>
+            </div>
+        </div>
+        <div class="nav-links">
+            <button class="refresh-btn" onclick="refreshPage()" title="Refresh page to reload content">
+                🔄 Refresh
+            </button>
+            <button class="reset-view-btn" onclick="resetPanes()" title="Reset panes to default 50/50 view">
+                ↻ Reset View
+            </button>
+            <a href="index.html">← Back to Dashboard</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="pane">
+            <div class="pane-header">
+                <div>
+                    <span class="icon"></span>
+                    Raw Log File
+                    <button class="upload-icon-btn" onclick="openLogUploadModal()" title="Upload Log File">
+                        <span>+</span>
+                    </button>
+                    <button class="word-wrap-btn" onclick="toggleWordWrap()" title="Toggle Word Wrap" id="wordWrapBtn">
+                        <span>↩</span>
+                    </button>
+                    <button class="analyze-btn" onclick="analyzeLog()" title="Trigger Log Analysis">
+                        🔍 Analyze
+                    </button>
+                </div>
+            </div>
+            <div class="pane-content">
+                <div class="log-content" id="logContent">
+                    <div class="loading">Loading log content...</div>
+                </div>
+                <div class="scroll-hint">
+                    <span class="scroll-text">Scroll to view full log</span>
+                    <div class="scroll-nav-buttons">
+                        <button class="scroll-nav-btn" onclick="scrollToTop()" title="Go to Top">
+                            ↑ Top
+                        </button>
+                        <button class="scroll-nav-btn" onclick="scrollToBottom()" title="Go to Bottom">
+                            ↓ Bottom
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="pane">
+            <div class="pane-header">
+                <div>
+                    <span class="icon"></span>
+                    AI Evaluations
+                    <button class="upload-icon-btn" onclick="openEvalUploadModal()" title="Upload Evaluation File">
+                        <span>+</span>
+                    </button>
+                </div>
+            </div>
+            <div class="tabs-container">
+                <div class="tabs-header" id="tabsHeader">
+                </div>
+                <div class="tabs-content" id="tabsContent">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Upload Modal -->
+    <div id="logUploadModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Upload Log File</h3>
+                <span class="close" onclick="closeLogUploadModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="log-file-upload">Select Log File (.txt, .log)</label>
+                    <input type="file" id="log-file-upload" accept=".txt,.log" required>
+                </div>
+                <div class="modal-note">
+                    <p><strong>Note:</strong> This will replace any existing log file for this run.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn cancel-btn" onclick="closeLogUploadModal()">Cancel</button>
+                <button class="modal-btn upload-btn" onclick="uploadLogFile()" id="upload-log-btn" disabled>Upload Log</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Evaluation Upload Modal -->
+    <div id="evalUploadModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Upload Evaluation File</h3>
+                <span class="close" onclick="closeEvalUploadModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="eval-filename">Filename (without .md extension)</label>
+                    <input type="text" id="eval-filename" placeholder="e.g., gpt-4o-mini, custom-evaluator" required>
+                    <small class="form-help">Enter the desired filename for this evaluation. The .md extension will be added automatically.</small>
+                </div>
+                <div class="form-group">
+                    <label for="eval-file-upload">Select Evaluation File (.md)</label>
+                    <input type="file" id="eval-file-upload" accept=".md" required>
+                </div>
+                <div class="modal-note">
+                    <p><strong>Note:</strong> Any .md files in the run directory will be displayed as evaluation tabs (except README.md).</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn cancel-btn" onclick="closeEvalUploadModal()">Cancel</button>
+                <button class="modal-btn upload-btn" onclick="uploadEvalFile()" id="upload-eval-btn" disabled>Upload Evaluation</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Parse URL parameters to get run and file information
+        function getURLParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const runId = urlParams.get('run');
+            
+            if (!runId) {
+                throw new Error('Run ID parameter is required. Use: viewer.html?run=20250715-57fff059');
+            }
+            
+            // Default file names based on run ID
+            const logFile = urlParams.get('log') || `/runs/${runId}/log.txt`;
+            
+            return { runId, logFile };
+        }
+
+        // Update page title and headers based on run info
+        function updatePageInfo(runId, logFile, evaluationFiles) {
+            const title = `AIOpsLab Session Analysis - ${runId}`;
+            document.getElementById('pageTitle').textContent = title;
+            document.getElementById('sessionTitle').textContent = `AIOpsLab Session Analysis`;
+            document.getElementById('sessionSubtitle').textContent = `Run ID: ${runId}`;
+        }
+
+        // Get AI service name from filename
+        function getServiceName(filename) {
+            const name = filename.replace('.md', '');
+            // Convert filenames to readable service names
+            const serviceMap = {
+                'copilot': 'GitHub Copilot',
+                'claude-sonnet': 'Claude Sonnet',
+                'claude': 'Claude',
+                'perplexity': 'Perplexity',
+                'gpt-4': 'GPT-4',
+                'gpt-4o': 'GPT-4o',
+                'gpt': 'GPT',
+                'gemini': 'Gemini',
+                'summary': 'Summary'
+            };
+            
+            // Check exact match first
+            if (serviceMap[name]) {
+                return serviceMap[name];
+            }
+            
+            // Check for partial matches (for files like gpt-4o-mini.md)
+            for (const [key, displayName] of Object.entries(serviceMap)) {
+                if (name.toLowerCase().includes(key)) {
+                    return displayName;
+                }
+            }
+            
+            // Default: convert kebab-case or snake_case to Title Case
+            return name.split(/[-_]/).map(word => 
+                word.charAt(0).toUpperCase() + word.slice(1)
+            ).join(' ');
+        }
+
+        // Get icon for AI service
+        function getServiceIcon(filename) {
+            const iconMap = {
+                'copilot': '🤖',
+                'claude': '🎭',
+                'perplexity': '🔍', 
+                'gpt': '🧠',
+                'gemini': '♊',
+                'summary': '📋'
+            };
+            
+            const name = filename.toLowerCase();
+            for (const [key, icon] of Object.entries(iconMap)) {
+                if (name.includes(key)) {
+                    return icon;
+                }
+            }
+            return '📄'; // Default icon for unknown evaluation files
+        }
+
+        // Discover evaluation files from API
+        async function discoverEvaluationFiles(runId) {
+            try {
+                const response = await fetch(`/api/runs/${runId}`);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch run data: ${response.status}`);
+                }
+                
+                const runData = await response.json();
+                const evaluationFiles = [];
+                
+                // Use actual evaluation files from the API
+                if (runData.evaluationFiles && Array.isArray(runData.evaluationFiles)) {
+                    for (const file of runData.evaluationFiles) {
+                        evaluationFiles.push({
+                            filename: file,
+                            path: `/runs/${runId}/${file}`,
+                            serviceName: getServiceName(file.replace('.md', '')),
+                            icon: getServiceIcon(file)
+                        });
+                    }
+                }
+                
+                return evaluationFiles;
+            } catch (error) {
+                console.error('Error discovering evaluation files:', error);
+                return [];
+            }
+        }
+
+        // Create tabs for evaluation files
+        function createTabs(evaluationFiles) {
+            const tabsHeader = document.getElementById('tabsHeader');
+            const tabsContent = document.getElementById('tabsContent');
+            
+            tabsHeader.innerHTML = '';
+            tabsContent.innerHTML = '';
+            
+            evaluationFiles.forEach((file, index) => {
+                // Create tab header
+                const tab = document.createElement('div');
+                tab.className = `tab ${index === 0 ? 'active' : ''}`;
+                tab.dataset.tabId = `tab-${index}`;
+                tab.innerHTML = `
+                    <span class="tab-icon">${file.icon}</span>
+                    ${file.serviceName}
+                `;
+                tab.addEventListener('click', () => switchTab(index, evaluationFiles.length));
+                tabsHeader.appendChild(tab);
+                
+                // Create tab content
+                const tabPane = document.createElement('div');
+                tabPane.className = `tab-pane ${index === 0 ? 'active' : ''}`;
+                tabPane.id = `tab-${index}`;
+                tabPane.innerHTML = `
+                    <div class="markdown-content">
+                        <div class="loading">Loading ${file.serviceName} evaluation...</div>
+                    </div>
+                `;
+                tabsContent.appendChild(tabPane);
+            });
+        }
+
+        // Switch between tabs
+        function switchTab(activeIndex, totalTabs) {
+            // Update tab headers
+            document.querySelectorAll('.tab').forEach((tab, index) => {
+                tab.classList.toggle('active', index === activeIndex);
+            });
+            
+            // Update tab content
+            document.querySelectorAll('.tab-pane').forEach((pane, index) => {
+                pane.classList.toggle('active', index === activeIndex);
+            });
+        }
+
+        // Enhanced markdown to HTML converter
+        function markdownToHtml(markdown) {
+            // Split into lines for processing
+            const lines = markdown.split('\n');
+            let html = '';
+            let inTable = false;
+            let inCodeBlock = false;
+            let inList = false;
+            let listType = '';
+            
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
+                
+                // Handle code blocks
+                if (line.trim().startsWith('```')) {
+                    if (inCodeBlock) {
+                        html += '</code></pre>\n';
+                        inCodeBlock = false;
+                    } else {
+                        const language = line.trim().substring(3).trim();
+                        html += `<pre><code class="language-${language}">`;
+                        inCodeBlock = true;
+                    }
+                    continue;
+                }
+                
+                if (inCodeBlock) {
+                    html += line + '\n';
+                    continue;
+                }
+                
+                // Handle tables
+                if (line.includes('|') && line.trim().length > 0) {
+                    if (!inTable) {
+                        html += '<table class="markdown-table">\n';
+                        inTable = true;
+                        
+                        // Check if next line is a separator
+                        if (i + 1 < lines.length && lines[i + 1].includes('---')) {
+                            // This is a header row
+                            const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell);
+                            html += '<thead><tr>';
+                            cells.forEach(cell => {
+                                const cellContent = processInlineMarkdown(cell);
+                                html += `<th>${cellContent}</th>`;
+                            });
+                            html += '</tr></thead>\n<tbody>\n';
+                            i++; // Skip separator line
+                            continue;
+                        }
+                    }
+                    
+                    // Regular table row
+                    const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell);
+                    html += '<tr>';
+                    cells.forEach(cell => {
+                        const cellContent = processInlineMarkdown(cell);
+                        html += `<td>${cellContent}</td>`;
+                    });
+                    html += '</tr>\n';
+                    continue;
+                } else if (inTable) {
+                    html += '</tbody></table>\n';
+                    inTable = false;
+                }
+                
+                // Handle headers
+                if (line.startsWith('####')) {
+                    html += `<h4>${processInlineMarkdown(line.substring(4).trim())}</h4>\n`;
+                    continue;
+                } else if (line.startsWith('###')) {
+                    html += `<h3>${processInlineMarkdown(line.substring(3).trim())}</h3>\n`;
+                    continue;
+                } else if (line.startsWith('##')) {
+                    html += `<h2>${processInlineMarkdown(line.substring(2).trim())}</h2>\n`;
+                    continue;
+                } else if (line.startsWith('#')) {
+                    html += `<h1>${processInlineMarkdown(line.substring(1).trim())}</h1>\n`;
+                    continue;
+                }
+                
+                // Handle lists
+                const listMatch = line.match(/^(\s*)([-*+]|\d+\.)\s+(.*)$/);
+                if (listMatch) {
+                    const indent = listMatch[1].length;
+                    const marker = listMatch[2];
+                    const content = listMatch[3];
+                    const isOrdered = /\d+\./.test(marker);
+                    
+                    if (!inList) {
+                        listType = isOrdered ? 'ol' : 'ul';
+                        html += `<${listType}>\n`;
+                        inList = true;
+                    } else if ((isOrdered && listType === 'ul') || (!isOrdered && listType === 'ol')) {
+                        html += `</${listType}>\n`;
+                        listType = isOrdered ? 'ol' : 'ul';
+                        html += `<${listType}>\n`;
+                    }
+                    
+                    html += `<li>${processInlineMarkdown(content)}</li>\n`;
+                    continue;
+                } else if (inList && line.trim() === '') {
+                    // Continue list on empty line
+                    continue;
+                } else if (inList) {
+                    html += `</${listType}>\n`;
+                    inList = false;
+                    listType = '';
+                }
+                
+                // Handle blockquotes
+                if (line.startsWith('>')) {
+                    html += `<blockquote>${processInlineMarkdown(line.substring(1).trim())}</blockquote>\n`;
+                    continue;
+                }
+                
+                // Handle horizontal rules
+                if (line.trim().match(/^[-*_]{3,}$/)) {
+                    html += '<hr>\n';
+                    continue;
+                }
+                
+                // Handle regular paragraphs
+                if (line.trim()) {
+                    html += `<p>${processInlineMarkdown(line)}</p>\n`;
+                } else {
+                    html += '\n';
+                }
+            }
+            
+            // Close any open tags
+            if (inTable) {
+                html += '</tbody></table>\n';
+            }
+            if (inList) {
+                html += `</${listType}>\n`;
+            }
+            
+            return html;
+        }
+        
+        // Process inline markdown elements
+        function processInlineMarkdown(text) {
+            return text
+                // Bold and Italic (order matters)
+                .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\_\_\_(.*?)\_\_\_/g, '<strong><em>$1</em></strong>')
+                .replace(/\_\_(.*?)\_\_/g, '<strong>$1</strong>')
+                .replace(/\_(.*?)\_/g, '<em>$1</em>')
+                
+                // Inline code
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                
+                // Links
+                .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+                
+                // Strikethrough
+                .replace(/~~(.*?)~~/g, '<del>$1</del>');
+        }
+
+        // Load and display the log file content
+        async function loadLogFile(logFile) {
+            try {
+                const response = await fetch(logFile);
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error('LOG_FILE_NOT_FOUND');
+                    }
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const logContent = await response.text();
+                
+                // Apply syntax highlighting to log content
+                const highlightedContent = logContent
+                    .replace(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/g, '<span class="log-timestamp">$1</span>')
+                    .replace(/INFO:/g, '<span class="log-level-info">INFO:</span>')
+                    .replace(/ERROR:/g, '<span class="log-level-error">ERROR:</span>')
+                    .replace(/WARN:/g, '<span class="log-level-warn">WARN:</span>')
+                    .replace(/DEBUG:/g, '<span class="log-level-info">DEBUG:</span>');
+                
+                document.getElementById('logContent').innerHTML = highlightedContent;
+            } catch (error) {
+                console.error('Error loading log file:', error);
+                if (error.message === 'LOG_FILE_NOT_FOUND') {
+                    document.getElementById('logContent').innerHTML = 
+                        `<div class="error">No log file available, please upload</div>`;
+                } else {
+                    document.getElementById('logContent').innerHTML = 
+                        `<div class="error">Error loading log file "${logFile}": ${error.message}</div>`;
+                }
+            }
+        }
+
+        // Load and display the evaluation file content
+        async function loadEvaluationFile(file, tabIndex) {
+            try {
+                const response = await fetch(file.path);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const evaluationContent = await response.text();
+                
+                // Convert markdown to HTML
+                const htmlContent = markdownToHtml(evaluationContent);
+                const tabPane = document.getElementById(`tab-${tabIndex}`);
+                const markdownContainer = tabPane.querySelector('.markdown-content');
+                markdownContainer.innerHTML = htmlContent;
+            } catch (error) {
+                console.error(`Error loading evaluation file ${file.path}:`, error);
+                const tabPane = document.getElementById(`tab-${tabIndex}`);
+                const markdownContainer = tabPane.querySelector('.markdown-content');
+                markdownContainer.innerHTML = 
+                    `<div class="error">Error loading evaluation "${file.serviceName}": ${error.message}</div>`;
+            }
+        }
+
+        // Load all evaluation files
+        async function loadAllEvaluations(evaluationFiles) {
+            const loadPromises = evaluationFiles.map((file, index) => 
+                loadEvaluationFile(file, index)
+            );
+            await Promise.all(loadPromises);
+        }
+
+        // Initialize the page
+        async function initPage() {
+            try {
+                const { runId, logFile } = getURLParams();
+                
+                // Load run data from API to populate header attributes
+                await loadRunData(runId);
+                
+                // Discover available evaluation files
+                const evaluationFiles = await discoverEvaluationFiles(runId);
+                
+                if (evaluationFiles.length === 0) {
+                    throw new Error('NO_EVALUATIONS_FOUND');
+                }
+                
+                updatePageInfo(runId, logFile, evaluationFiles);
+                createTabs(evaluationFiles);
+                
+                // Load log file and all evaluations concurrently
+                await Promise.all([
+                    loadLogFile(logFile),
+                    loadAllEvaluations(evaluationFiles)
+                ]);
+            } catch (error) {
+                console.error('Error initializing page:', error);
+                if (error.message === 'NO_EVALUATIONS_FOUND') {
+                    document.getElementById('sessionSubtitle').textContent = `Run: ${getURLParams().runId}`;
+                    document.getElementById('tabsContent').innerHTML = 
+                        `<div class="error">No evaluation found, please upload</div>`;
+                    // Still try to load the log file
+                    try {
+                        await loadLogFile(getURLParams().logFile);
+                    } catch (logError) {
+                        // Log error will be handled by loadLogFile function
+                    }
+                } else {
+                    document.getElementById('sessionSubtitle').textContent = `Error: ${error.message}`;
+                    document.getElementById('logContent').innerHTML = 
+                        `<div class="error">${error.message}</div>`;
+                    document.getElementById('tabsContent').innerHTML = 
+                        `<div class="error">${error.message}</div>`;
+                }
+            }
+        }
+
+        // Load content when the page loads
+        window.addEventListener('load', initPage);
+
+        // Add smooth scrolling behavior
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle scroll hints for log content
+            document.querySelector('.pane-content').addEventListener('scroll', function() {
+                const scrollHint = this.parentElement.querySelector('.scroll-hint');
+                if (scrollHint) {
+                    if (this.scrollTop > 100) {
+                        scrollHint.style.opacity = '0.3';
+                    } else {
+                        scrollHint.style.opacity = '0.8';
+                    }
+                }
+            });
+            
+            // Handle scroll for tab panes
+            document.addEventListener('scroll', function(e) {
+                if (e.target.classList.contains('tab-pane')) {
+                    // Handle scroll behavior for individual tab panes if needed
+                }
+            }, true);
+        });
+
+        // ===== UPLOAD MODAL FUNCTIONS =====
+
+        // Open log upload modal
+        function openLogUploadModal() {
+            const modal = document.getElementById('logUploadModal');
+            const fileInput = document.getElementById('log-file-upload');
+            const uploadBtn = document.getElementById('upload-log-btn');
+            
+            modal.style.display = 'block';
+            fileInput.value = '';
+            uploadBtn.disabled = true;
+            
+            // Add file input change listener
+            fileInput.addEventListener('change', function() {
+                uploadBtn.disabled = !this.files[0];
+            });
+        }
+
+        // Close log upload modal
+        function closeLogUploadModal() {
+            const modal = document.getElementById('logUploadModal');
+            const fileInput = document.getElementById('log-file-upload');
+            
+            modal.style.display = 'none';
+            fileInput.value = '';
+        }
+
+        // Open evaluation upload modal
+        function openEvalUploadModal() {
+            const modal = document.getElementById('evalUploadModal');
+            const fileInput = document.getElementById('eval-file-upload');
+            const filenameInput = document.getElementById('eval-filename');
+            const uploadBtn = document.getElementById('upload-eval-btn');
+            
+            modal.style.display = 'block';
+            fileInput.value = '';
+            filenameInput.value = '';
+            uploadBtn.disabled = true;
+            
+            // Function to check if both inputs are valid
+            function validateInputs() {
+                const hasFile = fileInput.files[0];
+                const hasFilename = filenameInput.value.trim().length > 0;
+                uploadBtn.disabled = !(hasFile && hasFilename);
+            }
+            
+            // Auto-populate filename based on uploaded file name
+            function suggestFilename() {
+                if (fileInput.files[0] && !filenameInput.value.trim()) {
+                    let suggestedName = fileInput.files[0].name
+                        .replace(/\.md$/, '')  // Remove .md extension
+                        .replace(/[^a-zA-Z0-9_-]/g, '-')  // Replace invalid chars with hyphens
+                        .replace(/-+/g, '-')  // Replace multiple hyphens with single
+                        .replace(/^-|-$/g, '');  // Remove leading/trailing hyphens
+                    
+                    filenameInput.value = suggestedName;
+                    validateInputs();
+                }
+            }
+            
+            // Add event listeners for both inputs
+            fileInput.addEventListener('change', function() {
+                suggestFilename();
+                validateInputs();
+            });
+            filenameInput.addEventListener('input', validateInputs);
+        }
+
+        // Close evaluation upload modal
+        function closeEvalUploadModal() {
+            const modal = document.getElementById('evalUploadModal');
+            const fileInput = document.getElementById('eval-file-upload');
+            const filenameInput = document.getElementById('eval-filename');
+            
+            modal.style.display = 'none';
+            fileInput.value = '';
+            filenameInput.value = '';
+        }
+
+        // Upload log file
+        async function uploadLogFile() {
+            const fileInput = document.getElementById('log-file-upload');
+            const uploadBtn = document.getElementById('upload-log-btn');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a file');
+                return;
+            }
+            
+            const { runId } = getURLParams();
+            const formData = new FormData();
+            formData.append('logFile', file);
+            
+            try {
+                uploadBtn.disabled = true;
+                uploadBtn.textContent = 'Uploading...';
+                
+                const response = await fetch(`/api/runs/${runId}/log`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to upload log file');
+                }
+                
+                const result = await response.json();
+                alert('Log file uploaded successfully!');
+                closeLogUploadModal();
+                
+                // Reload the page to show the new log file
+                window.location.reload();
+                
+            } catch (error) {
+                console.error('Error uploading log file:', error);
+                alert(`Failed to upload log file: ${error.message}`);
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload Log';
+            }
+        }
+
+        // Upload evaluation file
+        async function uploadEvalFile() {
+            const fileInput = document.getElementById('eval-file-upload');
+            const filenameInput = document.getElementById('eval-filename');
+            const uploadBtn = document.getElementById('upload-eval-btn');
+            const file = fileInput.files[0];
+            const filename = filenameInput.value.trim();
+            
+            if (!file) {
+                alert('Please select a file');
+                return;
+            }
+            
+            if (!filename) {
+                alert('Please enter a filename');
+                return;
+            }
+            
+            if (!file.name.endsWith('.md')) {
+                alert('Evaluation file must be a .md file');
+                return;
+            }
+            
+            // Validate filename (no .md extension, alphanumeric, hyphens, underscores)
+            if (!/^[a-zA-Z0-9_-]+$/.test(filename)) {
+                alert('Filename can only contain letters, numbers, hyphens, and underscores');
+                return;
+            }
+            
+            const { runId } = getURLParams();
+            const formData = new FormData();
+            formData.append('evaluationFile', file);
+            formData.append('targetName', filename);
+            
+            try {
+                uploadBtn.disabled = true;
+                uploadBtn.textContent = 'Uploading...';
+                
+                const response = await fetch(`/api/runs/${runId}/evaluation`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to upload evaluation file');
+                }
+                
+                const result = await response.json();
+                alert(`Evaluation file uploaded successfully as ${result.filename || filename + '.md'}!`);
+                closeEvalUploadModal();
+                
+                // Reload the page to show the new evaluation
+                window.location.reload();
+                
+            } catch (error) {
+                console.error('Error uploading evaluation file:', error);
+                alert(`Failed to upload evaluation file: ${error.message}`);
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload Evaluation';
+            }
+        }
+
+        // Close modals when clicking outside
+        window.addEventListener('click', function(event) {
+            const logModal = document.getElementById('logUploadModal');
+            const evalModal = document.getElementById('evalUploadModal');
+            
+            if (event.target === logModal) {
+                closeLogUploadModal();
+            }
+            if (event.target === evalModal) {
+                closeEvalUploadModal();
+            }
+        });
+
+        // Close modals when pressing ESC key, toggle word wrap with Ctrl+W
+        window.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const logModal = document.getElementById('logUploadModal');
+                const evalModal = document.getElementById('evalUploadModal');
+                
+                if (logModal.style.display === 'block') {
+                    closeLogUploadModal();
+                }
+                if (evalModal.style.display === 'block') {
+                    closeEvalUploadModal();
+                }
+            }
+            
+            // Toggle word wrap with Ctrl+W
+            if (event.ctrlKey && event.key === 'w') {
+                event.preventDefault();
+                toggleWordWrap();
+            }
+        });
+
+        // Refresh the page to reload content
+        function refreshPage() {
+            window.location.reload();
+        }
+
+        // Scroll to top of log content
+        function scrollToTop() {
+            const logContent = document.getElementById('logContent');
+            if (logContent) {
+                logContent.scrollTop = 0;
+            }
+        }
+
+        // Scroll to bottom of log content
+        function scrollToBottom() {
+            const logContent = document.getElementById('logContent');
+            if (logContent) {
+                logContent.scrollTop = logContent.scrollHeight;
+            }
+        }
+
+        // Toggle word wrap functionality
+        function toggleWordWrap() {
+            const logContent = document.getElementById('logContent');
+            const wordWrapBtn = document.getElementById('wordWrapBtn');
+            
+            if (logContent.classList.contains('no-wrap')) {
+                // Enable word wrap
+                logContent.classList.remove('no-wrap');
+                wordWrapBtn.classList.remove('no-wrap');
+                wordWrapBtn.title = 'Toggle Word Wrap (Currently: On)';
+                wordWrapBtn.querySelector('span').textContent = '↩';
+            } else {
+                // Disable word wrap
+                logContent.classList.add('no-wrap');
+                wordWrapBtn.classList.add('no-wrap');
+                wordWrapBtn.title = 'Toggle Word Wrap (Currently: Off)';
+                wordWrapBtn.querySelector('span').textContent = '↔';
+            }
+        }
+
+        // Trigger log analysis
+        async function analyzeLog() {
+            const { runId } = getURLParams();
+            const analyzeBtn = document.querySelector('.analyze-btn');
+            
+            try {
+                // Update button state
+                analyzeBtn.disabled = true;
+                analyzeBtn.innerHTML = '⏳ Analyzing...';
+                
+                const response = await fetch(`/api/runs/${runId}/reanalyze`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to trigger analysis');
+                }
+                
+                const result = await response.json();
+                
+                // Show success message
+                analyzeBtn.innerHTML = '✅ Analyzed';
+                setTimeout(() => {
+                    analyzeBtn.innerHTML = '🔍 Analyze';
+                    analyzeBtn.disabled = false;
+                }, 2000);
+                
+                // Optionally refresh the page to show updated analysis results
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2500);
+                
+            } catch (error) {
+                console.error('Error triggering analysis:', error);
+                
+                // Show error state
+                analyzeBtn.innerHTML = '❌ Error';
+                setTimeout(() => {
+                    analyzeBtn.innerHTML = '🔍 Analyze';
+                    analyzeBtn.disabled = false;
+                }, 2000);
+                
+                alert(`Failed to trigger analysis: ${error.message}`);
+            }
+        }
+
+        // Reset panes to default view
+        function resetPanes() {
+            // Implementation for resetting panes if needed
+            window.location.reload();
+        }
+
+        // Fetch run data from API and populate header attributes
+        async function loadRunData(runId) {
+            try {
+                const response = await fetch(`/api/runs/${runId}`);
+                if (response.ok) {
+                    const runData = response.json ? await response.json() : response;
+                    
+                    // Update subtitle
+                    document.getElementById('sessionSubtitle').textContent = `Run ID: ${runId}`;
+                    
+                    // Populate attributes
+                    if (runData) {
+                        const statusElement = document.getElementById('runStatus');
+                        const status = runData.status || 'N/A';
+                        const statusText = status === 'partial' ? 'Partial' : 
+                                         status === 'success' ? 'Success' : 
+                                         status === 'failed' ? 'Failed' : status;
+                        statusElement.textContent = statusText;
+                        statusElement.className = `attribute-value status-${status}`;
+                        
+                        document.getElementById('runDate').textContent = runData.created ? 
+                            new Date(runData.created).toLocaleDateString() : 'N/A';
+                        document.getElementById('runDuration').textContent = runData.duration ? 
+                            `${runData.duration}s` : 'N/A';
+                        document.getElementById('reasoningScore').textContent = runData.reasoningScore || 'N/A';
+                        document.getElementById('runSteps').textContent = runData.steps || 'N/A';
+                        document.getElementById('runAgent').textContent = runData.agentName || 'N/A';
+                        document.getElementById('runApplication').textContent = runData.applicationName || 'N/A';
+                        
+                        // Show the attributes section
+                        document.getElementById('runAttributes').style.display = 'flex';
+                    }
+                } else {
+                    console.warn('Could not fetch run data from API:', response.status);
+                    document.getElementById('sessionSubtitle').textContent = `Run ID: ${runId}`;
+                }
+            } catch (error) {
+                console.error('Error fetching run data:', error);
+                document.getElementById('sessionSubtitle').textContent = `Run ID: ${runId}`;
+            }
+        }
+    </script>
+</body>
+</html>
