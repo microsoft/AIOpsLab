@@ -21,7 +21,7 @@ class Agent:
         self.history = []
         self.llm = GPTClient(auth_type=auth_type, azure_config_file=azure_config_file)
 
-    def init_context(self, problem_desc: str, instructions: str, apis: str):
+    def init_context(self, problem_desc: str, instructions: str, apis: dict[str, str]):
         """Initialize the context for the agent."""
 
         self.shell_api = self._filter_dict(apis, lambda k, _: "exec_shell" in k)
