@@ -336,8 +336,13 @@ class GenericOpenAIClient:
     Uses the standard Chat Completions API (client.chat.completions.create),
     making it compatible with any provider that implements the OpenAI Chat
     Completions spec — including Poe, OpenRouter, vLLM, LocalAI, DeepSeek,
-    and standard OpenAI/Azure OpenAI deployments — by overriding base_url.
+    and standard OpenAI deployments, as well as Azure- or other cloud-hosted
+    gateways that expose an OpenAI-compatible `/v1/chat/completions` endpoint
+    via `base_url`.
 
+    Note: Native Azure OpenAI endpoints typically require the AzureOpenAI client
+    with an `azure_endpoint` and `api_version`, and are not used via `base_url`
+    in this class unless they are fronted by such a compatibility gateway.
     Environment variables:
         OPENAI_COMPATIBLE_API_KEY: API key for the target endpoint.
         OPENAI_COMPATIBLE_BASE_URL: Base URL of the target endpoint.
