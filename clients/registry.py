@@ -5,6 +5,7 @@ from clients.qwen import QwenAgent
 from clients.deepseek import DeepSeekAgent
 from clients.vllm import vLLMAgent
 from clients.openrouter import OpenRouterAgent
+from clients.generic_openai import GenericOpenAIAgent
 
 class AgentRegistry:
     """Registry for agent implementations."""
@@ -16,6 +17,7 @@ class AgentRegistry:
             "deepseek": DeepSeekAgent,
             "vllm": vLLMAgent,
             "openrouter": OpenRouterAgent,
+            "generic": GenericOpenAIAgent,
         }
     
     def register(self, name, agent_cls):

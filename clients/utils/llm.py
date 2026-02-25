@@ -330,6 +330,84 @@ class OpenRouterClient:
         return response
 
 
+class GenericOpenAIClient:
+    """Generic client for any OpenAI Chat Completions compatible endpoint.
+
+    Uses the standard Chat Completions API (client.chat.completions.create),
+    making it compatible with any provider that implements the OpenAI Chat
+    Completions spec — including Poe, OpenRouter, vLLM, LocalAI, DeepSeek,
+    and standard OpenAI deployments, as well as Azure- or other cloud-hosted
+    gateways that expose an OpenAI-compatible `/v1/chat/completions` endpoint
+    via `base_url`.
+
+    Note: Native Azure OpenAI endpoints typically require the AzureOpenAI client
+    with an `azure_endpoint` and `api_version`, and are not used via `base_url`
+    in this class unless they are fronted by such a compatibility gateway.
+    Environment variables:
+        OPENAI_COMPATIBLE_API_KEY: API key for the target endpoint.
+        OPENAI_COMPATIBLE_BASE_URL: Base URL of the target endpoint.
+        OPENAI_COMPATIBLE_MODEL: Model name to use (default: gpt-4o).
+
+    All three can be overridden by passing explicit arguments to the constructor.
+    """
+
+    def __init__(
+        self,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        api_key: Optional[str] = None,
+        max_tokens: int = 16000,
+    ):
+        self.cache = Cache()
+        self.model = model or os.getenv("OPENAI_COMPATIBLE_MODEL", "gpt-4o")
+        self.max_tokens = max_tokens
+        resolved_base_url = base_url or os.getenv("OPENAI_COMPATIBLE_BASE_URL")
+        if not resolved_base_url:
+            raise ValueError(
+                "base_url must be provided either as a constructor argument or via "
+                "the OPENAI_COMPATIBLE_BASE_URL environment variable."
+            )
+        resolved_api_key = api_key or os.getenv("OPENAI_COMPATIBLE_API_KEY")
+        if not resolved_api_key:
+            raise ValueError(
+                "api_key must be provided either as a constructor argument or via "
+                "the OPENAI_COMPATIBLE_API_KEY environment variable."
+            )
+        self.client = OpenAI(api_key=resolved_api_key, base_url=resolved_base_url)
+
+    def inference(self, payload: list[dict[str, str]]) -> list[str]:
+        if self.cache is not None:
+            cache_result = self.cache.get_from_cache(payload)
+            if cache_result is not None:
+                return cache_result
+
+        try:
+            response = self.client.chat.completions.create(
+                messages=payload,  # type: ignore
+                model=self.model,
+                max_tokens=self.max_tokens,
+                temperature=0.5,
+                top_p=0.95,
+                frequency_penalty=0.0,
+                presence_penalty=0.0,
+                n=1,
+                timeout=60,
+                stop=[],
+            )
+        except Exception as e:
+            print(f"Exception: {repr(e)}")
+            raise e
+
+        return [c.message.content for c in response.choices]  # type: ignore
+
+    def run(self, payload: list[dict[str, str]]) -> list[str]:
+        response = self.inference(payload)
+        if self.cache is not None:
+            self.cache.add_to_cache(payload, response)
+            self.cache.save_cache()
+        return response
+
+
 class LLaMAClient:
     """Abstraction for Meta's LLaMA-3 model."""
 
