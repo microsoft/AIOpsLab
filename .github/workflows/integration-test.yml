@@ -1,0 +1,177 @@
+name: Integration Smoke Test
+
+# Trigger on every push to any branch and on every pull request.
+# This ensures regressions are caught before merging to main.
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  smoke-test:
+    name: no-op hotel-reservation smoke test
+    runs-on: ubuntu-latest
+    # Full cluster setup + app deploy + workload + teardown typically takes 15-25 min.
+    timeout-minutes: 45
+
+    steps:
+      # -----------------------------------------------------------------------
+      # 1. Source checkout
+      # -----------------------------------------------------------------------
+      - name: Checkout repository (with submodules)
+        uses: actions/checkout@v4
+        with:
+          # aiopslab-applications contains the K8s manifests and Helm charts
+          # required by the orchestrator to deploy HotelReservation.
+          submodules: recursive
+
+      # -----------------------------------------------------------------------
+      # 2. Cluster tooling
+      #    kubectl is pre-installed on ubuntu-latest; we only need kind + helm.
+      # -----------------------------------------------------------------------
+      - name: Install kind
+        run: |
+          # Download to /tmp to avoid colliding with the repo's kind/ directory
+          curl -Lo /tmp/kind-bin https://kind.sigs.k8s.io/dl/v0.27.0/kind-linux-amd64
+          chmod +x /tmp/kind-bin
+          sudo mv /tmp/kind-bin /usr/local/bin/kind
+          kind version
+
+      - name: Install Helm
+        run: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+      # Pre-pull the node image so cluster creation doesn't time out waiting
+      # for a large Docker pull inside the kind bootstrap.
+      - name: Pre-pull kind node image
+        run: docker pull jacksonarthurclark/aiopslab-kind-x86:latest
+
+      # OpenEBS Node Disk Manager (NDM) mounts /run/udev into its pod to scan
+      # block devices. The kind-config-ci.yaml passes this as an extraMount so
+      # kind places the host path inside the node container. On GitHub-hosted
+      # runners /run/udev may not exist or may be a socket file, which causes
+      # kubelet to reject the hostPath mount with "is not a directory". We
+      # create it as an empty directory before kind cluster creation so the
+      # mount path type check (Directory) passes.
+      - name: Prepare /run/udev for OpenEBS NDM
+        run: sudo mkdir -p /run/udev
+
+      - name: Create kind cluster
+        run: |
+          kind create cluster \
+            --config kind/kind-config-x86.yaml \
+            --wait 120s
+          kubectl cluster-info
+          kubectl get nodes
+
+      # -----------------------------------------------------------------------
+      # 2b. Pre-install OpenEBS before pytest
+      #
+      # The orchestrator's init_problem() applies the OpenEBS manifest and
+      # waits with a hard max_wait=300s. On a cold runner the pod images
+      # (~800 MB) must be pulled from Docker Hub first, which can easily
+      # exceed 5 minutes and cause a timeout. Pre-installing here lets the
+      # images pull at their own pace (up to 10 min), so by the time pytest
+      # calls wait_for_ready("openebs") the pods are already Ready.
+      # kubectl apply is idempotent so the orchestrator re-applying is fine.
+      # -----------------------------------------------------------------------
+      - name: Pre-install OpenEBS
+        run: |
+          kubectl apply -f https://openebs.github.io/charts/openebs-operator.yaml
+          echo "Waiting up to 10 min for OpenEBS pods to be ready (cold image pull)..."
+          kubectl wait pod --all -n openebs \
+            --for=condition=Ready \
+            --timeout=600s
+          kubectl patch storageclass openebs-hostpath \
+            -p '{"metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+          echo "OpenEBS is ready."
+
+      # -----------------------------------------------------------------------
+      # 2c. Pre-install Prometheus before pytest
+      #
+      # init_problem() deploys Prometheus via Helm and waits with max_wait=300s.
+      # On a cold runner, pulling Prometheus + sub-chart images (node-exporter,
+      # kube-state-metrics, alertmanager, pushgateway) from Docker Hub can
+      # take 3-6 min, exceeding the 5-minute hard timeout.
+      #
+      # Pre-installing here means Prometheus._is_prometheus_running() will
+      # return True when init_problem() calls Prometheus.deploy(), causing it
+      # to skip redeployment entirely — wait_for_ready("observe") returns
+      # immediately.
+      #
+      # Chart path mirrors Prometheus.load_service_json():
+      #   BASE_DIR / "observer/prometheus/prometheus/"
+      #   = aiopslab/observer/prometheus/prometheus/
+      # -----------------------------------------------------------------------
+      - name: Pre-install Prometheus
+        run: |
+          kubectl create namespace observe --dry-run=client -o yaml | kubectl apply -f -
+          kubectl apply -f aiopslab/observer/prometheus/prometheus-pvc.yml -n observe
+          helm dependency update aiopslab/observer/prometheus/prometheus/
+          helm install prometheus aiopslab/observer/prometheus/prometheus/ \
+            -n observe --create-namespace
+          echo "Waiting up to 10 min for Prometheus pods to be ready (cold image pull)..."
+          kubectl wait pod --all -n observe \
+            --for=condition=Ready \
+            --timeout=600s
+          echo "Prometheus is ready."
+
+      # -----------------------------------------------------------------------
+      # 3. Python + dependencies
+      # -----------------------------------------------------------------------
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      # Install core framework + dev tools; skip heavy ML client packages
+      # (vllm, flwr, etc.) that need CUDA and are not required for the smoke test.
+      - name: Install dependencies
+        run: poetry install --without clients --with dev
+
+      # -----------------------------------------------------------------------
+      # 4. Framework configuration
+      #    config.yml is gitignored; generate it on the fly.
+      #    k8s_host=kind tells the orchestrator to use the local kubeconfig.
+      # -----------------------------------------------------------------------
+      - name: Generate aiopslab/config.yml
+        run: |
+          cat > aiopslab/config.yml <<'EOF'
+          k8s_host: kind
+          k8s_user: runner
+          ssh_key_path: ~/.ssh/id_rsa
+          data_dir: data
+          qualitative_eval: false
+          print_session: false
+          EOF
+
+      # -----------------------------------------------------------------------
+      # 5. Run smoke test
+      #    KubeCtl defaults AIOPSLAB_CLUSTER=kind → context=kind-kind, which
+      #    matches the default cluster name created above.
+      # -----------------------------------------------------------------------
+      - name: Run integration smoke test
+        run: poetry run pytest tests/integration/smoke_test.py -v -s -m integration
+
+      # -----------------------------------------------------------------------
+      # 6. Diagnostics on failure
+      # -----------------------------------------------------------------------
+      - name: Dump cluster state on failure
+        if: failure()
+        run: |
+          echo "=== All namespaced resources ==="
+          kubectl get all --all-namespaces
+          echo "=== Recent events ==="
+          kubectl get events --all-namespaces --sort-by='.lastTimestamp' | tail -40
+          kind export logs --name kind /tmp/kind-logs
+
+      - name: Upload kind logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kind-logs
+          path: /tmp/kind-logs
+          retention-days: 7
