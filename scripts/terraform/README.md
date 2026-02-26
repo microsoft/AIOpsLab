@@ -4,23 +4,28 @@
 
 > Tested on WSL2 (Ubuntu 22.04) + Windows 11 with Azure VMs (Ubuntu 22.04 LTS, amd64). Auto-install of tools (kubectl, helm, poetry) targets Linux/amd64.
 
-## 🚀 Quick Start
+## Quick Start
 
-Deploy AIOpsLab with 3 workers in just one command:
-
+**Mode B** (AIOpsLab on your laptop, remote kubectl):
 ```bash
-python deploy.py --apply --workers 3 --vm-size Standard_D4s_v3 \
-    --resource-group aiopslab-rg \
-    --ssh-key ~/.ssh/id_rsa.pub
+python3 deploy.py --apply --resource-group <your-rg> --workers 2 --mode B
 ```
 
-Destroy everything when done:
-
+**Mode A** (AIOpsLab on the controller VM):
 ```bash
-python deploy.py --destroy --resource-group aiopslab-rg --ssh-key ~/.ssh/id_rsa.pub
+python3 deploy.py --apply --resource-group <your-rg> --workers 2 --mode A
+# With --dev to rsync local code instead of git clone:
+python3 deploy.py --apply --resource-group <your-rg> --workers 2 --mode A --dev
 ```
 
-**That's it!** The script handles everything: VM provisioning, Kubernetes setup, and configuration.
+**Destroy** when done:
+```bash
+python3 deploy.py --destroy --resource-group <your-rg>
+```
+
+The script handles VM provisioning, K8s cluster setup, and AIOpsLab configuration.
+
+> **Tip**: Add `--allowed-ips CorpNetPublic` (or a CIDR) to restrict SSH/K8s API access. Default is open to all (`*`).
 
 ---
 
@@ -75,13 +80,6 @@ az group create --name aiopslab-rg --location eastus
 ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa
 ```
 
-### 3. Initialize Terraform
-
-```bash
-cd scripts/terraform
-terraform init
-```
-
 ---
 
 ## 🎯 Usage
@@ -110,14 +108,25 @@ python deploy.py --apply \
 ### Available Options
 
 ```
---apply                Deploy infrastructure and setup cluster
---destroy              Destroy all infrastructure
---workers N            Number of worker nodes (default: 2)
---vm-size SIZE         Azure VM size (default: Standard_B2s)
---resource-group RG    Azure resource group (default: aiopslab-rg)
---prefix PREFIX        Resource name prefix (default: aiopslab)
---ssh-key PATH         SSH public key path (default: ~/.ssh/id_rsa.pub)
---debug                Enable debug logging
+--plan                          Dry-run: show what would be created
+--apply                         Deploy infrastructure and setup cluster
+--destroy                       Destroy all infrastructure
+--setup-only                    Re-run AIOpsLab setup without reprovisioning (uses
+                                existing Terraform state). Useful for iterating on
+                                code or config changes.
+--workers N                     Number of worker nodes (default: 2)
+--vm-size SIZE                  Azure VM size (default: Standard_B2s)
+--resource-group RG             Azure resource group (default: aiopslab-rg)
+--prefix PREFIX                 Resource name prefix (default: aiopslab)
+--ssh-key PATH                  SSH public key path (default: ~/.ssh/id_rsa.pub)
+--allowed-ips ADDR              NSG source address for SSH + K8s API. Use '*' for
+                                open (default), a CIDR, or an Azure service tag
+                                like 'CorpNetPublic'.
+--mode {A,B}                    A: AIOpsLab on controller VM. B: AIOpsLab on
+                                laptop with remote kubectl (default: B).
+--dev                           Mode A only: rsync local repo to controller
+                                instead of git clone.
+--debug                         Enable debug logging
 ```
 
 ### Destroy Infrastructure
@@ -184,27 +193,38 @@ terraform destroy -var="resource_group_name=<your-rg>"
 
 ### Mode A: AIOpsLab Inside Cluster (Recommended for full functionality)
 
-Run AIOpsLab directly on the controller VM:
+Run AIOpsLab directly on the controller VM. The setup is fully automated:
 
 ```bash
-# Deploy with --mode A (TODO: auto-setup not yet implemented)
-python3 deploy.py --apply --resource-group <your-rg> --mode A
+# Clone mode (default): git clones the repo on the controller
+python3 deploy.py --apply --resource-group <your-rg> --workers 2 --mode A
 
-# Then SSH to controller and set up manually:
-ssh -i ~/.ssh/id_rsa azureuser@<controller-public-ip>
-git clone --recurse-submodules https://github.com/microsoft/AIOpsLab.git
-cd AIOpsLab
-poetry env use python3.11
-poetry install
-eval $(poetry env activate)
-
-# Configure for localhost
-cd aiopslab
-cp config.yml.example config.yml
-# Set k8s_host=localhost in config.yml
+# Dev mode: rsync your local repo to the controller instead of cloning
+python3 deploy.py --apply --resource-group <your-rg> --workers 2 --mode A --dev
 ```
 
-**Pros**: All fault injectors work, no Docker required locally
+The `--mode A` setup (`scripts/ansible/setup_aiopslab.yml`) automatically:
+- Installs Python 3.11, Poetry, Helm, and git on the controller
+- Adds the user to the `docker` group (required by VirtualizationFaultInjector)
+- Clones the repo with submodules (clone mode) or rsyncs local code (dev mode)
+- Generates `aiopslab/config.yml` with `k8s_host: localhost`
+- Runs `poetry env use python3.11 && poetry install`
+- Verifies cluster access with `kubectl get nodes`
+
+After deploy, SSH to the controller to run experiments:
+```bash
+ssh -i ~/.ssh/id_rsa azureuser@<controller-ip>
+cd ~/AIOpsLab
+eval $(poetry env activate)
+python3 cli.py
+```
+
+To iterate on code changes without reprovisioning VMs:
+```bash
+python3 deploy.py --setup-only --mode A --dev
+```
+
+**Pros**: All fault injectors work (Docker is on the same machine), no Docker required locally
 **Cons**: Must SSH to controller to run experiments
 
 ### Mode B: AIOpsLab on Your Laptop (Convenient for development)
@@ -268,7 +288,7 @@ python3 cli.py
 
 ---
 
-## 📝 Deployment Workflow
+## Deployment Workflow
 
 ```
 1. Terraform Init      → Initialize providers
@@ -279,68 +299,45 @@ python3 cli.py
 6. Wait for SSH        → Ensure VMs are accessible
 7. Run Ansible         → Install Docker, K8s packages
 8. Setup Cluster       → Initialize K8s, join workers
-9. Display Info        → Show SSH commands
+9. AIOpsLab Setup      → Mode-dependent:
+     Mode A            →   Run setup_aiopslab.yml on controller
+     Mode B            →   Install tools locally, generate config.yml
 ```
 
 **Total Time:** 15-25 minutes
 
 ---
 
-## ✅ Post-Deployment
+## Post-Deployment
 
-After deployment completes, you'll see:
+Both modes print a summary table at the end showing what succeeded and what needs manual action.
 
+### Mode A
+
+AIOpsLab is already installed on the controller. SSH in and start:
+```bash
+ssh -i ~/.ssh/id_rsa azureuser@<controller-ip>
+cd ~/AIOpsLab
+eval $(poetry env activate)
+python3 cli.py
 ```
-================================================================================
-🎉 DEPLOYMENT COMPLETE!
-================================================================================
 
-📋 Controller Node:
-   Public IP:  20.123.45.67
-   SSH:        ssh -i ~/.ssh/id_rsa azureuser@20.123.45.67
+### Mode B
 
-👷 Worker Nodes (3):
-   Worker 1: 20.123.45.68
-   Worker 2: 20.123.45.69
-   Worker 3: 20.123.45.70
+AIOpsLab is configured locally. Start directly:
+```bash
+eval $(poetry env activate)
+python3 cli.py
 ```
 
 ### Verify Cluster
 
 ```bash
-# SSH into controller
-ssh -i ~/.ssh/id_rsa azureuser@<controller-ip>
-
-# Check nodes
 kubectl get nodes
-
-# Expected output:
 # NAME                STATUS   ROLES           AGE   VERSION
 # aiopslab-controller Ready    control-plane   5m    v1.31.x
 # aiopslab-worker-1   Ready    <none>          3m    v1.31.x
 # aiopslab-worker-2   Ready    <none>          3m    v1.31.x
-```
-
-### Deploy AIOpsLab
-
-```bash
-# On controller VM
-cd ~
-git clone --recurse-submodules https://github.com/microsoft/AIOpsLab.git
-cd AIOpsLab
-
-# Setup
-poetry env use python3.11
-poetry install
-eval $(poetry env activate)
-
-# Configure
-cd aiopslab
-cp config.yml.example config.yml
-# Edit config.yml: set k8s_host=localhost
-
-# Test
-python3 cli.py
 ```
 
 ---
@@ -441,9 +438,8 @@ git submodule update --init --recursive
 ### Default Behavior (Secure)
 
 The deployment script is **secure by default**:
-- ✅ Automatically adds SSH host keys to prevent MITM attacks
-- ✅ Host key verification is ENABLED
-- ✅ Only use `--disable-host-key-checking` for testing/CI
+- Automatically adds SSH host keys via ssh-keyscan before running Ansible
+- Host key verification is always enabled (no option to disable)
 
 ### Quick Security Checklist
 
@@ -483,19 +479,12 @@ The deployment script is **secure by default**:
 
 ---
 
-## 📦 Files
+## Files
 
-```
-scripts/terraform/
-├── deploy.py                    # Main deployment script
-├── generate_inventory.py        # Inventory generator
-├── main.tf                      # Infrastructure definition
-├── variables.tf                 # Configuration variables
-├── outputs.tf                   # Outputs
-├── providers.tf                 # Provider configuration
-├── terraform.tfvars.example     # Config template
-└── README.md                    # This file
-```
+| Directory | Contents |
+|-----------|----------|
+| `scripts/terraform/` | `deploy.py` (main entry point), Terraform configs (`main.tf`, `variables.tf`, etc.), `generate_inventory.py` |
+| `scripts/ansible/` | Playbooks for K8s setup (`setup_common.yml`, `remote_setup_controller_worker.yml`) and Mode A AIOpsLab setup (`setup_aiopslab.yml`), Jinja2 templates, inventory |
 
 ---
 

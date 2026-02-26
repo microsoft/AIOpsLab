@@ -505,23 +505,36 @@ python assessment.py
 # Single command: provisions VMs, runs Ansible, installs tools, configures AIOpsLab
 python3 scripts/terraform/deploy.py --apply --resource-group <your-rg> --workers 2 --mode B
 
-# deploy.py --mode B automatically:
-#   - Provisions Azure VMs with Terraform
-#   - Runs Ansible to set up K8s cluster
-#   - Installs kubectl, helm, poetry (if missing)
-#   - Generates aiopslab/config.yml with correct IPs
-#   - Runs poetry env use python3.11 && poetry install
-#   - Prints a summary table of what succeeded/failed
-
 # After deploy completes, start AIOpsLab:
 eval $(poetry env activate)
 python3 cli.py
 ```
 
-**Other deploy.py commands:**
+### Quick Start (Mode A - Controller VM)
+
 ```bash
-# Dry-run (show what would be created):
+# Clone mode: git clones the repo on the controller
+python3 scripts/terraform/deploy.py --apply --resource-group <your-rg> --workers 2 --mode A
+
+# Dev mode: rsync local code to the controller
+python3 scripts/terraform/deploy.py --apply --resource-group <your-rg> --workers 2 --mode A --dev
+
+# After deploy, SSH to controller:
+ssh -i ~/.ssh/id_rsa azureuser@<controller-ip>
+cd ~/AIOpsLab && eval $(poetry env activate)
+python3 cli.py
+```
+
+### Other deploy.py commands
+```bash
+# Dry-run:
 python3 scripts/terraform/deploy.py --plan --resource-group <your-rg> --workers 2
+
+# Re-run setup without reprovisioning VMs (e.g., after code changes):
+python3 scripts/terraform/deploy.py --setup-only --mode A --dev
+
+# Restrict NSG access (SSH + K8s API) to a service tag or CIDR:
+python3 scripts/terraform/deploy.py --apply --resource-group <your-rg> --allowed-ips CorpNetPublic
 
 # Destroy infrastructure:
 python3 scripts/terraform/deploy.py --destroy --resource-group <your-rg>
@@ -537,6 +550,8 @@ python3 scripts/terraform/deploy.py --destroy --resource-group <your-rg>
 | `scripts/terraform/generate_inventory.py` | Creates Ansible inventory from Terraform output |
 | `scripts/ansible/setup_common.yml` | Installs Docker, K8s packages on all nodes |
 | `scripts/ansible/remote_setup_controller_worker.yml` | Initializes K8s cluster, joins workers |
+| `scripts/ansible/setup_aiopslab.yml` | Mode A: installs Python 3.11, Poetry, Helm, clones/rsyncs repo, runs poetry install |
+| `scripts/ansible/templates/config.yml.j2` | Mode A: Jinja2 template for aiopslab/config.yml |
 | `scripts/ansible/inventory.yml` | Generated inventory (don't edit manually) |
 
 ### Important Configuration

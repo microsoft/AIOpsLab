@@ -103,28 +103,19 @@ After finishing cluster creation, proceed to the next "Update `config.yml`" step
 AIOpsLab supports any remote kubernetes cluster that your `kubectl` context is set to, whether it's a cluster from a cloud provider or one you build yourself. We have some Ansible playbooks to setup clusters on providers like [CloudLab](https://www.cloudlab.us/) and our own machines. Follow this [README](./scripts/ansible/README.md) to set up your own cluster, and then proceed to the next "Update `config.yml`" step.
 
 ### c) Azure VMs with Terraform + Ansible (Recommended for cloud)
-For automated deployment on Azure, use our Terraform + Ansible scripts:
+Single command provisions VMs, sets up K8s, and configures AIOpsLab:
 
 ```bash
-cd scripts/terraform
-terraform init
-terraform apply -var="resource_group_name=<your-rg>"
+# Mode B (AIOpsLab on laptop, remote kubectl):
+python3 scripts/terraform/deploy.py --apply --resource-group <your-rg> --workers 2 --mode B
 
-# Generate Ansible inventory from Terraform output
-python generate_inventory.py
-
-# Run Ansible playbooks to setup K8s cluster
-cd ../ansible
-ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.yml setup_common.yml
-ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.yml remote_setup_controller_worker.yml
-
-# Verify kubectl works from your laptop
-kubectl get nodes
+# Mode A (AIOpsLab on controller VM, full fault injection support):
+python3 scripts/terraform/deploy.py --apply --resource-group <your-rg> --workers 2 --mode A
 ```
 
-See [Terraform README](./scripts/terraform/README.md) for detailed options and configuration.
+See [Terraform README](./scripts/terraform/README.md) for all options (`--allowed-ips`, `--dev`, `--setup-only`, etc.).
 
-> **Note**: This sets up Mode B where AIOpsLab runs on your laptop and connects to the remote K8s cluster. Some fault injectors require Docker on the local machine. For full functionality, consider running AIOpsLab on the controller VM (Mode A).
+> **Note**: Mode B is convenient for development but some fault injectors (e.g., VirtualizationFaultInjector) require Docker on the local machine. Use Mode A for full functionality.
 
 ### Update `config.yml`
 ```bash
