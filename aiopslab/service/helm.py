@@ -3,12 +3,23 @@
 
 """Interface for helm operations"""
 
+import os
 import subprocess
 
 from aiopslab.service.kubectl import KubeCtl
 
 
 class Helm:
+    @staticmethod
+    def _validate_chart_path(chart_path, remote_chart):
+        """Check that a local chart path exists, raising if not."""
+        if not remote_chart and chart_path and not os.path.exists(chart_path):
+            raise FileNotFoundError(
+                f"Helm chart not found at: {chart_path}\n"
+                f"This is likely because git submodules were not cloned.\n"
+                f"Run: git submodule update --init --recursive"
+            )
+
     @staticmethod
     def install(**args):
         """Install a helm chart
@@ -28,6 +39,8 @@ class Helm:
         version = args.get("version")
         extra_args = args.get("extra_args")
         remote_chart = args.get("remote_chart", False)
+
+        Helm._validate_chart_path(chart_path, remote_chart)
 
         if not remote_chart:
             # Install dependencies for chart before installation
@@ -141,6 +154,10 @@ class Helm:
         values_file = args.get("values_file")
         set_values = args.get("set_values", {})
 
+        remote_chart = args.get("remote_chart", False)
+
+        Helm._validate_chart_path(chart_path, remote_chart)
+
         command = [
             "helm",
             "upgrade",
@@ -148,9 +165,10 @@ class Helm:
             chart_path,
             "-n",
             namespace,
-            "-f",
-            values_file,
         ]
+
+        if values_file:
+            command.extend(["-f", values_file])
 
         # Add --set options if provided
         for key, value in set_values.items():

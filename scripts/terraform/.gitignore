@@ -31,3 +31,8 @@ terraform.tfstate.lock.hcl
 
 # keys
 *.pem
+*.keys
+
+# Configuration files with sensitive data
+config.yml
+outputs.json

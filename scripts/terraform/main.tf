@@ -1,197 +1,165 @@
-# Create virtual network
-resource "azurerm_virtual_network" "aiopslab_network" {
-  name                = "${var.resource_name_prefix}_aiopslabVnet"
-  address_space       = ["10.0.0.0/16"]
-  location            = var.resource_location
-  resource_group_name = var.resource_group_name
+data "azurerm_resource_group" "rg" {
+  name = var.resource_group_name
 }
 
-# Create subnet
-resource "azurerm_subnet" "aiopslab_subnet" {
-  name                 = "${var.resource_name_prefix}_aiopslabSubnet"
-  resource_group_name  = var.resource_group_name
-  virtual_network_name = azurerm_virtual_network.aiopslab_network.name
+resource "azurerm_virtual_network" "vnet" {
+  name                = "${var.prefix}-vnet"
+  address_space       = ["10.0.0.0/16"]
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+}
+
+resource "azurerm_subnet" "subnet" {
+  name                 = "${var.prefix}-subnet"
+  resource_group_name  = data.azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.1.0/24"]
 }
 
-# Create public IPs
-resource "azurerm_public_ip" "aiopslab_public_ip_1" {
-  name                = "${var.resource_name_prefix}_aiopslabPublicIP_1"
-  location            = var.resource_location
-  resource_group_name = var.resource_group_name
-  allocation_method   = "Dynamic"
-}
+resource "azurerm_network_security_group" "nsg" {
+  name                = "${var.prefix}-nsg"
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
 
-resource "azurerm_public_ip" "aiopslab_public_ip_2" {
-  name                = "${var.resource_name_prefix}_aiopslabPublicIP_2"
-  location            = var.resource_location
-  resource_group_name = var.resource_group_name
-  allocation_method   = "Dynamic"
-}
-
-# Create Network Security Group and rule with only CorpNet access
-resource "azurerm_network_security_group" "aiopslab_nsg_1" {
-  name                = "${var.resource_name_prefix}_aiopslabNSG_1"
-  location            = var.resource_location
-  resource_group_name = var.resource_group_name
-
+  # SSH access - restrict via var.nsg_allowed_source or --allowed-ips in deploy.py
   security_rule {
     name                       = "SSH"
-    priority                   = 1001
+    priority                   = 100
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    source_address_prefix      = "*"
+    source_address_prefix      = var.nsg_allowed_source
     destination_address_prefix = "*"
   }
-}
 
-resource "azurerm_network_security_group" "aiopslab_nsg_2" {
-  name                = "${var.resource_name_prefix}_aiopslabNSG_2"
-  location            = var.resource_location
-  resource_group_name = var.resource_group_name
-
+  # Kubernetes API server - for remote kubectl access (Mode B)
   security_rule {
-    name                       = "SSH"
-    priority                   = 1001
+    name                       = "KubernetesAPI"
+    priority                   = 110
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
     source_port_range          = "*"
-    destination_port_range     = "22"
-    source_address_prefix      = "*"
+    destination_port_range     = "6443"
+    source_address_prefix      = var.nsg_allowed_source
     destination_address_prefix = "*"
   }
 }
 
-# Create network interfaces
-resource "azurerm_network_interface" "aiopslab_nic_1" {
-  name                = "${var.resource_name_prefix}_aiopslabNIC_1"
-  location            = var.resource_location
-  resource_group_name = var.resource_group_name
+resource "azurerm_network_interface" "controller" {
+  name                = "${var.prefix}-controller-nic"
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
 
   ip_configuration {
-    name                          = "${var.resource_name_prefix}_aioplabNICConfiguration_1"
-    subnet_id                     = azurerm_subnet.aiopslab_subnet.id
+    name                          = "internal"
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.aiopslab_public_ip_1.id
+    subnet_id                     = azurerm_subnet.subnet.id
+    public_ip_address_id          = azurerm_public_ip.controller.id
   }
 }
 
-resource "azurerm_network_interface" "aiopslab_nic_2" {
-  name                = "${var.resource_name_prefix}_aiopslabNIC_2"
-  location            = var.resource_location
-  resource_group_name = var.resource_group_name
+resource "azurerm_public_ip" "controller" {
+  name                = "${var.prefix}-controller-pip"
+  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  allocation_method   = "Static"
+  ip_version          = "IPv4"
+}
 
-  ip_configuration {
-    name                          = "${var.resource_name_prefix}_aioplabNICConfiguration_2"
-    subnet_id                     = azurerm_subnet.aiopslab_subnet.id
-    private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.aiopslab_public_ip_2.id
+resource "azurerm_network_interface_security_group_association" "controller" {
+  network_interface_id      = azurerm_network_interface.controller.id
+  network_security_group_id = azurerm_network_security_group.nsg.id
+}
+
+resource "azurerm_linux_virtual_machine" "controller" {
+  name                = "${var.prefix}-controller"
+  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  size                = var.vm_size
+  admin_username      = var.admin_username
+  network_interface_ids = [
+    azurerm_network_interface.controller.id,
+  ]
+  disable_password_authentication = true
+
+  admin_ssh_key {
+    username   = var.admin_username
+    public_key = file(var.ssh_public_key_path)
   }
-}
-
-# Connect the security groups to the network interfaces
-resource "azurerm_network_interface_security_group_association" "aiopslab_nsg_association_1" {
-  network_interface_id      = azurerm_network_interface.aiopslab_nic_1.id
-  network_security_group_id = azurerm_network_security_group.aiopslab_nsg_1.id
-}
-
-resource "azurerm_network_interface_security_group_association" "aiopslab_nsg_association_2" {
-  network_interface_id      = azurerm_network_interface.aiopslab_nic_2.id
-  network_security_group_id = azurerm_network_security_group.aiopslab_nsg_2.id
-}
-
-resource "random_id" "random_id" {
-  byte_length = 8
-}
-
-
-# Create storage accounts for boot diagnostics
-resource "azurerm_storage_account" "aiopslab_storage_account_1" {
-  # storage account names can only consist of lowercase letters and numbers
-  name                     = "diag${random_id.random_id.hex}1"
-  location                 = var.resource_location
-  resource_group_name      = var.resource_group_name
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
-}
-
-resource "azurerm_storage_account" "aiopslab_storage_account_2" {
-  name                     = "diag${random_id.random_id.hex}2"
-  location                 = var.resource_location
-  resource_group_name      = var.resource_group_name
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
-}
-
-
-
-# Create virtual machines
-resource "azurerm_linux_virtual_machine" "aiopslab_vm_1" {
-  name                  = "${var.resource_name_prefix}_aiopslabVM_1"
-  location              = var.resource_location
-  resource_group_name   = var.resource_group_name
-  network_interface_ids = [azurerm_network_interface.aiopslab_nic_1.id]
-  size                  = "Standard_D4s_v3"
 
   os_disk {
-    name                 = "${var.resource_name_prefix}_OsDisk_1"
     caching              = "ReadWrite"
-    storage_account_type = "Premium_LRS"
+    storage_account_type = var.os_disk_type
+    disk_size_gb         = 64
   }
 
   source_image_reference {
-    publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts-gen2"
+    publisher = var.os_publisher
+    offer     = var.os_offer
+    sku       = var.os_sku
     version   = "latest"
-  }
-
-  computer_name  = "kubeController"
-  admin_username = var.username
-
-  admin_ssh_key {
-    username   = var.username
-    public_key = azapi_resource_action.aiopslab_ssh_public_key_gen_1.output.publicKey
-  }
-
-  boot_diagnostics {
-    storage_account_uri = azurerm_storage_account.aiopslab_storage_account_1.primary_blob_endpoint
   }
 }
 
-resource "azurerm_linux_virtual_machine" "aiopslab_vm_2" {
-  name                  = "${var.resource_name_prefix}_aiopslabVM_2"
-  location              = var.resource_location
-  resource_group_name   = var.resource_group_name
-  network_interface_ids = [azurerm_network_interface.aiopslab_nic_2.id]
-  size                  = "Standard_F16s_v2"
+resource "azurerm_network_interface" "workers" {
+  for_each = toset([for i in range(var.worker_vm_count) : "worker-${i+1}"])
+  name                = "${var.prefix}-${each.key}-nic"
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+
+  ip_configuration {
+    name                          = "internal"
+    private_ip_address_allocation = "Dynamic"
+    subnet_id                     = azurerm_subnet.subnet.id
+    public_ip_address_id          = azurerm_public_ip.workers[each.key].id
+  }
+}
+
+resource "azurerm_public_ip" "workers" {
+  for_each = toset([for i in range(var.worker_vm_count) : "worker-${i+1}"])
+  name                = "${var.prefix}-${each.key}-pip"
+  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  allocation_method   = "Static"
+  ip_version          = "IPv4"
+}
+
+resource "azurerm_network_interface_security_group_association" "workers" {
+  for_each = azurerm_network_interface.workers
+  network_interface_id      = each.value.id
+  network_security_group_id = azurerm_network_security_group.nsg.id
+}
+
+resource "azurerm_linux_virtual_machine" "workers" {
+  for_each = toset([for i in range(var.worker_vm_count) : "worker-${i+1}"])
+  name                = "${var.prefix}-${each.key}"
+  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  size                = var.vm_size
+  admin_username      = var.admin_username
+  network_interface_ids = [
+    azurerm_network_interface.workers[each.key].id,
+  ]
+  disable_password_authentication = true
+
+  admin_ssh_key {
+    username   = var.admin_username
+    public_key = file(var.ssh_public_key_path)
+  }
 
   os_disk {
-    name                 = "${var.resource_name_prefix}_OsDisk_2"
     caching              = "ReadWrite"
-    storage_account_type = "Premium_LRS"
+    storage_account_type = var.os_disk_type
+    disk_size_gb         = 64
   }
 
   source_image_reference {
-    publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts-gen2"
+    publisher = var.os_publisher
+    offer     = var.os_offer
+    sku       = var.os_sku
     version   = "latest"
-  }
-
-  computer_name  = "kubeWorker1"
-  admin_username = var.username
-
-  admin_ssh_key {
-    username   = var.username
-    public_key = azapi_resource_action.aiopslab_ssh_public_key_gen_2.output.publicKey
-  }
-
-  boot_diagnostics {
-    storage_account_uri = azurerm_storage_account.aiopslab_storage_account_2.primary_blob_endpoint
   }
 }

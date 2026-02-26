@@ -198,3 +198,10 @@ aiopslab/observer/prometheus/prometheus/charts/alertmanager-1.7.0.tgz
 # Ignore customized config files
 aiopslab/config.yml
 scripts/ansible/inventory.yml
+.claude/settings.local.json
+
+# Ignore local setup instructions
+running_on_wsl.txt
+validation_summary.txt
+cleanup.txt
+SESSION_SUMMARY.md

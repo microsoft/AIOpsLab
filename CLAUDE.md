@@ -13,7 +13,7 @@ AIOpsLab is a holistic framework for evaluating autonomous AIOps agents in inter
 # Install dependencies using Poetry (recommended, requires Python >= 3.11)
 poetry env use python3.11
 poetry install
-poetry shell
+eval $(poetry env activate)
 
 # Alternative: pip install
 pip install -e .
@@ -497,46 +497,61 @@ python assessment.py
 
 **Note:** `VirtualizationFaultInjector` requires Docker on the machine running AIOpsLab. Use official Poetry installer, not `apt install python3-poetry`.
 
+**Tested on:** WSL2 (Ubuntu 22.04) on Windows 11 with Azure VMs (Ubuntu 22.04 LTS, amd64). The `deploy.py` auto-install targets Linux/amd64; macOS and native Windows are not currently supported.
+
 ### Quick Start (Mode B - Laptop)
 
 ```bash
-# 1. Provision Azure VMs
-cd scripts/terraform
-terraform init
-terraform apply -var="resource_group_name=<your-rg>"
+# Single command: provisions VMs, runs Ansible, installs tools, configures AIOpsLab
+python3 scripts/terraform/deploy.py --apply --resource-group <your-rg> --workers 2 --mode B
 
-# 2. Generate Ansible inventory
-python generate_inventory.py
-
-# 3. Run Ansible playbooks
-cd ../ansible
-ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.yml setup_common.yml
-ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.yml remote_setup_controller_worker.yml
-
-# 4. Verify kubectl works from laptop
-kubectl get nodes
-
-# 5. Configure and run AIOpsLab
-cd ~/projects/AIOpsLab/aiopslab
-cp config.yml.example config.yml
-# Edit config.yml: set k8s_host to controller's public IP
-
-cd ..
-poetry env use python3.11
-poetry install
-poetry shell
+# After deploy completes, start AIOpsLab:
+eval $(poetry env activate)
 python3 cli.py
+```
+
+### Quick Start (Mode A - Controller VM)
+
+```bash
+# Clone mode: git clones the repo on the controller
+python3 scripts/terraform/deploy.py --apply --resource-group <your-rg> --workers 2 --mode A
+
+# Dev mode: rsync local code to the controller
+python3 scripts/terraform/deploy.py --apply --resource-group <your-rg> --workers 2 --mode A --dev
+
+# After deploy, SSH to controller:
+ssh -i ~/.ssh/id_rsa azureuser@<controller-ip>
+cd ~/AIOpsLab && eval $(poetry env activate)
+python3 cli.py
+```
+
+### Other deploy.py commands
+```bash
+# Dry-run:
+python3 scripts/terraform/deploy.py --plan --resource-group <your-rg> --workers 2
+
+# Re-run setup without reprovisioning VMs (e.g., after code changes):
+python3 scripts/terraform/deploy.py --setup-only --mode A --dev
+
+# Restrict NSG access (SSH + K8s API) to a service tag or CIDR:
+python3 scripts/terraform/deploy.py --apply --resource-group <your-rg> --allowed-ips CorpNetPublic
+
+# Destroy infrastructure:
+python3 scripts/terraform/deploy.py --destroy --resource-group <your-rg>
 ```
 
 ### Key Files
 
 | File | Purpose |
 |------|---------|
+| `scripts/terraform/deploy.py` | Single-command deployment (Terraform + Ansible + AIOpsLab setup) |
 | `scripts/terraform/main.tf` | Azure VM provisioning (controller + workers) |
 | `scripts/terraform/variables.tf` | Configurable parameters (VM size, count, etc.) |
 | `scripts/terraform/generate_inventory.py` | Creates Ansible inventory from Terraform output |
 | `scripts/ansible/setup_common.yml` | Installs Docker, K8s packages on all nodes |
 | `scripts/ansible/remote_setup_controller_worker.yml` | Initializes K8s cluster, joins workers |
+| `scripts/ansible/setup_aiopslab.yml` | Mode A: installs Python 3.11, Poetry, Helm, clones/rsyncs repo, runs poetry install |
+| `scripts/ansible/templates/config.yml.j2` | Mode A: Jinja2 template for aiopslab/config.yml |
 | `scripts/ansible/inventory.yml` | Generated inventory (don't edit manually) |
 
 ### Important Configuration
@@ -564,13 +579,16 @@ ssh_key_path: ~/.ssh/id_rsa
 | Certificate error with kubectl | Cert missing public IP | Playbook adds `--apiserver-cert-extra-sans` |
 | Kubeconfig uses private IP | Can't reach from laptop | Playbook auto-updates to public IP |
 | Helm chart not found | Submodules not cloned | Run `git submodule update --init --recursive` |
+| Submodule init fails in WSL | Worktree `.git` file has Windows paths | Run from Git Bash, not WSL |
+| `poetry shell` not found | Removed in Poetry 2.0 | Use `eval $(poetry env activate)` instead |
+| Poetry "not supported" Python | System python too old | `poetry env use python3.11 && poetry install` |
 | Path `/users/` not found | Wrong home base for cloud | Set `user_home_base: /home` in inventory |
 
 ### NSG (Network Security Group) Rules
 
 The Terraform config creates NSG rules for:
-- **SSH (22)**: Restricted to `CorpNetPublic` (corporate VPN)
-- **K8s API (6443)**: Restricted to `CorpNetPublic` for remote kubectl
+- **SSH (22)**: Open to all (`*`) by default. Restrict via `--allowed-ips` flag or `nsg_allowed_source` variable.
+- **K8s API (6443)**: Open to all (`*`) by default. Restrict via `--allowed-ips` flag or `nsg_allowed_source` variable.
 
 To allow access from other IPs, modify `main.tf` or add rules via Azure CLI.
 

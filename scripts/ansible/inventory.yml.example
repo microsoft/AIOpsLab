@@ -1,19 +1,31 @@
-
+# Ansible Inventory for AIOpsLab Kubernetes Cluster
+#
+# Copy this file to inventory.yml and update the values.
+# For Terraform deployments, use generate_inventory.py instead.
+#
+# user_home_base:
+#   - Use "/home" for cloud VMs (Azure, AWS, GCP) - standard Linux
+#   - Use "/users" for Emulab testbed
+#
 all:
   vars:
     k8s_user: <your-username>
-    k8s_user2: <your-username>
+    user_home_base: "/home"  # Change to "/users" for Emulab
+    ansible_ssh_private_key_file: ~/.ssh/id_rsa
   children:
     control_nodes:
       hosts:
         control_node:
-          ansible_host: <control-node-hostname>
+          ansible_host: <control-node-ip-or-hostname>
           ansible_user: "{{ k8s_user }}"
+          private_ip: <control-node-private-ip>  # Required for K8s API server
     worker_nodes:
       hosts:
         worker_node_1:
-          ansible_host: <worker-node-1-hostname>
-          ansible_user: "{{ k8s_user2 }}"
+          ansible_host: <worker-1-ip-or-hostname>
+          ansible_user: "{{ k8s_user }}"
+          private_ip: <worker-1-private-ip>
         worker_node_2:
-          ansible_host: <worker-node-2-hostname>
-          ansible_user: "{{ k8s_user2 }}"
+          ansible_host: <worker-2-ip-or-hostname>
+          ansible_user: "{{ k8s_user }}"
+          private_ip: <worker-2-private-ip>

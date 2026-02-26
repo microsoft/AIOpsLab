@@ -18,10 +18,20 @@ class KubeCtl:
         """Initialize the KubeCtl object and load the Kubernetes configuration."""
 
         import os
-        
-        # Support parallel execution via AIOPSLAB_CLUSTER environment variable
-        cluster_env = os.environ.get('AIOPSLAB_CLUSTER', 'kind')
-        context = f"kind-{cluster_env}"
+        from aiopslab.paths import config as app_config
+
+        # For kind clusters, support parallel execution via AIOPSLAB_CLUSTER env var.
+        # For remote clusters (k8s_host is an IP/hostname), use the default kubeconfig context.
+        k8s_host = app_config.get("k8s_host", "kind")
+        cluster_env = os.environ.get('AIOPSLAB_CLUSTER')
+
+        if cluster_env:
+            context = f"kind-{cluster_env}"
+        elif k8s_host == "kind":
+            context = "kind-kind"
+        else:
+            context = None  # use default kubeconfig context
+
         config.load_kube_config(context=context)
         
         self.core_v1_api = client.CoreV1Api()
