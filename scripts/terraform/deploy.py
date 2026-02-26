@@ -169,8 +169,10 @@ class AIOpsLabDeployer:
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(5)
-                result = sock.connect_ex((host, port))
-                sock.close()
+                try:
+                    result = sock.connect_ex((host, port))
+                finally:
+                    sock.close()
 
                 if result == 0:
                     logger.info(f"SSH available on {host}")
@@ -244,7 +246,7 @@ class AIOpsLabDeployer:
         logger.info("SSH host keys added")
         return True
 
-    def run_ansible_playbook(self, playbook_name, extra_args=None, disable_host_key_checking=False):
+    def run_ansible_playbook(self, playbook_name, extra_args=None):
         """Run an Ansible playbook."""
         playbook_path = self.ansible_dir / playbook_name
 
@@ -267,11 +269,7 @@ class AIOpsLabDeployer:
         if extra_args:
             command.extend(extra_args)
 
-        # Optionally disable host key checking (not recommended for production)
         env = os.environ.copy()
-        if disable_host_key_checking:
-            logger.warning("SSH host key checking is DISABLED. This is insecure on untrusted networks.")
-            env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
 
         try:
             result = subprocess.run(
@@ -307,11 +305,12 @@ class AIOpsLabDeployer:
             if not path:
                 continue
             try:
-                ver = subprocess.run(
+                proc = subprocess.run(
                     [path, "--version"], capture_output=True, text=True, check=True
-                ).stdout.strip()
-                minor = int(ver.split(".")[1])
-                if minor >= 11:
+                )
+                ver = (proc.stdout or proc.stderr or "").strip()
+                match = re.search(r"Python\s+(\d+)\.(\d+)", ver)
+                if match and int(match.group(1)) == 3 and int(match.group(2)) >= 11:
                     return candidate, ver
             except Exception:
                 continue
@@ -530,7 +529,7 @@ class AIOpsLabDeployer:
             pass
         return "main"
 
-    def setup_aiopslab_mode_a(self, outputs, ssh_key_path, disable_host_key_checking=False, dev_mode=False):
+    def setup_aiopslab_mode_a(self, outputs, ssh_key_path, dev_mode=False):
         """Configure AIOpsLab for Mode A (on controller VM).
 
         Runs the setup_aiopslab.yml Ansible playbook which installs Python 3.11,
@@ -576,8 +575,7 @@ class AIOpsLabDeployer:
 
         success = self.run_ansible_playbook(
             "setup_aiopslab.yml",
-            extra_args=["--extra-vars", json.dumps(extra_vars)],
-            disable_host_key_checking=disable_host_key_checking
+            extra_args=["--extra-vars", json.dumps(extra_vars)]
         )
 
         # Derive private key path
@@ -607,7 +605,7 @@ class AIOpsLabDeployer:
 
         return success
 
-    def setup_only(self, resource_group, ssh_key_path, mode="A", dev_mode=False, disable_host_key_checking=False):
+    def setup_only(self, resource_group, ssh_key_path, mode="A", dev_mode=False):
         """Re-run AIOpsLab setup without reprovisioning infrastructure.
 
         Reads existing Terraform outputs and runs the Mode A or B setup directly.
@@ -634,9 +632,13 @@ class AIOpsLabDeployer:
                 logger.error("Inventory generation failed")
                 return False
 
+            # Ensure SSH host keys are in known_hosts (may be missing if
+            # known_hosts was cleared since the original --apply)
+            self.add_ssh_host_keys(outputs)
+
             # Run the appropriate setup
             if mode == 'A':
-                return self.setup_aiopslab_mode_a(outputs, ssh_key_path, disable_host_key_checking, dev_mode)
+                return self.setup_aiopslab_mode_a(outputs, ssh_key_path, dev_mode)
             else:
                 return self.setup_aiopslab_mode_b(outputs, ssh_key_path)
 
@@ -671,7 +673,7 @@ class AIOpsLabDeployer:
 
         print("\n" + "="*70 + "\n")
 
-    def deploy(self, worker_count, vm_size, resource_group, prefix, ssh_key_path, allowed_ips="*", disable_host_key_checking=False, mode="B", dev_mode=False):
+    def deploy(self, worker_count, vm_size, resource_group, prefix, ssh_key_path, allowed_ips="*", mode="B", dev_mode=False):
         """Execute full deployment workflow."""
         logger.info("="*70)
         logger.info("STARTING AIOPSLAB DEPLOYMENT")
@@ -682,8 +684,17 @@ class AIOpsLabDeployer:
         logger.info(f"Prefix: {prefix}")
         logger.info(f"NSG Allowed Source: {allowed_ips}")
         logger.info(f"Mode: {mode} ({'AIOpsLab on controller' if mode == 'A' else 'AIOpsLab on laptop'})")
-        if disable_host_key_checking:
-            logger.warning("Host key checking: DISABLED (insecure)")
+
+        if allowed_ips == "*":
+            print("\n  WARNING: SSH (22) and K8s API (6443) will be open to ALL IP addresses.")
+            print("  To restrict, abort and re-run with: --allowed-ips <CIDR or service tag>")
+            print("  Example: --allowed-ips CorpNetPublic\n")
+            try:
+                input("  Press Enter to continue, or Ctrl+C to abort... ")
+            except KeyboardInterrupt:
+                print()
+                logger.warning("Deployment aborted")
+                return False
 
         try:
             # Step 1: Initialize Terraform
@@ -718,27 +729,17 @@ class AIOpsLabDeployer:
                 return False
 
             # Step 6.5: Add SSH host keys to known_hosts
-            if not disable_host_key_checking:
-                keys_added = self.add_ssh_host_keys(outputs)
-                if not keys_added:
-                    logger.error("Failed to add SSH host keys automatically")
-                    logger.error("This is required for secure Ansible execution.")
-                    logger.error("Possible causes:")
-                    logger.error("  - Firewall blocking SSH port 22")
-                    logger.error("  - Network connectivity issues")
-                    logger.error("  - SSH service not fully started on VMs")
-                    logger.error("\nTo bypass (less secure), use: --disable-host-key-checking")
-                    return False
+            self.add_ssh_host_keys(outputs)
 
             # Step 7: Run Ansible - setup common
             logger.info("Setting up common dependencies on all nodes...")
-            if not self.run_ansible_playbook("setup_common.yml", disable_host_key_checking=disable_host_key_checking):
+            if not self.run_ansible_playbook("setup_common.yml"):
                 logger.error("Ansible setup_common.yml failed")
                 return False
 
             # Step 8: Run Ansible - setup cluster
             logger.info("Setting up Kubernetes cluster...")
-            if not self.run_ansible_playbook("remote_setup_controller_worker.yml", disable_host_key_checking=disable_host_key_checking):
+            if not self.run_ansible_playbook("remote_setup_controller_worker.yml"):
                 logger.error("Ansible remote_setup_controller_worker.yml failed")
                 return False
 
@@ -749,7 +750,7 @@ class AIOpsLabDeployer:
             if mode == 'B':
                 self.setup_aiopslab_mode_b(outputs, ssh_key_path)
             elif mode == 'A':
-                self.setup_aiopslab_mode_a(outputs, ssh_key_path, disable_host_key_checking, dev_mode)
+                self.setup_aiopslab_mode_a(outputs, ssh_key_path, dev_mode)
 
             logger.info("DEPLOYMENT SUCCESSFUL!")
             return True
@@ -942,12 +943,6 @@ Examples:
     )
 
     parser.add_argument(
-        '--disable-host-key-checking',
-        action='store_true',
-        help='Disable SSH host key verification (INSECURE - rarely needed since keys are added automatically. Only use if ssh-keyscan fails or in CI/CD with ephemeral runners)'
-    )
-
-    parser.add_argument(
         '--debug',
         action='store_true',
         help='Enable debug logging'
@@ -1000,7 +995,6 @@ Examples:
             prefix=args.prefix,
             ssh_key_path=ssh_key_path,
             allowed_ips=args.allowed_ips,
-            disable_host_key_checking=args.disable_host_key_checking,
             mode=args.mode,
             dev_mode=args.dev
         )
@@ -1016,8 +1010,7 @@ Examples:
             resource_group=args.resource_group,
             ssh_key_path=ssh_key_path,
             mode=args.mode,
-            dev_mode=args.dev,
-            disable_host_key_checking=args.disable_host_key_checking
+            dev_mode=args.dev
         )
 
     sys.exit(0 if success else 1)

@@ -94,8 +94,8 @@
       become: false
       replace:
         path: "{{ lookup('env', 'HOME') }}/.kube/config"
-        regexp: 'https://{{ control_plane_ip }}:6443'
-        replace: 'https://{{ control_plane_public_ip }}:6443'
+        regexp: 'server: https://[^:]+:6443'
+        replace: 'server: https://{{ control_plane_public_ip }}:6443'
     - name: Generate kubeadm join command
       shell: kubeadm token create --print-join-command
       register: kubeadm_join_command
