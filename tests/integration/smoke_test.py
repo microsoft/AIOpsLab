@@ -33,7 +33,7 @@ class DummyAgent:
     injected), so we submit that immediately on the first step.
     """
 
-    async def get_action(self, input: str) -> str:  # noqa: A002
+    async def get_action(self, observation: str) -> str:
         return '```\nsubmit("No")\n```'
 
 
