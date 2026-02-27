@@ -1,12 +1,12 @@
 name: Integration Smoke Test
 
-# Trigger on every push to any branch and on every pull request.
+# Trigger on every push to main branch and on every pull request to main branch.
 # This ensures regressions are caught before merging to main.
 on:
   push:
-    branches: ['**']
+    branches: ['main']
   pull_request:
-    branches: ['**']
+    branches: ['main']
 
 jobs:
   smoke-test:
