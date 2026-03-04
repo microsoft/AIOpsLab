@@ -5,8 +5,26 @@ name: Integration Smoke Test
 on:
   push:
     branches: ['main']
+    paths-ignore:
+      - '**.md'
+      - '.env.example'
+      - 'assets/**'
+      - 'LICENSE.txt'
+      - 'NOTICE.txt'
+      - '.github/ISSUE_TEMPLATE/**'
   pull_request:
     branches: ['main']
+    paths-ignore:
+      - '**.md'
+      - '.env.example'
+      - 'assets/**'
+      - 'LICENSE.txt'
+      - 'NOTICE.txt'
+      - '.github/ISSUE_TEMPLATE/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   smoke-test:
