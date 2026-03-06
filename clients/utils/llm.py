@@ -132,7 +132,7 @@ class GPTClient:
             )
         except Exception as e:
             print(f"Exception: {repr(e)}")
-            raise e
+            raise
 
         return [c.message.content for c in response.choices]  # type: ignore
 
@@ -168,7 +168,7 @@ class DeepSeekClient:
 
         except Exception as e:
             print(f"Exception: {repr(e)}")
-            raise e
+            raise
 
         return [c.message.content for c in response.choices]  # type: ignore
 
@@ -207,7 +207,7 @@ class QwenClient:
             )
         except Exception as e:
             print(f"Exception: {repr(e)}")
-            raise e
+            raise
 
         reasoning_content = ""
         answer_content = ""
@@ -274,7 +274,7 @@ class vLLMClient:
             )
         except Exception as e:
             print(f"Exception: {repr(e)}")
-            raise e
+            raise
 
         return [c.message.content for c in response.choices]  # type: ignore
 
@@ -318,7 +318,7 @@ class OpenRouterClient:
             )
         except Exception as e:
             print(f"Exception: {repr(e)}")
-            raise e
+            raise
 
         return [c.message.content for c in response.choices]  # type: ignore
 
@@ -396,7 +396,7 @@ class GenericOpenAIClient:
             )
         except Exception as e:
             print(f"Exception: {repr(e)}")
-            raise e
+            raise
 
         return [c.message.content for c in response.choices]  # type: ignore
 
@@ -436,7 +436,7 @@ class LLaMAClient:
             )
         except Exception as e:
             print(f"Exception: {repr(e)}")
-            raise e
+            raise
 
         return [c.message.content for c in response.choices]  # type: ignore
 
