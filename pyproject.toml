@@ -27,7 +27,7 @@ fastapi = "^0.115.12"
 docker = "^7.0"
 pandas = "^2.0"
 pytz = "^2024.0"
-requests = "^2.31"
+requests = "^2.33"
 pyyaml = "^6.0"
 
 # Client/agent packages that require CUDA or heavy ML runtimes.
