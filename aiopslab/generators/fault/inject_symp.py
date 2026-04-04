@@ -28,6 +28,12 @@ class SymptomFaultInjector(FaultInjector):
 
         container_runtime = self.kubectl.get_container_runtime()
 
+        if container_runtime is None:
+            raise ValueError(
+                "Could not detect container runtime. "
+                "Ensure the cluster is running and at least one node is Ready."
+            )
+
         if "docker" in container_runtime:
             pass
         elif "containerd" in container_runtime:

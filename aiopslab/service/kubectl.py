@@ -54,15 +54,27 @@ class KubeCtl:
         service_info = self.core_v1_api.read_namespaced_service(service_name, namespace)
         return service_info.spec.cluster_ip  # type: ignore
     
-    def get_container_runtime(self):
+    def get_container_runtime(self, max_wait: int = 60, poll_interval: int = 2):
         """
             Retrieve the container runtime used by the cluster.
             If the cluster uses multiple container runtimes, the first one found will be returned.
+            
+            Args:
+                max_wait: Maximum seconds to wait for a Ready node (default: 60)
+                poll_interval: Seconds between checks (default: 2)
+            
+            Returns:
+                Container runtime version string, or None if no Ready node found within max_wait.
         """
-        for node in self.core_v1_api.list_node().items:
-            for status in node.status.conditions:
-                if status.type == "Ready" and status.status == "True":
-                    return node.status.node_info.container_runtime_version
+        elapsed = 0
+        while elapsed < max_wait:
+            for node in self.core_v1_api.list_node().items:
+                for status in node.status.conditions:
+                    if status.type == "Ready" and status.status == "True":
+                        return node.status.node_info.container_runtime_version
+            time.sleep(poll_interval)
+            elapsed += poll_interval
+        return None
 
     def get_pod_name(self, namespace, label_selector):
         """Get the name of the first pod in a namespace that matches a given label selector."""
