@@ -38,7 +38,7 @@ pyyaml = "^6.0"
 autogen-agentchat = "^0.2.40"
 azure-ai-ml = "^1.22.1"
 vllm = "^0.7.3"
-transformers = "^4.49.0"
+transformers = "^5.0.0rc3"
 groq = "^0.28.0"
 flwr = "^1.19.0"
 
