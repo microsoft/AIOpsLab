@@ -29,6 +29,7 @@ from aiopslab.orchestrator.problems.wrong_bin_usage import *
 from aiopslab.orchestrator.problems.operator_misoperation import *
 from aiopslab.orchestrator.problems.flower_node_stop import *
 from aiopslab.orchestrator.problems.flower_model_misconfig import *
+from aiopslab.orchestrator.problems.security_priv_escalation import *
 
 
 class ProblemRegistry:
@@ -217,6 +218,16 @@ class ProblemRegistry:
             # Flower
             "flower_node_stop-detection": FlowerNodeStopDetection,
             "flower_model_misconfig-detection": FlowerModelMisconfigDetection,
+            # Security: privileged-pod compromise + runtime intrusion (Falco + OPA)
+            "security_priv_escalation_hotel_res-detection-1": lambda: SecurityPrivEscalationDetection(
+                faulty_service="geo"
+            ),
+            "security_priv_escalation_hotel_res-localization-1": lambda: SecurityPrivEscalationLocalization(
+                faulty_service="geo"
+            ),
+            "security_priv_escalation_hotel_res-mitigation-1": lambda: SecurityPrivEscalationMitigation(
+                faulty_service="geo"
+            ),
         }
         self.DOCKER_REGISTRY = [
             "flower_node_stop-detection",
