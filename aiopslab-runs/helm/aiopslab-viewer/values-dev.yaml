@@ -1,0 +1,73 @@
+# Development values for aiopslab-viewer
+# This file contains development-specific overrides
+
+# Enable development features
+env:
+  NODE_ENV: development
+  LOG_LEVEL: debug
+
+# Smaller resource requirements for development
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+# Enable ingress for local development
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  hosts:
+    - host: aiopslab-viewer.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+# Smaller storage for development
+persistence:
+  database:
+    size: 500Mi
+  runs:
+    size: 2Gi
+
+# Disable autoscaling in development
+autoscaling:
+  enabled: false
+
+# Faster health checks for development
+healthCheck:
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+readinessProbe:
+  initialDelaySeconds: 5
+  periodSeconds: 3
+
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 15
+
+# Enable network policy for security testing
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+        - namespaceSelector:
+            matchLabels:
+              name: default
+      ports:
+        - protocol: TCP
+          port: 3000
+        - protocol: TCP
+          port: 3443
+  egress:
+    - {} # Allow all egress for development

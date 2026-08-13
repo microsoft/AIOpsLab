@@ -1,0 +1,46 @@
+{
+  "name": "aiopslab-viewer",
+  "version": "1.0.0",
+  "description": "Server for AIOpsLab session analysis viewer",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "install-deps": "npm install",
+    "security-check": "npm audit"
+  },
+  "keywords": [
+    "aiopslab",
+    "kubernetes",
+    "analysis",
+    "viewer",
+    "server"
+  ],
+  "author": "AIOpsLab Team",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "dotenv": "^17.2.0",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "multer": "^2.0.1",
+    "sqlite3": "^5.1.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aiopslab/viewer"
+  },
+  "bugs": {
+    "url": "https://github.com/aiopslab/viewer/issues"
+  },
+  "homepage": "https://github.com/aiopslab/viewer#readme"
+}

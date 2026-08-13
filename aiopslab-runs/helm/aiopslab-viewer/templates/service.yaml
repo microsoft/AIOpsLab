@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "aiopslab-viewer.fullname" . }}
+  labels:
+    {{- include "aiopslab-viewer.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.http.port }}
+      targetPort: {{ .Values.service.http.targetPort }}
+      protocol: TCP
+      name: http
+    - port: {{ .Values.service.https.port }}
+      targetPort: {{ .Values.service.https.targetPort }}
+      protocol: TCP
+      name: https
+  selector:
+    {{- include "aiopslab-viewer.selectorLabels" . | nindent 4 }}

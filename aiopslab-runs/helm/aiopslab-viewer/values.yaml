@@ -1,0 +1,189 @@
+# Default values for aiopslab-viewer
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: aiopslab-viewer
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service configuration
+service:
+  type: ClusterIP
+  http:
+    port: 3000
+    targetPort: 3000
+  https:
+    port: 3443
+    targetPort: 3443
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: aiopslab-viewer.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: aiopslab-viewer-tls
+  #    hosts:
+  #      - aiopslab-viewer.local
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+# Autoscaling configuration
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Node selection
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Environment variables
+env:
+  NODE_ENV: production
+  PORT: "3000"
+  HTTPS_PORT: "3443"
+  HOST: "0.0.0.0"
+  RUNS_PATH: "/app/runs"
+  DATABASE_PATH: "/app/data/runs.db"
+  SSL_KEY_PATH: "/app/ssl/server.key"
+  SSL_CERT_PATH: "/app/ssl/server.crt"
+  RATE_LIMIT_WINDOW_MS: "900000"
+  RATE_LIMIT_MAX_REQUESTS: "100"
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "combined"
+
+# Persistent Volume Claims
+persistence:
+  # Database PVC
+  database:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 1Gi
+    mountPath: /app/data
+    annotations: {}
+  
+  # Runs data PVC
+  runs:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    mountPath: /app/runs
+    annotations: {}
+
+# SSL Certificate configuration
+ssl:
+  # Enable SSL certificate generation
+  enabled: true
+  # Use existing secret instead of generating certificates
+  existingSecret: ""
+  # Certificate and key if not using existing secret
+  certificate: ""
+  privateKey: ""
+
+# Health checks
+healthCheck:
+  enabled: true
+  httpGet:
+    path: /health
+    port: 3000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+# Readiness probe
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: 3000
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  successThreshold: 1
+  failureThreshold: 3
+
+# Liveness probe
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: 3000
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 10
+  successThreshold: 1
+  failureThreshold: 3
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod labels
+podLabels: {}
+
+# ConfigMap for additional configuration
+configMap:
+  enabled: false
+  data: {}
+
+# Secrets for sensitive data
+secrets:
+  enabled: false
+  data: {}
+
+# Network policies
+networkPolicy:
+  enabled: false
+  ingress: []
+  egress: []
