@@ -3,7 +3,9 @@
 
 """Define and query information about an AIOps Mitigation task."""
 
+import os
 import textwrap
+import time
 from typing import Any
 
 from aiopslab.orchestrator.tasks.base import Task
@@ -75,3 +77,68 @@ class MitigationTask(Task):
         self.add_result("TTM", duration)
         self.common_eval(trace)
         return self.results
+
+    # ------------------------------------------------------------------
+    # Recovery-health helpers shared by mitigation problems.
+    #
+    # Mitigation eval inspects live pod state. Done as a single snapshot the
+    # instant submit() is called, it penalizes correct fixes whose effect is
+    # not yet visible: app-level faults (e.g. database auth) leave dependent
+    # pods in CrashLoopBackOff, whose exponential back-off (10s, 20s, 40s, ...)
+    # routinely outlasts the moment of submission. Allowing a bounded settle
+    # window makes eval reflect whether the system actually recovered, instead
+    # of whether it happened to be healthy at one instant.
+    # ------------------------------------------------------------------
+    def pods_unhealthy_reasons(self, namespace: str) -> list[str]:
+        """Return human-readable reasons for any unhealthy container in `namespace`.
+
+        An empty list means every container is healthy (no CrashLoopBackOff,
+        no abnormal termination, all ready).
+        """
+        pod_list = self.kubectl.list_pods(namespace)
+        reasons: list[str] = []
+        for pod in pod_list.items:
+            if not pod.status.container_statuses:
+                continue
+            for container_status in pod.status.container_statuses:
+                waiting = container_status.state.waiting
+                terminated = container_status.state.terminated
+                if waiting and waiting.reason == "CrashLoopBackOff":
+                    reasons.append(
+                        f"Container {container_status.name} is in CrashLoopBackOff"
+                    )
+                elif terminated and terminated.reason != "Completed":
+                    reasons.append(
+                        f"Container {container_status.name} is terminated with "
+                        f"reason: {terminated.reason}"
+                    )
+                elif not container_status.ready:
+                    reasons.append(f"Container {container_status.name} is not ready")
+        return reasons
+
+    def wait_until_pods_healthy(
+        self,
+        namespace: str,
+        timeout: float | None = None,
+        poll_interval: float = 5.0,
+    ) -> bool:
+        """Poll until all pods in `namespace` are healthy, or `timeout` elapses.
+
+        Returns True as soon as the namespace is healthy. On timeout, prints the
+        outstanding reasons (preserving the previous eval's diagnostic output)
+        and returns False. The window is configurable via the
+        ``AIOPSLAB_MITIGATION_SETTLE_SECONDS`` env var (default 120s); set it to
+        0 to keep the old single-snapshot behavior.
+        """
+        if timeout is None:
+            timeout = float(os.getenv("AIOPSLAB_MITIGATION_SETTLE_SECONDS", "120"))
+        deadline = time.monotonic() + max(timeout, 0.0)
+        while True:
+            reasons = self.pods_unhealthy_reasons(namespace)
+            if not reasons:
+                return True
+            if time.monotonic() >= deadline:
+                for reason in reasons:
+                    print(reason)
+                return False
+            time.sleep(poll_interval)
