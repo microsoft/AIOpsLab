@@ -130,6 +130,25 @@ exec_shell("kubectl get services --all-namespaces")
                 if args_str.startswith("command="):
                     args_str = args_str.replace("command=", "").strip()
 
+                # optional trailing timeout: exec_shell("...", 90) or
+                # exec_shell("...", timeout=90). The command itself is a quoted
+                # string that may contain commas, so only split off a trailing
+                # integer when the remaining argument is still a complete quoted
+                # string -- this avoids mis-parsing a "..., 90" inside a command.
+                kwargs: dict = {}
+                timeout_match = re.search(
+                    r"^(?P<cmd>.+?)\s*,\s*(?:timeout\s*=\s*)?(?P<to>\d+)\s*$",
+                    args_str,
+                    re.DOTALL,
+                )
+                if timeout_match:
+                    candidate = timeout_match.group("cmd").strip()
+                    if (candidate.startswith('"') and candidate.endswith('"')) or (
+                        candidate.startswith("'") and candidate.endswith("'")
+                    ):
+                        args_str = candidate
+                        kwargs = {"timeout": int(timeout_match.group("to"))}
+
                 if args_str.startswith('"') and args_str.endswith('"'):
                     arg_str = args_str.strip('"')
                 elif args_str.startswith("'") and args_str.endswith("'"):
@@ -140,7 +159,7 @@ exec_shell("kubectl get services --all-namespaces")
                     )
 
                 arg_str = arg_str.replace('\\"', '"').replace("\\'", "'")
-                return [arg_str], {}
+                return [arg_str], kwargs
 
             # case: positional/kwargs handled w/ ast.parse
             try:
