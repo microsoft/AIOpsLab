@@ -38,7 +38,7 @@ class Docker:
         command = "docker container prune -f"
         return self.exec_command(command)
         
-    def exec_command(self, command: str, input_data=None, cwd=None):
+    def exec_command(self, command: str, input_data=None, cwd=None, timeout=None):
         """Execute an arbitrary command."""
         if input_data is not None:
             input_data = input_data.encode("utf-8")
@@ -50,8 +50,13 @@ class Docker:
                 stderr=subprocess.PIPE,
                 shell=True,
                 cwd=cwd,
+                timeout=timeout,
             )
             if out is not None:
                 return out.stdout.decode("utf-8")
+        except subprocess.TimeoutExpired as e:
+            raise RuntimeError(
+                f"Timed out after {timeout} seconds executing command: {command}"
+            ) from e
         except subprocess.CalledProcessError as e:
             return e.stderr.decode("utf-8")
