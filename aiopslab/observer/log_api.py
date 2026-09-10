@@ -247,7 +247,7 @@ class LogAPI:
                     scroll_id = page["_scroll_id"]
             except ConnectionTimeout as e:
                 print("Connection Timeout:", e)
-        data = log_for_query_filter(data)
+        data = log_for_query_filter(data, self.log_pod_list)
         print("len data", len(data))
         return data
 
@@ -362,12 +362,12 @@ def log_processing_online_boutique(logs):
     return dt
 
 
-def log_for_query_filter(logs):
+def log_for_query_filter(logs, log_pod_list):
     filtered_log = []
     for log in logs:
         try:
             cmdb_id = log["_source"]["kubernetes"]["pod"]["name"]
-            if cmdb_id not in self.log_pod_list:
+            if cmdb_id not in log_pod_list:
                 continue
         except Exception as e:
             continue
