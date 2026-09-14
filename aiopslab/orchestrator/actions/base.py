@@ -101,7 +101,7 @@ class TaskActions:
             if pattern in command:
                 return error
 
-        result = Shell.exec(command) 
+        result = Shell.exec(command, timeout=timeout) 
 
         if re.search(LOG_COMMAND_PATTERN, command):
             result = greedy_compress_lines(result)
