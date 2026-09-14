@@ -173,33 +173,10 @@ class MongoDBUserUnregisteredMitigation(
         print("== Evaluation ==")
         super().eval(soln, trace, duration)
 
-        # Check if all services (not only faulty service) is back to normal (Running)
-        pod_list = self.kubectl.list_pods(self.namespace)
-        all_normal = True
-
-        for pod in pod_list.items:
-            # Check container statuses
-            for container_status in pod.status.container_statuses:
-                if (
-                    container_status.state.waiting
-                    and container_status.state.waiting.reason == "CrashLoopBackOff"
-                ):
-                    print(f"Container {container_status.name} is in CrashLoopBackOff")
-                    all_normal = False
-                elif (
-                    container_status.state.terminated
-                    and container_status.state.terminated.reason != "Completed"
-                ):
-                    print(
-                        f"Container {container_status.name} is terminated with reason: {container_status.state.terminated.reason}"
-                    )
-                    all_normal = False
-                elif not container_status.ready:
-                    print(f"Container {container_status.name} is not ready")
-                    all_normal = False
-
-            if not all_normal:
-                break
-
-        self.results["success"] = all_normal
+        # Allow dependent workloads time to recover before judging. A correct
+        # fix for an app-level fault (e.g. MongoDB auth) often leaves dependent
+        # pods briefly in CrashLoopBackOff, so poll for recovery instead of
+        # taking a single snapshot at submit() time (see
+        # MitigationTask.wait_until_pods_healthy).
+        self.results["success"] = self.wait_until_pods_healthy(self.namespace)
         return self.results
