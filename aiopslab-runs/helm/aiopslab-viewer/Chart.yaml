@@ -1,0 +1,21 @@
+apiVersion: v2
+name: aiopslab-viewer
+description: A Helm chart for AIOpsLab Viewer - Secure server for AIOpsLab session analysis
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - aiopslab
+  - kubernetes
+  - analysis
+  - viewer
+  - monitoring
+home: https://github.com/your-org/aiopslab-runs
+sources:
+  - https://github.com/your-org/aiopslab-runs
+maintainers:
+  - name: AIOpsLab Team
+    email: team@aiopslab.com
+annotations:
+  category: Analytics
+dependencies: []

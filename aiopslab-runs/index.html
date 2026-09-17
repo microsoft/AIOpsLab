@@ -1,0 +1,1873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIOpsLab Runs</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23667eea;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23764ba2;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='45' fill='url(%23grad)' stroke='white' stroke-width='2'/%3E%3Ctext x='50' y='60' font-family='Arial,sans-serif' font-size='24' font-weight='bold' text-anchor='middle' fill='white'%3EAI%3C/text%3E%3C/svg%3E">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: #fafbfc;
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .header {
+            background: white;
+            border-bottom: 1px solid #e1e5e9;
+            padding: 12px 0;
+            margin-bottom: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
+            color: #1a202c;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-left h1::before {
+            content: "🔬";
+            font-size: 18px;
+        }
+
+        .header .subtitle {
+            font-size: 12px;
+            color: #6b7280;
+            font-weight: 400;
+            margin-top: 1px;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .single-toggle-btn, .create-run-icon-btn, .refresh-btn, .scan-btn {
+            padding: 6px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            background: white;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-weight: 500;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            height: 32px;
+        }
+
+        .single-toggle-btn:hover, .create-run-icon-btn:hover, .refresh-btn:hover, .scan-btn:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+            transform: none;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .create-run-icon-btn {
+            background: #059669;
+            color: white;
+            border-color: #059669;
+            min-width: auto;
+            padding: 6px 10px;
+        }
+
+        .create-run-icon-btn:hover {
+            background: #047857;
+            border-color: #047857;
+        }
+
+        .controls-section {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .search-filter-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 12px;
+            align-items: end;
+            margin-bottom: 0;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            color: #374151;
+            font-weight: 500;
+            margin-bottom: 4px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 6px 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            background: white;
+            font-size: 13px;
+            transition: border-color 0.15s ease;
+            height: 32px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 1px #2563eb;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            background: white;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-weight: 500;
+            font-size: 13px;
+            height: 32px;
+        }
+
+        .filter-btn:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+
+        /* Management Section Styles */
+        .management-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 15px;
+            align-items: end;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .management-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .danger-btn {
+            background: rgba(220, 53, 69, 0.3) !important;
+            border-color: rgba(220, 53, 69, 0.5) !important;
+            color: white !important;
+        }
+
+        .danger-btn:hover {
+            background: rgba(220, 53, 69, 0.5) !important;
+            border-color: rgba(220, 53, 69, 0.8) !important;
+        }
+
+        .run-checkbox {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+
+        .selected-run {
+            background: rgba(102, 126, 234, 0.1) !important;
+            border-color: rgba(102, 126, 234, 0.3) !important;
+        }
+
+        /* Status Messages */
+        .status-message {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .status-success {
+            background: rgba(40, 167, 69, 0.2);
+            border: 1px solid rgba(40, 167, 69, 0.5);
+            color: white;
+        }
+
+        .status-error {
+            background: rgba(220, 53, 69, 0.2);
+            border: 1px solid rgba(220, 53, 69, 0.5);
+            color: white;
+        }
+
+        .status-info {
+            background: rgba(23, 162, 184, 0.2);
+            border: 1px solid rgba(23, 162, 184, 0.5);
+            color: white;
+        }
+
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+        }
+
+        .pagination-info {
+            color: #6b7280;
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .pagination-btn {
+            padding: 4px 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            background: white;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-weight: 500;
+            font-size: 12px;
+            height: 28px;
+            min-width: 28px;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-btn.active {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+
+        .page-size-selector {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        .page-size-selector select {
+            padding: 4px 6px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            background: white;
+            font-size: 12px;
+            height: 28px;
+        }
+
+        .toggle-btn {
+            padding: 10px 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+        }
+
+        .toggle-btn.active {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+
+
+        .runs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 12px;
+        }
+
+        .runs-table {
+            display: none;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .runs-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .runs-table th {
+            background: #f8fafc;
+            color: #374151;
+            padding: 8px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .runs-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 13px;
+            vertical-align: middle;
+        }
+
+        .runs-table tr:hover {
+            background-color: #f9fafb;
+        }
+
+        .runs-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .table-run-id {
+            font-weight: 600;
+            color: #1f2937;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .table-actions .btn {
+            padding: 4px 8px;
+            font-size: 11px;
+        }
+
+        .run-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 16px;
+            transition: all 0.15s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .run-card:hover {
+            border-color: #2563eb;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .run-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .run-id {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+        }
+
+        .run-date {
+            font-size: 11px;
+            color: #6b7280;
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+
+        .run-details {
+            margin-bottom: 12px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 16px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            align-items: center;
+        }
+
+        .detail-label {
+            color: #6b7280;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            font-size: 10px;
+        }
+
+        .detail-value {
+            color: #111827;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .status-badge {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .status-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-partial {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-failed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .run-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 26px;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #6b7280;
+            padding: 40px 20px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: #374151;
+        }
+
+        .empty-state p {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .loading {
+            text-align: center;
+            color: #6b7280;
+            padding: 40px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+        }
+
+        .loading-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #f3f4f6;
+            border-radius: 50%;
+            border-top-color: #2563eb;
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .refresh-btn, .scan-btn {
+            padding: 6px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            background: white;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-weight: 500;
+            font-size: 13px;
+            height: 32px;
+        }
+
+        .refresh-btn:hover, .scan-btn:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+
+        .scan-btn {
+            background: #059669;
+            color: white;
+            border-color: #059669;
+        }
+
+        .scan-btn:hover {
+            background: #047857;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 0;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 480px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border: 1px solid #e5e7eb;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .modal-header h3 {
+            color: #111827;
+            margin: 0;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .close {
+            color: #6b7280;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.15s ease;
+        }
+
+        .close:hover {
+            color: #374151;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-body .form-group {
+            margin-bottom: 16px;
+        }
+
+        .modal-body .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .modal-body label {
+            color: #374151;
+            font-weight: 500;
+            margin-bottom: 6px;
+            display: block;
+            font-size: 13px;
+        }
+
+        .modal-body input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            background: white;
+            font-size: 14px;
+            transition: border-color 0.15s ease;
+        }
+
+        .modal-body input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 1px #2563eb;
+        }
+
+        .modal-note {
+            background: #f9fafb;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 12px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .modal-note p {
+            color: #6b7280;
+            margin: 0;
+            font-size: 13px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 16px 20px;
+            border-top: 1px solid #e5e7eb;
+            background: #f9fafb;
+        }
+
+        .modal-btn {
+            padding: 6px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.15s ease;
+            font-size: 13px;
+            height: 32px;
+        }
+
+        .cancel-btn {
+            background: white;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+
+        .cancel-btn:hover {
+            background: #f9fafb;
+        }
+
+        .create-btn {
+            background: #059669;
+            color: white;
+            border: 1px solid #059669;
+        }
+
+        .create-btn:hover:not(:disabled) {
+            background: #047857;
+        }
+
+        .create-btn:disabled {
+            background: #9ca3af;
+            border-color: #9ca3af;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        @media (max-width: 768px) {
+            .header-top {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 20px;
+            }
+            
+            .header-left h1 {
+                font-size: 32px;
+            }
+            
+            .view-toggle {
+                align-self: center;
+            }
+            
+            .single-toggle-btn {
+                width: 160px;
+                justify-content: center;
+            }
+            
+            .header .subtitle {
+                text-align: center;
+            }
+            
+            .runs-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-filter-container {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .pagination-container {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .pagination-controls {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .runs-table {
+                overflow-x: auto;
+            }
+            
+            .runs-table th,
+            .runs-table td {
+                padding: 8px;
+                font-size: 12px;
+            }
+            
+            .table-actions {
+                flex-direction: column;
+                gap: 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-top">
+                <div class="header-left">
+                    <h1>AIOpsLab Runs</h1>
+                </div>
+                <div class="view-toggle">
+                    <button class="single-toggle-btn" id="view-toggle-btn" onclick="toggleView()">
+                        <span id="toggle-text">Card View</span>
+                    </button>
+                    <button class="create-run-icon-btn" onclick="openCreateRunModal()" title="Create New Run">
+                        <span style="font-size: 18px;">+</span>
+                    </button>
+                </div>
+            </div>
+            <p class="subtitle">Monitor and analyze your AI-powered diagnostic sessions</p>
+        </div>
+
+        <div class="controls-section">
+            <div class="search-filter-container">
+                <div class="form-group">
+                    <label for="search-input">Search Runs</label>
+                    <input type="text" id="search-input" placeholder="Search by run ID, agent, application, or status..." oninput="applyFilters()">
+                </div>
+                <div class="form-group">
+                    <label for="status-filter">Status Filter</label>
+                    <select id="status-filter" onchange="applyFilters()">
+                        <option value="">All Statuses</option>
+                        <option value="success">Success</option>
+                        <option value="partial">Partial</option>
+                        <option value="failed">Failed</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="date-filter">Date Range</label>
+                    <select id="date-filter" onchange="applyFilters()">
+                        <option value="">All Dates</option>
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="filter-btn" onclick="clearFilters()">Clear</button>
+                        <button class="refresh-btn" onclick="loadRuns()" title="Refresh from Database">↻</button>
+                        <button class="scan-btn" onclick="scanFilesystem()" title="Scan filesystem for new runs">🔍</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="loading" id="loadingState">
+            <div class="loading-spinner"></div>
+            <p>Scanning for AIOpsLab runs...</p>
+        </div>
+
+        <div class="runs-grid" id="runsGrid" style="display: none;">
+            <!-- Run cards will be dynamically populated here -->
+        </div>
+
+        <div class="runs-table" id="runsTable" style="display: none;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Run ID</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Duration</th>
+                        <th>Steps</th>
+                        <th>Reasoning</th>
+                        <th>Agent</th>
+                        <th>Application</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="runsTableBody">
+                    <!-- Table rows will be dynamically populated here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <h3>No runs found</h3>
+            <p>No AIOpsLab diagnostic sessions were found in this directory.</p>
+        </div>
+
+        <div class="pagination-container" id="paginationContainer" style="display: none;">
+            <div class="pagination-info">
+                <span id="pagination-info-text">Showing 1-10 of 25 runs</span>
+            </div>
+            <div class="pagination-controls">
+                <button class="pagination-btn" id="prev-btn" onclick="changePage(-1)">← Previous</button>
+                <div id="page-numbers"></div>
+                <button class="pagination-btn" id="next-btn" onclick="changePage(1)">Next →</button>
+            </div>
+            <div class="page-size-selector">
+                <label>Show:</label>
+                <select id="page-size" onchange="changePageSize()">
+                    <option value="5">5</option>
+                    <option value="10" selected>10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                </select>
+                <span>per page</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Run Modal -->
+    <div id="createRunModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create New Run</h3>
+                <span class="close" onclick="closeCreateRunModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="run-date-picker">Select Date</label>
+                    <input type="date" id="run-date-picker" required>
+                </div>
+                <div class="form-group">
+                    <label for="agent-name">Agent Name</label>
+                    <input type="text" id="agent-name" placeholder="e.g., copilot, claude, gpt-4" required>
+                </div>
+                <div class="form-group">
+                    <label for="application-name">Application Name</label>
+                    <input type="text" id="application-name" placeholder="e.g., social-network, ecommerce-backend" required>
+                </div>
+                <div class="form-group">
+                    <label>Generated Run ID</label>
+                    <input type="text" id="generated-run-id" readonly style="background: #f5f5f5; cursor: not-allowed;">
+                </div>
+                <div class="modal-note">
+                    <p><strong>Note:</strong> A random string will be automatically generated and appended to the selected date to create a unique run ID.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn cancel-btn" onclick="closeCreateRunModal()">Cancel</button>
+                <button class="modal-btn create-btn" onclick="createRunFromModal()" id="create-run-btn" disabled>Create Run</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration for expected file patterns
+        const CONFIG = {
+            runFolderPattern: /^\d{8}-[a-f0-9-]+$/i,
+            logFilePattern: /\.log$/,
+            summaryFilePattern: /\.md$/
+        };
+
+        // Current view mode
+        let currentView = 'card';
+        
+        // Pagination and filtering state
+        let allRuns = [];
+        let filteredRuns = [];
+        let currentPage = 1;
+        let pageSize = 10;
+
+        // Parse run folder name to extract date and run ID
+        function parseRunFolder(folderName) {
+            const match = folderName.match(/^(\d{4})(\d{2})(\d{2})-(.+)$/);
+            if (!match) return null;
+            
+            const [, year, month, day, runId] = match;
+            const date = new Date(year, month - 1, day);
+            
+            return {
+                fullId: folderName,
+                date: date,
+                runId: runId,
+                dateString: date.toLocaleDateString(),
+                timeString: date.toLocaleTimeString()
+            };
+        }
+
+        // Get runs from the API endpoint
+        async function getRuns() {
+            try {
+                const response = await fetch('/api/runs');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const runs = await response.json();
+                
+                // Transform API data to match expected format
+                return runs.map(run => {
+                    
+                    return {
+                        fullId: run.id,
+                        date: new Date(run.created),
+                        runId: run.id.split('-')[1] || 'unknown',
+                        dateString: new Date(run.created).toLocaleDateString(),
+                        timeString: new Date(run.created).toLocaleTimeString(),
+                        status: run.status,
+                        duration: Math.round(run.duration),
+                        logFile: 'log.txt',
+                        summaryFile: 'evaluation.md',
+                        details: {
+                            agentName: run.agentName || run.agent_name || 'unknown',
+                            applicationName: run.applicationName || run.application_name || 'unknown',
+                            detectionAccuracy: run.detectionAccuracy,
+                            steps: run.steps,
+                            inputTokens: run.inputTokens,
+                            outputTokens: run.outputTokens,
+                            reasoningScore: run.reasoningScore
+                        }
+                    };
+                });
+            } catch (error) {
+                console.error('Error fetching runs from API:', error);
+                
+                // Return empty array if API fails
+                return [];
+            }
+        }
+
+        // Create a run card element
+        function createRunCard(run) {
+            const statusClass = `status-${run.status}`;
+            const statusText = run.status === 'partial' ? 'Partial' : 
+                             run.status === 'success' ? 'Success' : 'Failed';
+            
+            // Calculate additional metrics
+            const duration = run.duration ? `${run.duration}s` : 'N/A';
+            const reasoning_judgement = run.details?.reasoning_judgement || 'N/A';
+            const agentName = run.details?.agentName || 'N/A';
+            const applicationName = run.details?.applicationName || 'N/A';
+            const steps = run.details?.steps || 'N/A';
+            const reasoning = run.details?.reasoningScore;
+            
+            return `
+                <div class="run-card" data-run-id="${run.fullId}" onclick="openRun('${run.fullId}')">
+                    <div class="run-header">
+                        <div class="run-id">
+                            ${run.fullId}
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                            <div class="run-date">${run.dateString}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="run-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Duration</span>
+                            <span class="detail-value">${duration}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Steps</span>
+                            <span class="detail-value">${steps}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Reasoning</span>
+                            <span class="detail-value">${reasoning}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Agent</span>
+                            <span class="detail-value" style="font-family: monospace; font-size: 11px; color: #2563eb;">${agentName}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Application</span>
+                            <span class="detail-value" style="font-family: monospace; font-size: 11px; color: #059669;">${applicationName}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="run-actions">
+                        <a href="viewer.html?run=${run.fullId}" class="btn btn-primary" onclick="event.stopPropagation()">
+                            View
+                        </a>
+                        <a href="/runs/${run.fullId}/${run.logFile}" class="btn btn-secondary" onclick="event.stopPropagation()" target="_blank">
+                            Log
+                        </a>
+                        <button class="btn btn-danger" onclick="event.stopPropagation(); deleteRun('${run.fullId}')" title="Delete this run">
+                            🗑
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Create a table row element
+        function createTableRow(run) {
+            const statusClass = `status-${run.status}`;
+            const statusText = run.status === 'partial' ? 'Partial' : 
+                             run.status === 'success' ? 'Success' : 'Failed';
+            
+            // Calculate additional metrics
+            const duration = run.duration ? `${run.duration}s` : 'N/A';
+            const agentName = run.details?.agentName || 'N/A';
+            const applicationName = run.details?.applicationName || 'N/A';
+            const steps = run.details?.steps || 'N/A';
+            const reasoning = run.details?.reasoningScore;
+            
+            return `
+                <tr onclick="openRun('${run.fullId}')" style="cursor: pointer;">
+                    <td>
+                        <span class="table-run-id">${run.fullId}</span>
+                    </td>
+                    <td style="font-size: 11px; color: #6b7280;">${run.dateString}</td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                    <td>${duration}</td>
+                    <td>${steps}</td>
+                    <td>${reasoning}</td>
+                    <td style="font-family: monospace; font-size: 10px; color: #2563eb; max-width: 80px; overflow: hidden; text-overflow: ellipsis;">${agentName}</td>
+                    <td style="font-family: monospace; font-size: 10px; color: #059669; max-width: 120px; overflow: hidden; text-overflow: ellipsis;">${applicationName}</td>
+                    <td class="table-actions">
+                        <a href="viewer.html?run=${run.fullId}" class="btn btn-primary" onclick="event.stopPropagation()">
+                            View
+                        </a>
+                        <a href="/runs/${run.fullId}/${run.logFile}" class="btn btn-secondary" onclick="event.stopPropagation()" target="_blank">
+                            Log
+                        </a>
+                        <button class="btn btn-danger" onclick="event.stopPropagation(); deleteRun('${run.fullId}')" title="Delete this run">
+                            🗑
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
+
+        // Switch between card and table view
+        function switchView(viewType) {
+            currentView = viewType;
+            
+            const runsGrid = document.getElementById('runsGrid');
+            const runsTable = document.getElementById('runsTable');
+            
+            if (viewType === 'card') {
+                runsGrid.style.display = 'grid';
+                runsTable.style.display = 'none';
+            } else {
+                runsGrid.style.display = 'none';
+                runsTable.style.display = 'block';
+            }
+            
+            updateToggleButton();
+        }
+
+        // Toggle between views with single button
+        function toggleView() {
+            const newView = currentView === 'card' ? 'table' : 'card';
+            switchView(newView);
+        }
+
+        // Update toggle button appearance
+        function updateToggleButton() {
+            const toggleText = document.getElementById('toggle-text');
+            
+            if (toggleText) {
+                if (currentView === 'card') {
+                    toggleText.textContent = 'Table View';
+                } else {
+                    toggleText.textContent = 'Card View';
+                }
+            }
+        }
+
+        // Filter runs based on search and filter criteria
+        function filterRuns(runs) {
+            const searchInput = document.getElementById('search-input');
+            const statusFilterElement = document.getElementById('status-filter');
+            const dateFilterElement = document.getElementById('date-filter');
+            
+            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+            const statusFilter = statusFilterElement ? statusFilterElement.value : '';
+            const dateFilter = dateFilterElement ? dateFilterElement.value : '';
+            
+            return runs.filter(run => {
+                // Search filter
+                const matchesSearch = !searchTerm || 
+                    run.fullId.toLowerCase().includes(searchTerm) ||
+                    (run.details.agentName && run.details.agentName.toLowerCase().includes(searchTerm)) ||
+                    (run.details.applicationName && run.details.applicationName.toLowerCase().includes(searchTerm)) ||
+                    run.status.toLowerCase().includes(searchTerm);
+                
+                // Status filter
+                const matchesStatus = !statusFilter || run.status === statusFilter;
+                
+                // Date filter
+                const matchesDate = !dateFilter || checkDateFilter(run.date, dateFilter);
+                
+                return matchesSearch && matchesStatus && matchesDate;
+            });
+        }
+
+        // Check if a date matches the filter criteria
+        function checkDateFilter(runDate, filter) {
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            
+            switch (filter) {
+                case 'today':
+                    const runDay = new Date(runDate.getFullYear(), runDate.getMonth(), runDate.getDate());
+                    return runDay.getTime() === today.getTime();
+                case 'week':
+                    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    return runDate >= weekAgo;
+                case 'month':
+                    const monthAgo = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+                    return runDate >= monthAgo;
+                default:
+                    return true;
+            }
+        }
+
+        // Apply filters and update display
+        function applyFilters() {
+            filteredRuns = filterRuns(allRuns);
+            currentPage = 1; // Reset to first page
+            displayCurrentPage();
+        }
+
+        // Clear all filters
+        function clearFilters() {
+            document.getElementById('search-input').value = '';
+            document.getElementById('status-filter').value = '';
+            document.getElementById('date-filter').value = '';
+            applyFilters();
+        }
+
+        // Get paginated runs for current page
+        function getPaginatedRuns() {
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = startIndex + pageSize;
+            return filteredRuns.slice(startIndex, endIndex);
+        }
+
+        // Display current page of runs
+        function displayCurrentPage() {
+            const paginatedRuns = getPaginatedRuns();
+            const runsGrid = document.getElementById('runsGrid');
+            const runsTableBody = document.getElementById('runsTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const paginationContainer = document.getElementById('paginationContainer');
+            
+            if (filteredRuns.length === 0) {
+                runsGrid.style.display = 'none';
+                document.getElementById('runsTable').style.display = 'none';
+                emptyState.style.display = 'block';
+                paginationContainer.style.display = 'none';
+                return;
+            }
+            
+            // Generate content for current page
+            runsGrid.innerHTML = paginatedRuns.map(createRunCard).join('');
+            runsTableBody.innerHTML = paginatedRuns.map(createTableRow).join('');
+            
+            // Show correct view
+            if (currentView === 'card') {
+                runsGrid.style.display = 'grid';
+                document.getElementById('runsTable').style.display = 'none';
+            } else {
+                runsGrid.style.display = 'none';
+                document.getElementById('runsTable').style.display = 'block';
+            }
+            
+            emptyState.style.display = 'none';
+            paginationContainer.style.display = 'flex';
+            
+            updatePaginationControls();
+        }
+
+        // Update pagination controls
+        function updatePaginationControls() {
+            const totalRuns = filteredRuns.length;
+            const totalPages = Math.ceil(totalRuns / pageSize);
+            const startIndex = (currentPage - 1) * pageSize + 1;
+            const endIndex = Math.min(currentPage * pageSize, totalRuns);
+            
+            // Update info text - check if element exists
+            const infoTextElement = document.getElementById('pagination-info-text');
+            if (infoTextElement) {
+                infoTextElement.textContent = `Showing ${startIndex}-${endIndex} of ${totalRuns} runs`;
+            }
+            
+            // Update navigation buttons - check if elements exist
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            if (prevBtn) {
+                prevBtn.disabled = currentPage === 1;
+            }
+            if (nextBtn) {
+                nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+            }
+            
+            // Update page numbers - check if element exists
+            const pageNumbersContainer = document.getElementById('page-numbers');
+            if (!pageNumbersContainer) {
+                return;
+            }
+            pageNumbersContainer.innerHTML = '';
+            
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            
+            // Adjust start page if we're near the end
+            if (endPage - startPage < maxVisiblePages - 1) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = `pagination-btn ${i === currentPage ? 'active' : ''}`;
+                pageBtn.textContent = i;
+                pageBtn.onclick = () => goToPage(i);
+                pageNumbersContainer.appendChild(pageBtn);
+            }
+        }
+
+        // Navigate to specific page
+        function goToPage(page) {
+            const totalPages = Math.ceil(filteredRuns.length / pageSize);
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                displayCurrentPage();
+            }
+        }
+
+        // Change page by offset
+        function changePage(offset) {
+            goToPage(currentPage + offset);
+        }
+
+        // Change page size
+        function changePageSize() {
+            const pageSizeElement = document.getElementById('page-size');
+            if (pageSizeElement) {
+                pageSize = parseInt(pageSizeElement.value);
+                currentPage = 1; // Reset to first page
+                displayCurrentPage();
+            }
+        }
+
+        // Open a specific run
+        function openRun(runId) {
+            window.location.href = `viewer.html?run=${runId}`;
+        }
+
+        // Update statistics - functionality removed
+        function updateStats(runs) {
+            // Stats bar removed, no longer needed
+        }
+
+        // Load and display runs
+        async function loadRuns() {
+            const loadingState = document.getElementById('loadingState');
+            const runsGrid = document.getElementById('runsGrid');
+            const runsTable = document.getElementById('runsTable');
+            const emptyState = document.getElementById('emptyState');
+            const paginationContainer = document.getElementById('paginationContainer');
+
+            // Check if all required elements exist
+            if (!loadingState || !runsGrid || !runsTable || !emptyState || !paginationContainer) {
+                console.error('Required DOM elements not found:', {
+                    loadingState: !!loadingState,
+                    runsGrid: !!runsGrid,
+                    runsTable: !!runsTable,
+                    emptyState: !!emptyState,
+                    paginationContainer: !!paginationContainer
+                });
+                return;
+            }
+
+            // Show loading state
+            loadingState.style.display = 'block';
+            runsGrid.style.display = 'none';
+            runsTable.style.display = 'none';
+            emptyState.style.display = 'none';
+            paginationContainer.style.display = 'none';
+
+            try {
+                const runs = await getRuns();
+                
+                // Store all runs and apply initial filtering
+                allRuns = runs.sort((a, b) => b.date - a.date); // Sort by date (newest first)
+                filteredRuns = [...allRuns]; // Initially show all runs
+                currentPage = 1; // Reset to first page
+                
+                // Hide loading state
+                loadingState.style.display = 'none';
+
+                if (allRuns.length === 0) {
+                    emptyState.style.display = 'block';
+                } else {
+                    // Display first page
+                    displayCurrentPage();
+                }
+            } catch (error) {
+                console.error('Error loading runs:', error);
+                if (loadingState) {
+                    loadingState.innerHTML = `
+                        <h3>Error loading runs</h3>
+                        <p>Failed to load run data: ${error.message}</p>
+                    `;
+                }
+            }
+        }
+
+        // Scan filesystem for new runs and import to database
+        async function scanFilesystem() {
+            const scanBtn = document.querySelector('.scan-btn');
+            const originalText = scanBtn.innerHTML;
+            
+            try {
+                scanBtn.innerHTML = '⏳ Scanning...';
+                scanBtn.disabled = true;
+                
+                console.log('Scanning filesystem for new runs...');
+                const response = await fetch('/api/runs/scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                console.log('Scan result:', result);
+                
+                // Show success message
+                scanBtn.innerHTML = `✅ Found ${result.runs.length}`;
+                setTimeout(() => {
+                    scanBtn.innerHTML = originalText;
+                    scanBtn.disabled = false;
+                }, 2000);
+                
+                // Reload runs from database to show new data
+                await loadRuns();
+                
+            } catch (error) {
+                console.error('Error scanning filesystem:', error);
+                scanBtn.innerHTML = '❌ Error';
+                setTimeout(() => {
+                    scanBtn.innerHTML = originalText;
+                    scanBtn.disabled = false;
+                }, 2000);
+            }
+        }
+
+        // Load runs when page loads
+        window.addEventListener('load', () => {
+            updateToggleButton(); // Initialize toggle button state
+            loadRuns();
+        });
+
+        // ===== NEW RUN MANAGEMENT FUNCTIONS =====
+
+        // Global variables for run management
+        let selectedRuns = new Set();
+
+        // ===== MODAL FUNCTIONS =====
+
+        // Generate random string for run ID
+        function generateRandomString(length = 8) {
+            const chars = 'abcdef0123456789'; // Only use valid hex characters
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // Update generated run ID based on selected date
+        function updateGeneratedRunId() {
+            const datePicker = document.getElementById('run-date-picker');
+            const agentName = document.getElementById('agent-name');
+            const applicationName = document.getElementById('application-name');
+            const runIdInput = document.getElementById('generated-run-id');
+            const createBtn = document.getElementById('create-run-btn');
+            
+            if (datePicker.value && agentName.value.trim() && applicationName.value.trim()) {
+                const selectedDate = datePicker.value.replace(/-/g, '');
+                const randomString = generateRandomString(8);
+                const runId = `${selectedDate}-${randomString}`;
+                runIdInput.value = runId;
+                createBtn.disabled = false;
+            } else {
+                runIdInput.value = '';
+                createBtn.disabled = true;
+            }
+        }
+
+        // Open create run modal
+        function openCreateRunModal() {
+            const modal = document.getElementById('createRunModal');
+            const datePicker = document.getElementById('run-date-picker');
+            const agentName = document.getElementById('agent-name');
+            const applicationName = document.getElementById('application-name');
+            const runIdInput = document.getElementById('generated-run-id');
+            const createBtn = document.getElementById('create-run-btn');
+            
+            // Clear previous values
+            agentName.value = '';
+            applicationName.value = '';
+            runIdInput.value = '';
+            createBtn.disabled = true;
+            
+            // Set today's date as default
+            const today = new Date().toISOString().split('T')[0];
+            datePicker.value = today;
+            
+            // Generate initial run ID
+            updateGeneratedRunId();
+            
+            // Show modal
+            modal.style.display = 'block';
+            
+            // Add event listeners for form changes
+            datePicker.addEventListener('input', updateGeneratedRunId);
+            agentName.addEventListener('input', updateGeneratedRunId);
+            applicationName.addEventListener('input', updateGeneratedRunId);
+        }
+
+        // Close create run modal
+        function closeCreateRunModal() {
+            const modal = document.getElementById('createRunModal');
+            const datePicker = document.getElementById('run-date-picker');
+            const agentName = document.getElementById('agent-name');
+            const applicationName = document.getElementById('application-name');
+            
+            modal.style.display = 'none';
+            
+            // Remove event listeners
+            datePicker.removeEventListener('input', updateGeneratedRunId);
+            agentName.removeEventListener('input', updateGeneratedRunId);
+            applicationName.removeEventListener('input', updateGeneratedRunId);
+        }
+
+        // Create run from modal
+        async function createRunFromModal() {
+            const runIdInput = document.getElementById('generated-run-id');
+            const agentNameInput = document.getElementById('agent-name');
+            const applicationNameInput = document.getElementById('application-name');
+            
+            const runId = runIdInput.value.trim();
+            const agentName = agentNameInput.value.trim();
+            const applicationName = applicationNameInput.value.trim();
+            
+            if (!runId || !agentName || !applicationName) {
+                showStatusMessage('Please fill in all required fields', 'error');
+                return;
+            }
+            
+            try {
+                closeCreateRunModal();
+                showStatusMessage('Creating new run...', 'info');
+                
+                const response = await fetch('/api/runs', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        runId: runId,
+                        agentName: agentName,
+                        applicationName: applicationName
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showStatusMessage(`Successfully created run: ${runId}`, 'success');
+                    
+                    // Auto-refresh the UI
+                    await loadRuns();
+                } else {
+                    const error = await response.json();
+                    showStatusMessage(`Failed to create run: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error creating run:', error);
+                showStatusMessage('Failed to create run. Please try again.', 'error');
+            }
+        }
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('createRunModal');
+            if (event.target === modal) {
+                closeCreateRunModal();
+            }
+        });
+
+        // Close modal when pressing ESC key
+        window.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const modal = document.getElementById('createRunModal');
+                if (modal.style.display === 'block') {
+                    closeCreateRunModal();
+                }
+            }
+        });
+
+        // Show status message
+        function showStatusMessage(message, type = 'info') {
+            const container = document.querySelector('.controls-section:last-of-type');
+            if (!container) {
+                console.warn('Status message container not found');
+                return;
+            }
+            
+            const existingMessage = container.querySelector('.status-message');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `status-message status-${type}`;
+            messageDiv.textContent = message;
+            container.appendChild(messageDiv);
+
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.remove();
+                }
+            }, 5000);
+        }
+
+        // Toggle run selection
+        function toggleRunSelection(runId, checkbox) {
+            if (checkbox.checked) {
+                selectedRuns.add(runId);
+            } else {
+                selectedRuns.delete(runId);
+            }
+            updateSelectedCount();
+            updateRunCardStyles();
+            updateSelectAllCheckbox();
+        }
+
+        // Toggle select all checkbox in table header
+        function toggleSelectAll(selectAllCheckbox) {
+            const checkboxes = document.querySelectorAll('.run-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+                if (selectAllCheckbox.checked) {
+                    selectedRuns.add(checkbox.dataset.runId);
+                } else {
+                    selectedRuns.delete(checkbox.dataset.runId);
+                }
+            });
+            updateSelectedCount();
+            updateRunCardStyles();
+        }
+
+        // Update the select all checkbox state based on individual selections
+        function updateSelectAllCheckbox() {
+            const selectAllCheckbox = document.getElementById('select-all-checkbox');
+            const checkboxes = document.querySelectorAll('.run-checkbox');
+            const checkedBoxes = document.querySelectorAll('.run-checkbox:checked');
+            
+            // If select-all checkbox doesn't exist (checkboxes removed from UI), skip this function
+            if (!selectAllCheckbox) {
+                return;
+            }
+            
+            if (checkboxes.length === 0) {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = false;
+            } else if (checkedBoxes.length === checkboxes.length) {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = true;
+            } else if (checkedBoxes.length > 0) {
+                selectAllCheckbox.indeterminate = true;
+                selectAllCheckbox.checked = false;
+            } else {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = false;
+            }
+        }
+
+        // Select all runs
+        function selectAllRuns() {
+            const checkboxes = document.querySelectorAll('.run-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+                selectedRuns.add(checkbox.dataset.runId);
+            });
+            updateSelectedCount();
+            updateRunCardStyles();
+        }
+
+        // Clear selection
+        function clearSelection() {
+            const checkboxes = document.querySelectorAll('.run-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            selectedRuns.clear();
+            updateSelectedCount();
+            updateRunCardStyles();
+        }
+
+        // Update selected count display
+        function updateSelectedCount() {
+            const countElement = document.getElementById('selected-count');
+            if (countElement) {
+                countElement.textContent = selectedRuns.size;
+            }
+        }
+
+        // Update visual styles for selected runs
+        function updateRunCardStyles() {
+            const runCards = document.querySelectorAll('.run-card');
+            runCards.forEach(card => {
+                const runId = card.dataset.runId;
+                if (selectedRuns.has(runId)) {
+                    card.classList.add('selected-run');
+                } else {
+                    card.classList.remove('selected-run');
+                }
+            });
+        }
+
+        // Delete selected runs
+        async function deleteSelectedRuns() {
+            if (selectedRuns.size === 0) {
+                showStatusMessage('No runs selected', 'error');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete ${selectedRuns.size} selected run(s)? This will remove both database records and files.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/runs/delete-batch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        runIds: Array.from(selectedRuns),
+                        deleteFiles: true 
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to delete runs');
+                }
+
+                const result = await response.json();
+                showStatusMessage(`Successfully deleted ${result.results.totalDeleted} runs`, 'success');
+                selectedRuns.clear();
+                updateSelectedCount();
+                loadRuns(); // Refresh the list
+            } catch (error) {
+                console.error('Error deleting runs:', error);
+                showStatusMessage(`Failed to delete runs: ${error.message}`, 'error');
+            }
+        }
+
+        // Delete individual run
+        async function deleteRun(runId) {
+            if (!confirm(`Are you sure you want to delete run ${runId}? This will remove both database record and files.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/runs/${runId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to delete run');
+                }
+
+                const result = await response.json();
+                showStatusMessage(`Run ${runId} deleted successfully!`, 'success');
+                selectedRuns.delete(runId);
+                updateSelectedCount();
+                loadRuns(); // Refresh the list
+            } catch (error) {
+                console.error('Error deleting run:', error);
+                showStatusMessage(`Failed to delete run: ${error.message}`, 'error');
+            }
+        }
+
+        // Delete all runs (dangerous operation)
+        async function deleteAllRuns() {
+            const confirmText = 'DELETE_ALL_RECORDS';
+            const userInput = prompt(`WARNING: This will delete ALL runs from the database.\nType "${confirmText}" to confirm:`);
+            
+            if (userInput !== confirmText) {
+                showStatusMessage('Operation cancelled', 'info');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/delete-all', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ confirm: confirmText })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to delete all runs');
+                }
+
+                const result = await response.json();
+                showStatusMessage(`All runs deleted from database (${result.deletedCount} records)`, 'success');
+                selectedRuns.clear();
+                updateSelectedCount();
+                loadRuns(); // Refresh the list
+            } catch (error) {
+                console.error('Error deleting all runs:', error);
+                showStatusMessage(`Failed to delete all runs: ${error.message}`, 'error');
+            }
+        }
+
+        // ===== END NEW RUN MANAGEMENT FUNCTIONS =====
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
+                e.preventDefault();
+                loadRuns();
+            }
+            
+            // Pagination shortcuts
+            if (e.key === 'ArrowLeft' && e.ctrlKey) {
+                e.preventDefault();
+                changePage(-1);
+            }
+            
+            if (e.key === 'ArrowRight' && e.ctrlKey) {
+                e.preventDefault();
+                changePage(1);
+            }
+            
+            // Focus search with Ctrl+F
+            if (e.key === 'f' && e.ctrlKey) {
+                e.preventDefault();
+                document.getElementById('search-input').focus();
+            }
+        });
+    </script>
+</body>
+</html>

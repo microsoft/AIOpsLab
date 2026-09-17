@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIOpsLab Admin - Database Management</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23667eea;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23764ba2;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='45' fill='url(%23grad)' stroke='white' stroke-width='2'/%3E%3Ctext x='50' y='60' font-family='Arial,sans-serif' font-size='24' font-weight='bold' text-anchor='middle' fill='white'%3EAI%3C/text%3E%3C/svg%3E">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: #fafbfc;
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .header {
+            background: white;
+            border-bottom: 1px solid #e1e5e9;
+            padding: 12px 0;
+            margin-bottom: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
+            color: #1a202c;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header h1::before {
+            content: "⚙️";
+            font-size: 18px;
+        }
+
+        .header .subtitle {
+            font-size: 12px;
+            color: #6b7280;
+            font-weight: 400;
+            margin-top: 1px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .nav-link {
+            padding: 6px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            background: white;
+            color: #374151;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-weight: 500;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            height: 32px;
+        }
+
+        .nav-link:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .admin-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .admin-card {
+            background: white;
+            border: 1px solid #e1e5e9;
+            border-radius: 6px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .admin-card h2 {
+            color: #1a202c;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .action-section {
+            margin-bottom: 16px;
+        }
+
+        .action-section h3 {
+            color: #1a202c;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            color: #374151;
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+            transition: border-color 0.15s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            margin: 4px 8px 4px 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            height: 32px;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+            border-color: #2563eb;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+            border-color: #f59e0b;
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
+            border-color: #d97706;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            border-color: #ef4444;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+            border-color: #dc2626;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+            border-color: #10b981;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            border-color: #059669;
+        }
+
+        .btn:hover {
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn:disabled:hover {
+            box-shadow: none;
+        }
+
+        .runs-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e1e5e9;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            background: white;
+        }
+
+        .run-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid #e1e5e9;
+            transition: background-color 0.15s ease;
+        }
+
+        .run-item:hover {
+            background-color: #f9fafb;
+        }
+
+        .run-item:last-child {
+            border-bottom: none;
+        }
+
+        .run-info {
+            flex-grow: 1;
+        }
+
+        .run-id {
+            font-weight: 600;
+            color: #1a202c;
+            font-size: 13px;
+        }
+
+        .run-status {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
+        .status-badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .status-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-partial {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-failed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            font-weight: 500;
+            font-size: 13px;
+            border: 1px solid;
+        }
+
+        .alert-success {
+            background: #f0fdf4;
+            color: #166534;
+            border-color: #bbf7d0;
+        }
+
+        .alert-error {
+            background: #fef2f2;
+            color: #991b1b;
+            border-color: #fecaca;
+        }
+
+        .alert-info {
+            background: #eff6ff;
+            color: #1e40af;
+            border-color: #dbeafe;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 16px;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #e1e5e9;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .footer {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-links {
+            margin-bottom: 15px;
+        }
+
+        /* Enhanced run item styles for CRUD operations */
+        .run-item {
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 8px;
+            background: white;
+            display: grid;
+            grid-template-columns: 40px 1fr auto auto;
+            gap: 12px;
+            align-items: center;
+            transition: all 0.15s ease;
+        }
+
+        .run-item:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border-color: #3b82f6;
+        }
+
+        .run-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .run-details {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .run-id {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1a202c;
+        }
+
+        .run-meta {
+            font-size: 12px;
+            color: #6b7280;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .run-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 12px;
+            min-width: 60px;
+        }
+
+        .bulk-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .selection-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .bulk-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .edit-form {
+            display: none;
+            grid-column: 1 / -1;
+            margin-top: 12px;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .edit-form.active {
+            display: block;
+        }
+
+        .edit-form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .edit-form-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .filter-summary {
+            padding: 8px 12px;
+            background: #eff6ff;
+            border: 1px solid #dbeafe;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #1e40af;
+            margin-bottom: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .admin-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .run-item {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+
+            .run-actions {
+                justify-self: stretch;
+            }
+
+            .bulk-actions {
+                justify-content: stretch;
+            }
+
+            .bulk-actions .btn {
+                flex: 1;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 8px;
+                align-items: flex-start;
+            }
+            
+            .nav-links {
+                align-self: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>AIOpsLab Admin Panel</h1>
+                    <div class="subtitle">Database management and system administration</div>
+                </div>
+                <div class="nav-links">
+                    <a href="/" class="nav-link">🏠 Dashboard</a>
+                    <a href="/viewer.html" class="nav-link">👁️ Viewer</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-grid">
+        </div>
+
+        <!-- Run Management -->
+        <div class="admin-card">
+            <h2>📋 Run Management</h2>
+            
+            <!-- Bulk Operations Section -->
+            <div class="action-section">
+                <h3>🔄 Bulk Operations</h3>
+                <div class="bulk-controls">
+                    <div class="selection-info">
+                        <span id="selected-count">0</span> runs selected
+                        <button class="btn btn-secondary" id="select-all-btn">Select All</button>
+                        <button class="btn btn-secondary" id="clear-selection-btn">Clear Selection</button>
+                    </div>
+                    <div class="bulk-actions">
+                        <button class="btn btn-warning" id="bulk-reanalyze-btn" disabled>🔄 Reanalyze Selected</button>
+                        <button class="btn btn-danger" id="bulk-delete-btn" disabled>🗑️ Delete Selected</button>
+                        <button class="btn btn-warning" id="reanalyze-all-btn">🔄 Reanalyze All</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search and Filter Section -->
+            <div class="action-section">
+                <h3>🔍 Search & Filter</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label for="search-input">Search Run ID:</label>
+                        <input type="text" id="search-input" placeholder="Search by run ID...">
+                    </div>
+                    <div class="form-group">
+                        <label for="status-filter">Filter by Status:</label>
+                        <select id="status-filter">
+                            <option value="">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="running">Running</option>
+                            <option value="success">Success</option>
+                            <option value="partial">Partial</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div id="runs-loading" class="loading">
+                <div class="spinner"></div>
+                <p>Loading runs...</p>
+            </div>
+            <div id="runs-content" style="display: none;">
+                <div class="runs-list" id="runs-list">
+                    <!-- Runs will be populated here -->
+                </div>
+                <div style="text-align: center; margin-top: 16px;">
+                    <button class="btn btn-primary" id="refresh-runs-btn">Refresh Runs</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Database Cleanup -->
+        <div class="admin-card">
+            <h2>🧹 Database Cleanup</h2>
+            <div class="action-section">
+                <h3>Clean Old Runs</h3>
+                <p style="margin-bottom: 12px; color: #6b7280; font-size: 13px;">Remove runs older than specified days to free up space.</p>
+                <div class="form-group">
+                    <label for="cleanup-days">Days to keep:</label>
+                    <input type="number" id="cleanup-days" value="30" min="1" max="365">
+                </div>
+                <button class="btn btn-danger" id="cleanup-btn">Cleanup Database</button>
+            </div>
+
+            <div class="action-section">
+                <h3>Bulk Operations</h3>
+                <button class="btn btn-warning" id="reanalyze-all-btn">Reanalyze All Runs</button>
+                <button class="btn btn-primary" id="export-btn">💾 Export Database</button>
+            </div>
+
+            <div class="action-section">
+                <h3 style="color: #ef4444;">Dangerous Operations</h3>
+                <p style="margin-bottom: 12px; color: #ef4444; font-weight: 600; font-size: 13px;">These operations cannot be undone!</p>
+                <button class="btn btn-danger" id="delete-all-btn">
+                    💥 Delete ALL Records
+                </button>
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        <div id="alerts-container"></div>
+
+        <div class="footer">
+            <div class="nav-links">
+                <a href="/">🏠 Dashboard</a>
+                <a href="/health">💚 Health</a>
+            </div>
+            <p style="color: #7f8c8d;">AIOpsLab Admin Panel - Manage your runs and database efficiently</p>
+        </div>
+    </div>
+
+    <script>
+        let allRuns = [];
+        let selectedRuns = new Set();
+        let filteredRuns = [];
+
+        // Initialize the admin panel
+        async function init() {
+            await refreshRuns();
+            
+            // Add event listeners
+            setupEventListeners();
+        }
+
+        // Setup event listeners for buttons
+        function setupEventListeners() {
+            // Basic operations
+            document.getElementById('cleanup-btn').addEventListener('click', cleanupDatabase);
+            document.getElementById('export-btn').addEventListener('click', exportDatabase);
+            document.getElementById('delete-all-btn').addEventListener('click', deleteAllRecords);
+            document.getElementById('refresh-runs-btn').addEventListener('click', refreshRuns);
+            
+            // Bulk operations
+            document.getElementById('select-all-btn').addEventListener('click', selectAllRuns);
+            document.getElementById('clear-selection-btn').addEventListener('click', clearSelection);
+            document.getElementById('bulk-reanalyze-btn').addEventListener('click', bulkReanalyze);
+            document.getElementById('bulk-delete-btn').addEventListener('click', bulkDelete);
+            document.getElementById('reanalyze-all-btn').addEventListener('click', reanalyzeAll);
+            
+            // Search and filter
+            document.getElementById('search-input').addEventListener('input', applyFilters);
+            document.getElementById('status-filter').addEventListener('change', applyFilters);
+        }
+
+        // Show alert message
+        function showAlert(message, type = 'info') {
+            const alertsContainer = document.getElementById('alerts-container');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            alertsContainer.appendChild(alertDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Refresh runs list
+        async function refreshRuns() {
+            const loading = document.getElementById('runs-loading');
+            const content = document.getElementById('runs-content');
+            
+            loading.style.display = 'block';
+            content.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/runs');
+                allRuns = await response.json();
+                
+                // Populate filters
+                populateFilters();
+                
+                // Apply current filters
+                applyFilters();
+                
+                loading.style.display = 'none';
+                content.style.display = 'block';
+                showAlert('Runs refreshed successfully', 'success');
+            } catch (error) {
+                loading.style.display = 'none';
+                content.style.display = 'block';
+                showAlert('Failed to load runs: ' + error.message, 'error');
+            }
+        }
+
+        // Populate filter dropdowns
+        function populateFilters() {
+            // Currently only status filter exists
+            // Could be extended for other filters in the future
+        }
+
+        // Apply search and filters
+        function applyFilters() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const statusFilter = document.getElementById('status-filter').value;
+            
+            filteredRuns = allRuns.filter(run => {
+                const matchesSearch = !searchTerm || 
+                    run.id.toLowerCase().includes(searchTerm) ||
+                    (run.agentName && run.agentName.toLowerCase().includes(searchTerm)) ||
+                    (run.agent_name && run.agent_name.toLowerCase().includes(searchTerm)) ||
+                    (run.applicationName && run.applicationName.toLowerCase().includes(searchTerm)) ||
+                    (run.application_name && run.application_name.toLowerCase().includes(searchTerm));
+                const matchesStatus = !statusFilter || run.status === statusFilter;
+                
+                return matchesSearch && matchesStatus;
+            });
+            
+            displayRuns(filteredRuns);
+            updateFilterSummary();
+        }
+
+        // Update filter summary
+        function updateFilterSummary() {
+            const totalRuns = allRuns.length;
+            const visibleRuns = filteredRuns.length;
+            
+            if (visibleRuns < totalRuns) {
+                const filterContainer = document.getElementById('runs-content');
+                let summary = filterContainer.querySelector('.filter-summary');
+                
+                if (!summary) {
+                    summary = document.createElement('div');
+                    summary.className = 'filter-summary';
+                    filterContainer.insertBefore(summary, document.getElementById('runs-list'));
+                }
+                
+                summary.textContent = `Showing ${visibleRuns} of ${totalRuns} runs`;
+            } else {
+                const summary = document.querySelector('.filter-summary');
+                if (summary) summary.remove();
+            }
+        }
+
+        // Display runs in the list
+        function displayRuns(runs) {
+            const runsList = document.getElementById('runs-list');
+            runsList.innerHTML = '';
+
+            if (runs.length === 0) {
+                runsList.innerHTML = '<div style="padding: 20px; text-align: center; color: #7f8c8d;">No runs found</div>';
+                return;
+            }
+
+            runs.forEach(run => {
+                const runItem = document.createElement('div');
+                runItem.className = 'run-item';
+                runItem.dataset.runId = run.id;
+                
+                const statusClass = `status-${run.status}`;
+                const isSelected = selectedRuns.has(run.id);
+                
+                runItem.innerHTML = `
+                    <input type="checkbox" class="run-checkbox" ${isSelected ? 'checked' : ''} 
+                           onchange="toggleRunSelection('${run.id}')">
+                    <div class="run-details">
+                        <div class="run-id">${run.id}</div>
+                        <div class="run-meta">
+                            <span>Duration: ${run.duration}s</span>
+                            <span>Steps: ${run.steps}</span>
+                            <span>Reasoning Judgement: ${run.reasoning_judgement || 'N/A'}</span>
+                            <span>Agent: ${run.agentName || run.agent_name || 'Unknown'}</span>
+                            <span>App: ${run.applicationName || run.application_name || 'Unknown'}</span>
+                            <span>Created: ${new Date(run.created || run.created_at).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                    <span class="status-badge ${statusClass}">${run.status}</span>
+                    <div class="run-actions">
+                        <button class="btn btn-primary btn-small" onclick="editRun('${run.id}')">✏️ Edit</button>
+                        <button class="btn btn-warning btn-small" onclick="reanalyzeRun('${run.id}')">🔄</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteRun('${run.id}')">🗑️</button>
+                    </div>
+                    <div class="edit-form" id="edit-form-${run.id}">
+                        <div class="edit-form-grid">
+                            <div class="form-group">
+                                <label>Status:</label>
+                                <select id="edit-status-${run.id}">
+                                    <option value="pending" ${run.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                    <option value="running" ${run.status === 'running' ? 'selected' : ''}>Running</option>
+                                    <option value="success" ${run.status === 'success' ? 'selected' : ''}>Success</option>
+                                    <option value="partial" ${run.status === 'partial' ? 'selected' : ''}>Partial</option>
+                                    <option value="failed" ${run.status === 'failed' ? 'selected' : ''}>Failed</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Agent Name:</label>
+                                <input type="text" id="edit-agent-${run.id}" value="${run.agentName || run.agent_name || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label>Application:</label>
+                                <input type="text" id="edit-application-${run.id}" value="${run.applicationName || run.application_name || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label>Duration (s):</label>
+                                <input type="number" id="edit-duration-${run.id}" value="${run.duration || 0}" step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label>Reasoning Judgement:</label>
+                                <input type="text" id="edit-reasoning-judgement-${run.id}" value="${run.reasoning_judgement || ''}">
+                            </div>
+                        </div>
+                        <div class="edit-form-actions">
+                            <button class="btn btn-success btn-small" onclick="saveRunEdit('${run.id}')">💾 Save</button>
+                            <button class="btn btn-secondary btn-small" onclick="cancelRunEdit('${run.id}')">❌ Cancel</button>
+                        </div>
+                    </div>
+                `;
+                
+                runsList.appendChild(runItem);
+            });
+            
+            updateSelectionUI();
+        }
+
+        // Toggle run selection
+        function toggleRunSelection(runId) {
+            if (selectedRuns.has(runId)) {
+                selectedRuns.delete(runId);
+            } else {
+                selectedRuns.add(runId);
+            }
+            updateSelectionUI();
+        }
+
+        // Update selection UI
+        function updateSelectionUI() {
+            const selectedCount = selectedRuns.size;
+            document.getElementById('selected-count').textContent = selectedCount;
+            
+            const bulkReanalyzeBtn = document.getElementById('bulk-reanalyze-btn');
+            const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
+            
+            bulkReanalyzeBtn.disabled = selectedCount === 0;
+            bulkDeleteBtn.disabled = selectedCount === 0;
+        }
+
+        // Select all visible runs
+        function selectAllRuns() {
+            filteredRuns.forEach(run => selectedRuns.add(run.id));
+            displayRuns(filteredRuns);
+        }
+
+        // Clear selection
+        function clearSelection() {
+            selectedRuns.clear();
+            displayRuns(filteredRuns);
+        }
+
+        // Edit run
+        function editRun(runId) {
+            const editForm = document.getElementById(`edit-form-${runId}`);
+            editForm.classList.add('active');
+        }
+
+        // Cancel run edit
+        function cancelRunEdit(runId) {
+            const editForm = document.getElementById(`edit-form-${runId}`);
+            editForm.classList.remove('active');
+        }
+
+        // Save run edit
+        async function saveRunEdit(runId) {
+            const status = document.getElementById(`edit-status-${runId}`).value;
+            const agentName = document.getElementById(`edit-agent-${runId}`).value;
+            const applicationName = document.getElementById(`edit-application-${runId}`).value;
+            const duration = parseFloat(document.getElementById(`edit-duration-${runId}`).value) || 0;
+            const reasoning_judgement = document.getElementById(`edit-reasoning-judgement-${runId}`).value;
+            
+            const updateData = {
+                status,
+                agentName: agentName || 'unknown',
+                applicationName: applicationName || 'unknown',
+                duration,
+                reasoning_judgement: reasoning_judgement || 'N/A'
+            };
+            
+            try {
+                const response = await fetch(`/api/runs/${runId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updateData)
+                });
+                
+                if (response.ok) {
+                    showAlert(`Run ${runId} updated successfully`, 'success');
+                    cancelRunEdit(runId);
+                    await refreshRuns();
+                } else {
+                    const error = await response.json();
+                    showAlert(`Failed to update run: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error updating run: ${error.message}`, 'error');
+            }
+        }
+
+        // Delete single run
+        async function deleteRun(runId) {
+            const confirmed = confirm(`Delete run ${runId}? This action cannot be undone.`);
+            if (!confirmed) return;
+            
+            try {
+                const response = await fetch(`/api/runs/${runId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    showAlert(`Run ${runId} deleted successfully`, 'success');
+                    selectedRuns.delete(runId);
+                    await refreshRuns();
+                    
+                } else {
+                    const error = await response.json();
+                    showAlert(`Failed to delete run: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error deleting run: ${error.message}`, 'error');
+            }
+        }
+
+        // Reanalyze single run
+        async function reanalyzeRun(runId) {
+            try {
+                showAlert(`Reanalyzing run ${runId}...`, 'info');
+                const response = await fetch(`/api/runs/${runId}/reanalyze`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    showAlert(`Run ${runId} reanalyzed successfully`, 'success');
+                    await refreshRuns();
+                    
+                } else {
+                    const error = await response.json();
+                    showAlert(`Failed to reanalyze run: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error reanalyzing run: ${error.message}`, 'error');
+            }
+        }
+
+        // Bulk reanalyze selected runs
+        async function bulkReanalyze() {
+            const runIds = Array.from(selectedRuns);
+            if (runIds.length === 0) {
+                showAlert('No runs selected', 'error');
+                return;
+            }
+            
+            const confirmed = confirm(`Reanalyze ${runIds.length} selected runs? This may take a while.`);
+            if (!confirmed) return;
+            
+            try {
+                showAlert(`Starting bulk reanalysis of ${runIds.length} runs...`, 'info');
+                const response = await fetch('/api/runs/bulk-reanalyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ runIds })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showAlert(`Bulk reanalysis complete: ${result.results.successCount} success, ${result.results.failedCount} failed`, 
+                             result.results.failedCount > 0 ? 'error' : 'success');
+                    clearSelection();
+                    await refreshRuns();
+                    
+                } else {
+                    const error = await response.json();
+                    showAlert(`Bulk reanalysis failed: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error in bulk reanalysis: ${error.message}`, 'error');
+            }
+        }
+
+        // Bulk delete selected runs
+        async function bulkDelete() {
+            const runIds = Array.from(selectedRuns);
+            if (runIds.length === 0) {
+                showAlert('No runs selected', 'error');
+                return;
+            }
+            
+            const confirmed = confirm(`Delete ${runIds.length} selected runs? This action cannot be undone.`);
+            if (!confirmed) return;
+            
+            try {
+                showAlert(`Deleting ${runIds.length} runs...`, 'info');
+                const response = await fetch('/api/runs/delete-batch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ runIds })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showAlert(`Bulk deletion complete: ${result.results.totalDeleted} deleted, ${result.results.totalFailed} failed`, 
+                             result.results.totalFailed > 0 ? 'error' : 'success');
+                    clearSelection();
+                    await refreshRuns();
+                    
+                } else {
+                    const error = await response.json();
+                    showAlert(`Bulk deletion failed: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error in bulk deletion: ${error.message}`, 'error');
+            }
+        }
+
+        // Reanalyze all runs
+        async function reanalyzeAll() {
+            const confirmed = confirm(`Reanalyze all ${allRuns.length} runs? This may take a while.`);
+            if (!confirmed) return;
+
+            try {
+                showAlert('Starting bulk reanalysis of all runs...', 'info');
+                const response = await fetch('/api/runs/bulk-reanalyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reanalyzeAll: true })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showAlert(`Bulk reanalysis complete: ${result.results.successCount} success, ${result.results.failedCount} failed`, 
+                             result.results.failedCount > 0 ? 'error' : 'success');
+                    await refreshRuns();
+                    
+                } else {
+                    const error = await response.json();
+                    showAlert(`Bulk reanalysis failed: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error in bulk reanalysis: ${error.message}`, 'error');
+            }
+        }
+
+        // Cleanup database
+        async function cleanupDatabase() {
+            const days = document.getElementById('cleanup-days').value;
+            const confirmed = confirm(`Delete runs older than ${days} days? This action cannot be undone.`);
+            
+            if (!confirmed) return;
+
+            try {
+                showAlert(`Cleaning up runs older than ${days} days...`, 'info');
+                const response = await fetch(`/api/cleanup?days=${days}`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showAlert(`Cleanup complete: ${result.deletedCount || 0} runs removed`, 'success');
+                    await refreshRuns();
+                    
+                } else {
+                    const error = await response.json();
+                    showAlert(`Cleanup failed: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Cleanup error: ${error.message}`, 'error');
+            }
+        }
+
+        // Export database
+        async function exportDatabase() {
+            try {
+                showAlert('Exporting database...', 'info');
+                const response = await fetch('/api/runs');
+                const runs = await response.json();
+                
+                const dataStr = JSON.stringify(runs, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(dataBlob);
+                link.download = `aiopslab-runs-${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+                
+                showAlert('Database exported successfully', 'success');
+            } catch (error) {
+                showAlert(`Export failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Delete all records (dangerous operation)
+        async function deleteAllRecords() {
+            // Multi-step confirmation to prevent accidental deletion
+            const firstConfirm = confirm('WARNING: This will DELETE ALL RECORDS from the database!\n\nThis action CANNOT be undone. Are you absolutely sure?');
+            if (!firstConfirm) return;
+
+            const secondConfirm = confirm('🚨 FINAL WARNING 🚨\n\nYou are about to permanently delete ALL run data from the database.\n\nType confirmation required in next step. Continue?');
+            if (!secondConfirm) return;
+
+            const confirmText = prompt('Type "DELETE ALL RECORDS" exactly (case sensitive) to confirm:');
+            if (confirmText !== 'DELETE ALL RECORDS') {
+                showAlert('Deletion cancelled - confirmation text did not match', 'error');
+                return;
+            }
+
+            try {
+                showAlert('Deleting all records from database...', 'info');
+                const response = await fetch('/api/delete-all', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ confirm: 'DELETE_ALL_RECORDS' })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showAlert(`💥 ALL RECORDS DELETED: ${result.deletedCount} records removed`, 'success');
+                    clearSelection();
+                    await refreshRuns();
+                    
+                } else {
+                    const error = await response.json();
+                    showAlert(`Failed to delete records: ${error.error || error.message}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error deleting records: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
