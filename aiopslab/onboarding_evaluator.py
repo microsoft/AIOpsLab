@@ -8,6 +8,7 @@ from aiopslab.service.kubectl import KubeCtl
 from aiopslab.session import Session
 from aiopslab.orchestrator.problems.registry import ProblemRegistry
 from aiopslab.orchestrator.onboarding_eval_parser import EvalParser
+from aiopslab.utils.actions import submitted_solution
 from aiopslab.utils.status import *
 from aiopslab.service.telemetry.prometheus import Prometheus
 import time
@@ -117,7 +118,8 @@ class Evaluator:
 
         # special handling for submit
         if api == "submit":
-            self.session.set_solution(args[0] if len(args) == 1 else args)
+            actions = getattr(self.session.problem, "actions", None)
+            self.session.set_solution(submitted_solution(actions, args, kwargs))
             
             # Use the problem's eval method to check if solution is valid
             try:

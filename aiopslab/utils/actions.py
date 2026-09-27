@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import importlib
+import inspect
 
 
 def action(method):
@@ -80,3 +81,27 @@ def get_actions(task: str, subtype: str | None = None) -> dict:
         }
 
     return actions
+
+
+def submitted_solution(actions, args: list, kwargs: dict):
+    """
+    Get the solution to store for a submit() call.
+
+    A call that matches the task's submit() signature is resolved through it, so
+    submit("Yes") and submit(has_anomaly="Yes") give the same solution. Any other
+    call keeps the previous behavior.
+
+    Args:
+        actions: The task's actions class (or None if unknown).
+        args (list): Positional arguments parsed from the call.
+        kwargs (dict): Keyword arguments parsed from the call.
+
+    Returns:
+        The single submitted value, or a list of values.
+    """
+    try:
+        bound = inspect.signature(actions.submit).bind(*args, **kwargs)
+    except (AttributeError, TypeError, ValueError):
+        return args[0] if len(args) == 1 else args
+    values = list(bound.arguments.values())
+    return values[0] if len(values) == 1 else values
