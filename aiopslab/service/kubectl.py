@@ -49,6 +49,14 @@ class KubeCtl:
         """Return a list of all services within a specified namespace."""
         return self.core_v1_api.list_namespaced_service(namespace)
 
+    def list_deployments(self, namespace):
+        """Return a list of all deployments within a specified namespace."""
+        return self.apps_v1_api.list_namespaced_deployment(namespace)
+
+    def list_stateful_sets(self, namespace):
+        """Return a list of all stateful sets within a specified namespace."""
+        return self.apps_v1_api.list_namespaced_stateful_set(namespace)
+
     def get_cluster_ip(self, service_name, namespace):
         """Retrieve the cluster IP address of a specified service within a namespace."""
         service_info = self.core_v1_api.read_namespaced_service(service_name, namespace)

@@ -93,12 +93,20 @@ class MitigationTask(Task):
         """Return human-readable reasons for any unhealthy container in `namespace`.
 
         An empty list means every container is healthy (no CrashLoopBackOff,
-        no abnormal termination, all ready).
+        no abnormal termination, all ready). A pod with no container statuses
+        has no running container (e.g. it is Pending because it cannot be
+        scheduled), so it is unhealthy unless it has already succeeded; this
+        matches ``KubeCtl._pod_is_ready_or_succeeded``.
         """
         pod_list = self.kubectl.list_pods(namespace)
         reasons: list[str] = []
         for pod in pod_list.items:
             if not pod.status.container_statuses:
+                if pod.status.phase != "Succeeded":
+                    reasons.append(
+                        f"Pod {pod.metadata.name} has no running containers "
+                        f"(phase: {pod.status.phase})"
+                    )
                 continue
             for container_status in pod.status.container_statuses:
                 waiting = container_status.state.waiting
@@ -116,6 +124,44 @@ class MitigationTask(Task):
                     reasons.append(f"Container {container_status.name} is not ready")
         return reasons
 
+    def _workload_replicas(self, namespace: str) -> dict[str, int]:
+        workloads = {}
+        for kind, list_workloads in (
+            ("Deployment", self.kubectl.list_deployments),
+            ("StatefulSet", self.kubectl.list_stateful_sets),
+        ):
+            for workload in list_workloads(namespace).items:
+                workloads[f"{kind} {workload.metadata.name}"] = workload.spec.replicas or 0
+        return workloads
+
+    def record_deployed_workloads(self):
+        """Record the Deployments and StatefulSets the application deployed.
+
+        The orchestrator calls this after deploying the application and before
+        injecting the fault. Deleting a workload or scaling it to zero removes
+        all of its pods, which the pod checks cannot see, so eval also checks
+        that every recorded workload still exists with at least one replica.
+        """
+        self.deployed_workloads = {
+            name: replicas
+            for name, replicas in self._workload_replicas(self.app.namespace).items()
+            if replicas > 0
+        }
+
+    def workloads_unhealthy_reasons(self, namespace: str) -> list[str]:
+        """Return reasons for any recorded workload that was deleted or scaled to zero."""
+        deployed = getattr(self, "deployed_workloads", None)
+        if not deployed:
+            return []
+        current = self._workload_replicas(namespace)
+        reasons: list[str] = []
+        for name, replicas in sorted(deployed.items()):
+            if name not in current:
+                reasons.append(f"{name} (deployed with {replicas} replicas) no longer exists")
+            elif current[name] == 0:
+                reasons.append(f"{name} (deployed with {replicas} replicas) is scaled to zero")
+        return reasons
+
     def wait_until_pods_healthy(
         self,
         namespace: str,
@@ -124,6 +170,8 @@ class MitigationTask(Task):
     ) -> bool:
         """Poll until all pods in `namespace` are healthy, or `timeout` elapses.
 
+        Healthy also requires every workload recorded by
+        ``record_deployed_workloads`` to still exist with at least one replica.
         Returns True as soon as the namespace is healthy. On timeout, prints the
         outstanding reasons (preserving the previous eval's diagnostic output)
         and returns False. The window is configurable via the
@@ -134,7 +182,9 @@ class MitigationTask(Task):
             timeout = float(os.getenv("AIOPSLAB_MITIGATION_SETTLE_SECONDS", "120"))
         deadline = time.monotonic() + max(timeout, 0.0)
         while True:
-            reasons = self.pods_unhealthy_reasons(namespace)
+            reasons = self.pods_unhealthy_reasons(namespace) + self.workloads_unhealthy_reasons(
+                namespace
+            )
             if not reasons:
                 return True
             if time.monotonic() >= deadline:

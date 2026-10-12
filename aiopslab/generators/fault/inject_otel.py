@@ -86,6 +86,14 @@ class OtelFaultInjector(FaultInjector):
         )
         print(f"Fault recovered: Feature flag '{feature_flag}' set to 'off'.")
 
+    def get_flag_variant(self, feature_flag: str) -> str:
+        """Return the default variant the feature flag is currently set to."""
+        configmap = self.kubectl.core_v1_api.read_namespaced_config_map(
+            self.configmap_name, self.namespace
+        )
+        flagd_data = json.loads(configmap.data["demo.flagd.json"])
+        return flagd_data["flags"][feature_flag]["defaultVariant"]
+
 
 # Example usage:
 # if __name__ == "__main__":

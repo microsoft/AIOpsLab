@@ -107,6 +107,17 @@ class KafkaQueueProblemsMitigation(KafkaQueueProblemsBaseTask, MitigationTask):
         print("== Evaluation ==")
         super().eval(soln, trace, duration)
 
+        # custom: the fault is a feature flag that leaves every pod healthy, so
+        # check that the flag is off again
+        try:
+            variant = self.injector.get_flag_variant("kafkaQueueProblems")
+        except Exception as e:
+            variant = f"unreadable ({e})"
+        if variant != "off":
+            print(f"Feature flag kafkaQueueProblems is {variant}, not off")
+            self.results["success"] = False
+            return self.results
+
         # Allow dependent workloads time to recover before judging instead of
         # taking a single snapshot at submit() time (see
         # MitigationTask.wait_until_pods_healthy).

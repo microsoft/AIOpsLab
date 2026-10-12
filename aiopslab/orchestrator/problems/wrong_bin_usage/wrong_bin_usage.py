@@ -163,29 +163,13 @@ class WrongBinUsageMitigation(WrongBinUsageBaseTask, MitigationTask):
         print("== Evaluation ==")
         super().eval(soln, trace, duration)
 
-        # Check if all services (not only faulty service) is back to normal (Running)
-        pod_list = self.kubectl.list_pods(self.namespace)
-        all_normal = True
-
-        for pod in pod_list.items:
-            # Check container statuses
-            for container_status in pod.status.container_statuses:
-                if container_status.state.waiting:
-                    reason = container_status.state.waiting.reason
-                    if reason in ["CrashLoopBackOff", "Error", "ImagePullBackOff", "ErrImagePull"]:
-                        print(f"Container {container_status.name} is in error state: {reason}")
-                        all_normal = False
-                elif container_status.state.terminated and container_status.state.terminated.reason != "Completed":
-                    print(f"Container {container_status.name} is terminated with reason: {container_status.state.terminated.reason}")
-                    all_normal = False
-                elif not container_status.ready:
-                    print(f"Container {container_status.name} is not ready")
-                    all_normal = False
-
-            if not all_normal:
-                print("Pods are not all in a good state.")
-                self.results["success"] = False
-                return self.results
+        # Check if all services (not only faulty service) is back to normal (Running),
+        # allowing dependent workloads time to recover (see
+        # MitigationTask.wait_until_pods_healthy).
+        if not self.wait_until_pods_healthy(self.namespace):
+            print("Pods are not all in a good state.")
+            self.results["success"] = False
+            return self.results
 
         # Check if the deployment was updated to use the right binary
         expected_command = "profile" # Command dictates which binary will be ran, we want to run /go/bin/profile and not /go/bin/geo

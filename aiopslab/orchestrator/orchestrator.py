@@ -8,6 +8,7 @@ from aiopslab.service.kubectl import KubeCtl
 from aiopslab.session import Session
 from aiopslab.orchestrator.problems.registry import ProblemRegistry
 from aiopslab.orchestrator.parser import ResponseParser
+from aiopslab.orchestrator.tasks.mitigation import MitigationTask
 from aiopslab.utils.status import *
 from aiopslab.utils.critical_section import CriticalSection
 from aiopslab.service.telemetry.prometheus import Prometheus
@@ -70,6 +71,11 @@ class Orchestrator:
         # deploy service
         prob.app.delete()
         prob.app.deploy()
+
+        # record the deployed workloads before the fault changes them, so that
+        # mitigation eval can tell a removed workload from a recovered one
+        if isinstance(prob, MitigationTask):
+            prob.record_deployed_workloads()
 
         # make sure is_fault_injected is correct to apply appropriate
         # function with atexit to recover fault
