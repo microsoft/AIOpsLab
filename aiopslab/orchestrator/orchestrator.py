@@ -10,6 +10,7 @@ from aiopslab.orchestrator.problems.registry import ProblemRegistry
 from aiopslab.orchestrator.parser import ResponseParser
 from aiopslab.utils.status import *
 from aiopslab.utils.critical_section import CriticalSection
+from aiopslab.utils.actions import submitted_solution
 from aiopslab.service.telemetry.prometheus import Prometheus
 import time
 import inspect
@@ -124,7 +125,8 @@ class Orchestrator:
 
         # if submit, save solution for eval
         if api == "submit":
-            self.session.set_solution(args[0] if len(args) == 1 else args)
+            actions = getattr(self.session.problem, "actions", None)
+            self.session.set_solution(submitted_solution(actions, args, kwargs))
 
         try:
             env_response = self.session.problem.perform_action(api, *args, **kwargs)
