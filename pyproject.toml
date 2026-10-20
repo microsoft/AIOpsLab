@@ -41,6 +41,7 @@ vllm = "^0.7.3"
 transformers = ">=4.49,<6.0"
 groq = "^0.28.0"
 flwr = "^1.19.0"
+litellm = ">=1.92.0,<1.101.0"
 
 # Developer tooling (testing, etc.)
 [tool.poetry.group.dev.dependencies]

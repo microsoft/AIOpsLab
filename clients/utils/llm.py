@@ -446,3 +446,114 @@ class LLaMAClient:
             self.cache.add_to_cache(payload, response)
             self.cache.save_cache()
         return response
+
+
+class LiteLLMClient:
+    """Abstraction for any model reachable through LiteLLM.
+
+    LiteLLM (https://docs.litellm.ai/) provides one interface to 100+ model
+    providers, which is useful here because the registry has no Anthropic or
+    Gemini client: reaching those models today means either routing through
+    OpenRouter or standing up an OpenAI-compatible endpoint for
+    GenericOpenAIClient, which requires a base_url and refuses to construct
+    without one.
+
+    This client needs no endpoint. Used directly it calls each provider with
+    that provider's own key (ANTHROPIC_API_KEY and friends), so evaluating a
+    problem across vendors needs no extra infrastructure:
+
+        LITELLM_MODEL=anthropic/claude-opus-4-7
+
+    Pointing it at a self-hosted LiteLLM gateway instead keeps every provider
+    key server-side and adds centralized cost tracking, budgets, rate limiting
+    and fallbacks, which matter over a long benchmark run:
+
+        LITELLM_MODEL=claude-opus-4-7
+        LITELLM_API_BASE=http://localhost:4000
+        LITELLM_API_KEY=sk-...
+
+    Environment variables:
+        LITELLM_MODEL:    model to route (default: gpt-4o).
+        LITELLM_API_BASE: optional gateway URL. Unset means call the provider
+                          directly.
+        LITELLM_API_KEY:  gateway key when LITELLM_API_BASE is set; otherwise
+                          leave unset so LiteLLM reads the provider's own
+                          variable.
+
+    All three can be overridden by passing explicit constructor arguments.
+    """
+
+    # LiteLLM's own prefix meaning "forward this to my gateway rather than
+    # resolving the provider yourself". Without it LiteLLM infers the provider
+    # from the model name and calls it directly, silently bypassing the
+    # gateway. See https://docs.litellm.ai/docs/providers/litellm_proxy
+    PROXY_PREFIX = "litellm_proxy/"
+
+    def __init__(
+        self,
+        model: Optional[str] = None,
+        api_base: Optional[str] = None,
+        api_key: Optional[str] = None,
+        max_tokens: int = 16000,
+        use_cache: bool = True,
+    ):
+        self.cache = Cache() if use_cache else None
+        self.model = model or os.getenv("LITELLM_MODEL", GPT_MODEL)
+        self.api_base = (
+            (api_base or os.getenv("LITELLM_API_BASE") or "").strip().rstrip("/")
+        )
+        self.api_key = (api_key or os.getenv("LITELLM_API_KEY") or "").strip()
+        self.max_tokens = max_tokens
+
+    def route(self) -> str:
+        """Model name to send, prefixed when a gateway should forward it."""
+        if not self.api_base or self.model.startswith(self.PROXY_PREFIX):
+            return self.model
+        return f"{self.PROXY_PREFIX}{self.model}"
+
+    def inference(self, payload: list[dict[str, str]]) -> list[str]:
+        if self.cache is not None:
+            cache_result = self.cache.get_from_cache(payload)
+            if cache_result is not None:
+                return cache_result
+
+        try:
+            import litellm
+        except ImportError as e:
+            raise ImportError(
+                "The 'litellm' package is required for LiteLLMClient. "
+                "Install it with: poetry install --with clients"
+            ) from e
+
+        request: Dict = {
+            "model": self.route(),
+            "messages": payload,
+            "max_tokens": self.max_tokens,
+            "temperature": 0.5,
+            "top_p": 0.95,
+            "n": 1,
+            "timeout": 60,
+            # Providers reject each other's parameters, so let LiteLLM drop
+            # what a given model does not support instead of failing the call.
+            # Without this the shared settings above cannot serve every model.
+            "drop_params": True,
+        }
+        if self.api_base:
+            request["api_base"] = self.api_base
+        if self.api_key:
+            request["api_key"] = self.api_key
+
+        try:
+            response = litellm.completion(**request)
+        except Exception as e:
+            print(f"Exception: {repr(e)}")
+            raise
+
+        return [c.message.content for c in response.choices]  # type: ignore
+
+    def run(self, payload: list[dict[str, str]]) -> list[str]:
+        response = self.inference(payload)
+        if self.cache is not None:
+            self.cache.add_to_cache(payload, response)
+            self.cache.save_cache()
+        return response
