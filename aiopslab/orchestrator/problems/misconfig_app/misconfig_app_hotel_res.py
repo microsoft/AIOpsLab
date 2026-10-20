@@ -165,13 +165,8 @@ class MisconfigAppHotelResMitigation(MisconfigAppHotelResBaseTask, MitigationTas
         print("== Evaluation ==")
         super().eval(soln, trace, duration)
 
-        # Check if all services (not only faulty service) is back to normal (Running)
-        # Use wait_for_ready helper to poll for pod readiness
-        try:
-            self.kubectl.wait_for_ready(self.namespace, sleep=5, max_wait=60)
-            self.results["success"] = True
-        except Exception as e:
-            print(f"Pods are not all ready: {e}")
-            self.results["success"] = False
-
+        # Check if all services (not only faulty service) is back to normal (Running),
+        # allowing dependent workloads time to recover (see
+        # MitigationTask.wait_until_pods_healthy).
+        self.results["success"] = self.wait_until_pods_healthy(self.namespace)
         return self.results

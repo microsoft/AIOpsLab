@@ -177,7 +177,10 @@ class ScalePodSocialNetMitigation(ScalePodSocialNetBaseTask, MitigationTask):
         print("== Evaluation ==")
         super().eval(soln, trace, duration)
 
-        all_normal = True
+        # Check if all services are running normally, allowing dependent
+        # workloads time to recover (see MitigationTask.wait_until_pods_healthy),
+        # then that the faulty service is back to one available replica.
+        all_normal = self.wait_until_pods_healthy(self.namespace)
 
         deployment = self.kubectl.get_deployment(self.faulty_service, self.namespace)
 
@@ -193,31 +196,6 @@ class ScalePodSocialNetMitigation(ScalePodSocialNetBaseTask, MitigationTask):
                     f"Faulty service {self.faulty_service} has {available_replicas} available replicas out of {desired_replicas} desired"
                 )
                 all_normal = False
-
-        # Check if all services are running normally
-        pod_list = self.kubectl.list_pods(self.namespace)
-        for pod in pod_list.items:
-            for container_status in pod.status.container_statuses:
-                if (
-                    container_status.state.waiting
-                    and container_status.state.waiting.reason == "CrashLoopBackOff"
-                ):
-                    print(f"Container {container_status.name} is in CrashLoopBackOff")
-                    all_normal = False
-                elif (
-                    container_status.state.terminated
-                    and container_status.state.terminated.reason != "Completed"
-                ):
-                    print(
-                        f"Container {container_status.name} is terminated with reason: {container_status.state.terminated.reason}"
-                    )
-                    all_normal = False
-                elif not container_status.ready:
-                    print(f"Container {container_status.name} is not ready")
-                    all_normal = False
-
-            if not all_normal:
-                break
 
         self.results["success"] = all_normal
         return self.results
