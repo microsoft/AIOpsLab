@@ -11,6 +11,7 @@ from aiopslab.orchestrator.parser import ResponseParser
 from aiopslab.utils.status import *
 from aiopslab.utils.critical_section import CriticalSection
 from aiopslab.service.telemetry.prometheus import Prometheus
+from aiopslab.paths import BASE_DIR
 import time
 import inspect
 import asyncio
@@ -30,6 +31,25 @@ class Orchestrator:
         self.kubectl = KubeCtl()
         self.use_wandb = os.getenv("USE_WANDB", "false").lower() == "true"
         self.results_dir = results_dir
+        
+        # Configure offline mode if enabled in config
+        self._configure_offline_mode()
+    
+    def _configure_offline_mode(self):
+        """Configure offline image loading if enabled in config."""
+        try:
+            from aiopslab.config import Config
+            config_path = BASE_DIR / "config.yml"
+            if config_path.exists():
+                config = Config(config_path)
+                offline_mode = config.get("offline_mode", False)
+                images_dir = config.get("images_dir", "./images")
+                
+                if offline_mode:
+                    Helm.configure_offline_mode(enabled=True, images_dir=images_dir)
+        except Exception as e:
+            # Config file might not exist or other error, that's OK
+            pass
 
     def init_problem(self, problem_id: str):
         """Initialize a problem instance for the agent to solve.
