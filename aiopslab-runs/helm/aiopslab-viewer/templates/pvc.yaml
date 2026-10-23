@@ -1,0 +1,53 @@
+{{- if .Values.persistence.database.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "aiopslab-viewer.fullname" . }}-database
+  labels:
+    {{- include "aiopslab-viewer.labels" . | nindent 4 }}
+    component: database
+  {{- with .Values.persistence.database.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+    - {{ .Values.persistence.database.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.database.size }}
+  {{- if .Values.persistence.database.storageClass }}
+  {{- if (eq "-" .Values.persistence.database.storageClass) }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: {{ .Values.persistence.database.storageClass }}
+  {{- end }}
+  {{- end }}
+---
+{{- end }}
+{{- if .Values.persistence.runs.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "aiopslab-viewer.fullname" . }}-runs
+  labels:
+    {{- include "aiopslab-viewer.labels" . | nindent 4 }}
+    component: runs
+  {{- with .Values.persistence.runs.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+    - {{ .Values.persistence.runs.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.runs.size }}
+  {{- if .Values.persistence.runs.storageClass }}
+  {{- if (eq "-" .Values.persistence.runs.storageClass) }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: {{ .Values.persistence.runs.storageClass }}
+  {{- end }}
+  {{- end }}
+{{- end }}
