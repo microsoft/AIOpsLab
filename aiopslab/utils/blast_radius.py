@@ -21,11 +21,12 @@ import requests
 
 SPAN_METRIC = "traces_span_metrics_calls_total"
 SERVER_SPAN_KIND = "SPAN_KIND_SERVER"
+CONSUMER_SPAN_KIND = "SPAN_KIND_CONSUMER"
 ERROR_STATUS = "STATUS_CODE_ERROR"
 
 
 def successful_rates(samples: Iterable[tuple[str, str, float]], seconds: float) -> dict[str, float]:
-    """Per-service rate of successful server spans.
+    """Per-service rate of successful requests handled (server and consumer spans).
 
     Args:
         samples: (service, status_code, span count) tuples for one window.
@@ -49,9 +50,11 @@ def rate_drops(
 ) -> dict[str, float]:
     """Fractional drop in successful request rate for each service.
 
-    Services whose baseline rate is below `min_rate` spans per second are
-    left out, since a drop in a near-silent service is mostly noise. A
-    service that disappears during the fault has a drop of 1.0.
+    Services whose baseline rate is below `min_rate` requests per second are
+    left out, since a drop in a near-silent service is mostly noise. Callers
+    usually set `min_rate` from the fault window, for example 20 expected
+    requests divided by its length in seconds. A service that disappears
+    during the fault has a drop of 1.0.
     """
     drops = {}
     for service, base in before.items():
@@ -114,13 +117,17 @@ class SpanMetricsQuery:
         self.timeout = timeout
 
     def window_counts(self, start: float, end: float) -> list[tuple[str, str, float]]:
-        """(service, status_code, count) of server spans between `start` and `end` (Unix seconds)."""
+        """(service, status_code, count) of server and consumer spans between `start` and `end` (Unix seconds).
+
+        Consumer spans count as handled requests, so services that only read
+        from a queue are measured too.
+        """
         seconds = int(round(end - start))
         if seconds <= 0:
             raise ValueError("end must be after start")
         query = (
             f'sum by (service_name, status_code) '
-            f'(increase({self.metric}{{span_kind="{SERVER_SPAN_KIND}"}}[{seconds}s]))'
+            f'(increase({self.metric}{{span_kind=~"{SERVER_SPAN_KIND}|{CONSUMER_SPAN_KIND}"}}[{seconds}s]))'
         )
         resp = requests.get(
             f"{self.base_url}/api/v1/query",
@@ -140,5 +147,5 @@ class SpanMetricsQuery:
         return out
 
     def success_rates(self, start: float, end: float) -> dict[str, float]:
-        """Successful server spans per second for each service in the window."""
+        """Successful requests handled per second for each service in the window."""
         return successful_rates(self.window_counts(start, end), end - start)

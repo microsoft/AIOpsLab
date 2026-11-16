@@ -90,6 +90,23 @@ class CascadingFailureTest(unittest.TestCase):
         self.assertEqual(truth, {"frontend", "checkout"})
         self.assertEqual(drops["cart"], 1.0)
 
+    def test_quiet_services_need_enough_expected_requests(self):
+        prob = self.cf.CascadingFailureBlastRadius("cart")
+        prob.baseline_window = (800.0, 1000.0)
+        prob.injected_at = 1000.0
+        query = mock.Mock()
+        # 0.1 req/s over a 170 s window is 17 expected requests, under the 20 needed.
+        query.success_rates.side_effect = [{"frontend": 10.0, "email": 0.1}, {"frontend": 10.0}]
+        url_cm = mock.MagicMock()
+        url_cm.__enter__.return_value = "http://prom"
+        with mock.patch(f"{MODULE}.SpanMetricsQuery", return_value=query), \
+                mock.patch(f"{MODULE}.prometheus_url", return_value=url_cm), \
+                mock.patch(f"{MODULE}.time.time", return_value=1200.0), \
+                mock.patch(f"{MODULE}.time.sleep"):
+            truth, drops = prob.measure_blast_radius()
+        self.assertNotIn("email", drops)
+        self.assertEqual(truth, set())
+
     def test_measure_waits_for_enough_fault_data(self):
         prob = self.cf.CascadingFailureBlastRadius("cart")
         prob.baseline_window = (800.0, 1000.0)

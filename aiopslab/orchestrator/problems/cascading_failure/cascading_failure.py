@@ -8,8 +8,8 @@ Chaos Mesh pod-failure. Besides the usual detection and localization tasks,
 the blast-radius task asks the agent which other services lost successful
 requests because of the failure. The answer is scored against a set measured
 from the OpenTelemetry span metrics: every service whose rate of successful
-server spans fell by at least `threshold` between the baseline window before
-the fault and the fault window.
+requests (server and consumer spans) fell by at least `threshold` between the
+baseline window before the fault and the fault window.
 """
 
 import os
@@ -82,6 +82,9 @@ class CascadingFailureBaseTask:
         self.baseline_seconds = 180
         self.settle_seconds = 30
         self.min_fault_seconds = 90
+        # A service needs this many expected requests in the fault window to be
+        # measured; fewer make a 20% drop indistinguishable from noise.
+        self.min_expected_requests = 20
         self.injector = SymptomFaultInjector(namespace=self.namespace)
         self.baseline_window = None
         self.injected_at = None
@@ -129,7 +132,7 @@ class CascadingFailureBaseTask:
             query = SpanMetricsQuery(url)
             before = query.success_rates(*self.baseline_window)
             during = query.success_rates(start, end)
-        drops = rate_drops(before, during)
+        drops = rate_drops(before, during, min_rate=self.min_expected_requests / (end - start))
         return blast_radius(drops, self.faulty_service, self.threshold), drops
 
 

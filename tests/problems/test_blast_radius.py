@@ -96,7 +96,7 @@ class SpanMetricsQueryTest(unittest.TestCase):
         with mock.patch("aiopslab.utils.blast_radius.requests.get", return_value=resp) as get:
             rates = SpanMetricsQuery("http://prom:9090/").success_rates(1000.0, 1060.0)
         params = get.call_args.kwargs["params"]
-        self.assertIn('span_kind="SPAN_KIND_SERVER"', params["query"])
+        self.assertIn('span_kind=~"SPAN_KIND_SERVER|SPAN_KIND_CONSUMER"', params["query"])
         self.assertIn("[60s]", params["query"])
         self.assertEqual(params["time"], 1060.0)
         self.assertEqual(get.call_args.args[0], "http://prom:9090/api/v1/query")
