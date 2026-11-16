@@ -29,6 +29,7 @@ from aiopslab.orchestrator.problems.wrong_bin_usage import *
 from aiopslab.orchestrator.problems.operator_misoperation import *
 from aiopslab.orchestrator.problems.flower_node_stop import *
 from aiopslab.orchestrator.problems.flower_model_misconfig import *
+from aiopslab.orchestrator.problems.cascading_failure import *
 
 
 class ProblemRegistry:
@@ -193,6 +194,16 @@ class ProblemRegistry:
             "astronomy_shop_product_catalog_service_failure-localization-1": ProductCatalogServiceFailureLocalization,
             "astronomy_shop_recommendation_service_cache_failure-detection-1": RecommendationServiceCacheFailureDetection,
             "astronomy_shop_recommendation_service_cache_failure-localization-1": RecommendationServiceCacheFailureLocalization,
+            # Hub-service failure with a measured blast radius
+            "astronomy_shop_cascading_failure-detection-1": lambda: CascadingFailureDetection("checkout"),
+            "astronomy_shop_cascading_failure-detection-2": lambda: CascadingFailureDetection("product-catalog"),
+            "astronomy_shop_cascading_failure-detection-3": lambda: CascadingFailureDetection("cart"),
+            "astronomy_shop_cascading_failure-localization-1": lambda: CascadingFailureLocalization("checkout"),
+            "astronomy_shop_cascading_failure-localization-2": lambda: CascadingFailureLocalization("product-catalog"),
+            "astronomy_shop_cascading_failure-localization-3": lambda: CascadingFailureLocalization("cart"),
+            "astronomy_shop_cascading_failure-blast_radius-1": lambda: CascadingFailureBlastRadius("checkout"),
+            "astronomy_shop_cascading_failure-blast_radius-2": lambda: CascadingFailureBlastRadius("product-catalog"),
+            "astronomy_shop_cascading_failure-blast_radius-3": lambda: CascadingFailureBlastRadius("cart"),
             # Redeployment of namespace without deleting the PV
             "redeploy_without_PV-detection-1": RedeployWithoutPVDetection,
             # "redeploy_without_PV-localization-1": RedeployWithoutPVLocalization,
