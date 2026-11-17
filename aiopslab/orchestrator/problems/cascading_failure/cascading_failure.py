@@ -79,9 +79,14 @@ class CascadingFailureBaseTask:
         self.namespace = self.app.namespace
         self.faulty_service = faulty_service
         self.threshold = threshold
+        # The orchestrator injects right after deploying the app, so inject_fault()
+        # first waits for Ready pods plus warmup_seconds of load, then uses the
+        # last baseline_seconds before injection as the baseline.
+        self.warmup_seconds = 120
         self.baseline_seconds = 180
         self.settle_seconds = 30
         self.min_fault_seconds = 90
+        self.fault_seconds = 3600
         # A service needs this many expected requests in the fault window to be
         # measured; fewer make a 20% drop indistinguishable from noise.
         self.min_expected_requests = 20
@@ -95,6 +100,8 @@ class CascadingFailureBaseTask:
 
     def inject_fault(self):
         print("== Fault Injection ==")
+        self.kubectl.wait_for_ready(self.namespace)
+        time.sleep(self.warmup_seconds + self.baseline_seconds)
         end = time.time()
         self.baseline_window = (end - self.baseline_seconds, end)
         experiment = {
@@ -104,7 +111,7 @@ class CascadingFailureBaseTask:
             "spec": {
                 "action": "pod-failure",
                 "mode": "all",
-                "duration": "1h",
+                "duration": f"{self.fault_seconds}s",
                 "selector": {
                     "namespaces": [self.namespace],
                     "labelSelectors": {self.POD_LABEL: self.faulty_service},
@@ -127,7 +134,8 @@ class CascadingFailureBaseTask:
         wait = start + self.min_fault_seconds - time.time()
         if wait > 0:
             time.sleep(wait)
-        end = time.time()
+        # Chaos Mesh lifts the fault after fault_seconds; don't count recovered time.
+        end = min(time.time(), self.injected_at + self.fault_seconds)
         with prometheus_url(self.namespace) as url:
             query = SpanMetricsQuery(url)
             before = query.success_rates(*self.baseline_window)

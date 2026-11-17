@@ -55,13 +55,18 @@ class CascadingFailureTest(unittest.TestCase):
 
     def test_inject_fault_fails_every_pod_of_the_hub_and_records_baseline(self):
         prob = self.cf.CascadingFailureDetection("checkout")
-        with mock.patch(f"{MODULE}.time.time", return_value=5000.0):
+        with mock.patch(f"{MODULE}.time.time", return_value=5000.0), \
+                mock.patch(f"{MODULE}.time.sleep") as sleep:
             prob.inject_fault()
+        # Ready pods, then warm-up plus the baseline window, before injecting.
+        prob.kubectl.wait_for_ready.assert_called_once_with("astronomy-shop")
+        sleep.assert_called_once_with(300)
         experiment, name = prob.injector.create_chaos_experiment.call_args.args
         spec = experiment["spec"]
         self.assertEqual(name, "cascading-failure")
         self.assertEqual(spec["action"], "pod-failure")
         self.assertEqual(spec["mode"], "all")
+        self.assertEqual(spec["duration"], "3600s")
         self.assertEqual(spec["selector"]["labelSelectors"], {prob.POD_LABEL: "checkout"})
         self.assertEqual(prob.baseline_window, (4820.0, 5000.0))
         self.assertEqual(prob.injected_at, 5000.0)
@@ -121,6 +126,22 @@ class CascadingFailureTest(unittest.TestCase):
                 mock.patch(f"{MODULE}.time.sleep") as sleep:
             prob.measure_blast_radius()
         sleep.assert_called_once_with(70.0)
+
+    def test_measure_stops_at_the_end_of_the_fault(self):
+        prob = self.cf.CascadingFailureBlastRadius("cart")
+        prob.baseline_window = (800.0, 1000.0)
+        prob.injected_at = 1000.0
+        query = mock.Mock()
+        query.success_rates.return_value = {"frontend": 1.0}
+        url_cm = mock.MagicMock()
+        url_cm.__enter__.return_value = "http://prom"
+        with mock.patch(f"{MODULE}.SpanMetricsQuery", return_value=query), \
+                mock.patch(f"{MODULE}.prometheus_url", return_value=url_cm), \
+                mock.patch(f"{MODULE}.time.time", return_value=9000.0), \
+                mock.patch(f"{MODULE}.time.sleep"):
+            prob.measure_blast_radius()
+        # Evaluated after Chaos Mesh lifted the fault: the window ends at injection + 3600 s.
+        self.assertEqual(query.success_rates.call_args_list[1].args, (1030.0, 4600.0))
 
     def test_measure_requires_injection_first(self):
         prob = self.cf.CascadingFailureBlastRadius("cart")

@@ -3,10 +3,12 @@
 
 """Measure the blast radius of a fault from per-service request success.
 
-A service is in the blast radius of a fault when its rate of successful
-server spans during the fault falls by at least a threshold fraction of its
-rate before the fault. Callers of a failed service lose successful requests
-because their calls fail; callees lose them because no traffic reaches them.
+A service is in the blast radius of a fault when its rate of successfully
+handled requests (server and consumer spans) during the fault falls by at
+least a threshold fraction of its rate before the fault. Callers of a failed
+service lose successful requests because their calls fail; callees lose them
+because no traffic reaches them. Services with too little traffic to measure
+a drop are left out (see `rate_drops`).
 
 The counts come from the span metrics that the OpenTelemetry Collector's
 spanmetrics connector exports to Prometheus. They count every span, so trace
@@ -116,15 +118,20 @@ class SpanMetricsQuery:
         self.metric = metric
         self.timeout = timeout
 
+    @staticmethod
+    def _seconds(start: float, end: float) -> int:
+        seconds = int(round(end - start))
+        if seconds <= 0:
+            raise ValueError("end must be after start")
+        return seconds
+
     def window_counts(self, start: float, end: float) -> list[tuple[str, str, float]]:
         """(service, status_code, count) of server and consumer spans between `start` and `end` (Unix seconds).
 
         Consumer spans count as handled requests, so services that only read
         from a queue are measured too.
         """
-        seconds = int(round(end - start))
-        if seconds <= 0:
-            raise ValueError("end must be after start")
+        seconds = self._seconds(start, end)
         query = (
             f'sum by (service_name, status_code) '
             f'(increase({self.metric}{{span_kind=~"{SERVER_SPAN_KIND}|{CONSUMER_SPAN_KIND}"}}[{seconds}s]))'
@@ -148,4 +155,4 @@ class SpanMetricsQuery:
 
     def success_rates(self, start: float, end: float) -> dict[str, float]:
         """Successful requests handled per second for each service in the window."""
-        return successful_rates(self.window_counts(start, end), end - start)
+        return successful_rates(self.window_counts(start, end), self._seconds(start, end))

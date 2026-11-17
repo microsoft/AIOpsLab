@@ -102,6 +102,17 @@ class SpanMetricsQueryTest(unittest.TestCase):
         self.assertEqual(get.call_args.args[0], "http://prom:9090/api/v1/query")
         self.assertAlmostEqual(rates["cart"], 1.5)
 
+    def test_rate_uses_the_same_rounded_window_as_the_query(self):
+        body = {"status": "success", "data": {"result": [
+            {"metric": {"service_name": "cart", "status_code": "STATUS_CODE_UNSET"}, "value": [0, "150"]}]}}
+        resp = mock.Mock()
+        resp.json.return_value = body
+        resp.raise_for_status.return_value = None
+        with mock.patch("aiopslab.utils.blast_radius.requests.get", return_value=resp) as get:
+            rates = SpanMetricsQuery("http://prom").success_rates(1000.0, 1150.4)
+        self.assertIn("[150s]", get.call_args.kwargs["params"]["query"])
+        self.assertAlmostEqual(rates["cart"], 1.0)
+
     def test_failed_query_raises(self):
         resp = mock.Mock()
         resp.json.return_value = {"status": "error", "error": "bad"}
